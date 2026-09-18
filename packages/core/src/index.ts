@@ -7,3 +7,6 @@ export type {
   FlowNode,
   FlowNodeKind,
 } from './flow.js';
+
+export { validateFlow } from './validate-flow.js';
+export type { FlowValidationIssue } from './validate-flow.js';
