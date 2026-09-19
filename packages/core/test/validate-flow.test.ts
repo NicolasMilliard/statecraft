@@ -1,4 +1,9 @@
-import { validateFlow, type Flow } from '@statecraft/core';
+import {
+  resolveCodeReference,
+  validateFlow,
+  type CodeReference,
+  type Flow,
+} from '@statecraft/core';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -27,6 +32,16 @@ function createFlow(): Flow {
       },
     ],
     codeReferences: [],
+  };
+}
+
+function createReference(): CodeReference {
+  return {
+    id: 'order-code',
+    flowNodeId: 'order',
+    repositoryId: 'storefront',
+    codeEntityId: 'create-order',
+    role: 'primary',
   };
 }
 
@@ -140,4 +155,113 @@ test('does not modify the input flow', () => {
   validateFlow(flow);
 
   assert.deepEqual(flow, before);
+});
+
+test('accepts multiple code references on one node', () => {
+  const reference = createReference();
+
+  const flow: Flow = {
+    ...createFlow(),
+    codeReferences: [
+      reference,
+      {
+        ...reference,
+        id: 'order-schema-code',
+        codeEntityId: 'order-schema',
+        role: 'dependency',
+      },
+    ],
+  };
+
+  assert.deepEqual(validateFlow(flow), []);
+});
+
+test('accepts a code entity shared by multiple nodes', () => {
+  const reference = createReference();
+
+  const flow: Flow = {
+    ...createFlow(),
+    codeReferences: [
+      reference,
+      {
+        ...reference,
+        id: 'success-code',
+        flowNodeId: 'success',
+        role: 'dependency',
+      },
+    ],
+  };
+
+  assert.deepEqual(validateFlow(flow), []);
+});
+
+test('reports duplicate code reference identifiers', () => {
+  const reference = createReference();
+
+  const flow: Flow = {
+    ...createFlow(),
+    codeReferences: [
+      reference,
+      {
+        ...reference,
+        flowNodeId: 'success',
+      },
+    ],
+  };
+
+  assert.deepEqual(validateFlow(flow), [
+    {
+      code: 'duplicate_code_reference_id',
+      referenceId: 'order-code',
+    },
+  ]);
+});
+
+test('reports a missing referenced node without modifying the flow', () => {
+  const flow: Flow = {
+    ...createFlow(),
+    codeReferences: [
+      {
+        ...createReference(),
+        flowNodeId: 'missing-node',
+      },
+    ],
+  };
+
+  const before = structuredClone(flow);
+
+  assert.deepEqual(validateFlow(flow), [
+    {
+      code: 'code_reference_node_not_found',
+      referenceId: 'order-code',
+      nodeId: 'missing-node',
+    },
+  ]);
+
+  assert.deepEqual(flow, before);
+});
+
+test('accepts structurally valid references with unresolved code', () => {
+  const reference = createReference();
+
+  const flow: Flow = {
+    ...createFlow(),
+    codeReferences: [reference],
+  };
+
+  assert.deepEqual(resolveCodeReference(reference, null), {
+    status: 'graph_unavailable',
+  });
+
+  assert.deepEqual(
+    resolveCodeReference(reference, {
+      repositoryId: reference.repositoryId,
+      entities: [],
+      relations: [],
+    }),
+    { status: 'not_found' },
+  );
+
+  assert.deepEqual(validateFlow(flow), []);
+  assert.deepEqual(flow.codeReferences, [reference]);
 });

@@ -17,12 +17,22 @@ export type FlowValidationIssue =
       readonly code: 'edge_source_not_found' | 'edge_target_not_found';
       readonly edgeId: string;
       readonly nodeId: string;
+    }
+  | {
+      readonly code: 'duplicate_code_reference_id';
+      readonly referenceId: string;
+    }
+  | {
+      readonly code: 'code_reference_node_not_found';
+      readonly referenceId: string;
+      readonly nodeId: string;
     };
 
 export function validateFlow(flow: Flow): readonly FlowValidationIssue[] {
   const issues: FlowValidationIssue[] = [];
   const nodeIds = new Set<string>();
   const edgeIds = new Set<string>();
+  const referenceIds = new Set<string>();
 
   for (const node of flow.nodes) {
     if (nodeIds.has(node.id)) {
@@ -65,6 +75,25 @@ export function validateFlow(flow: Flow): readonly FlowValidationIssue[] {
         code: 'edge_target_not_found',
         edgeId: edge.id,
         nodeId: edge.targetNodeId,
+      });
+    }
+  }
+
+  for (const reference of flow.codeReferences) {
+    if (referenceIds.has(reference.id)) {
+      issues.push({
+        code: 'duplicate_code_reference_id',
+        referenceId: reference.id,
+      });
+    }
+
+    referenceIds.add(reference.id);
+
+    if (!nodeIds.has(reference.flowNodeId)) {
+      issues.push({
+        code: 'code_reference_node_not_found',
+        referenceId: reference.id,
+        nodeId: reference.flowNodeId,
       });
     }
   }
