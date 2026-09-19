@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "noEmit": true,
+    "types": ["node"],
+    "erasableSyntaxOnly": true,
+    "paths": {
+      "@statecraft/core": ["../src/index.ts"]
+    }
+  },
+  "include": ["../src/**/*.ts", "./**/*.ts"]
+}

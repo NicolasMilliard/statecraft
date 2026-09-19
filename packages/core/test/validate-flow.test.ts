@@ -1,8 +1,8 @@
-import { validateFlow } from '@statecraft/core';
+import { validateFlow, type Flow } from '@statecraft/core';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-function createFlow() {
+function createFlow(): Flow {
   return {
     id: 'checkout',
     name: 'Checkout',
@@ -35,7 +35,7 @@ test('accepts a consistent flow with success and failure branches', () => {
 });
 
 test('accepts an empty draft', () => {
-  const flow = {
+  const flow: Flow = {
     ...createFlow(),
     entryNodeId: null,
     nodes: [],
@@ -46,7 +46,7 @@ test('accepts an empty draft', () => {
 });
 
 test('accepts a draft with nodes but no entry point or edges', () => {
-  const flow = {
+  const flow: Flow = {
     ...createFlow(),
     entryNodeId: null,
     edges: [],
@@ -57,11 +57,16 @@ test('accepts a draft with nodes but no entry point or edges', () => {
 
 test('reports duplicate node and edge identifiers', () => {
   const flow = createFlow();
+  const [node] = flow.nodes;
+  const [edge] = flow.edges;
+
+  assert.ok(node);
+  assert.ok(edge);
 
   const issues = validateFlow({
     ...flow,
-    nodes: [...flow.nodes, flow.nodes[0]],
-    edges: [...flow.edges, flow.edges[0]],
+    nodes: [...flow.nodes, node],
+    edges: [...flow.edges, edge],
   });
 
   assert.deepEqual(issues, [
@@ -71,7 +76,7 @@ test('reports duplicate node and edge identifiers', () => {
 });
 
 test('reports an entry point referencing a missing node', () => {
-  const flow = {
+  const flow: Flow = {
     ...createFlow(),
     entryNodeId: 'missing',
   };
@@ -82,7 +87,7 @@ test('reports an entry point referencing a missing node', () => {
 });
 
 test('reports both missing endpoints of an edge', () => {
-  const flow = {
+  const flow: Flow = {
     ...createFlow(),
     edges: [
       {
