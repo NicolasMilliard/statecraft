@@ -22,3 +22,7 @@ export type {
 } from './code.js';
 
 export type { CodeReference, CodeReferenceRole } from './code-reference.js';
+
+export { validateCodeGraph } from './validate-code-graph.js';
+
+export type { CodeGraphValidationIssue } from './validate-code-graph.js';
