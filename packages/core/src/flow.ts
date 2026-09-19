@@ -1,3 +1,5 @@
+import type { CodeReference } from './code-reference.js';
+
 export const FLOW_NODE_KINDS = [
   'screen',
   'ui',
@@ -31,4 +33,5 @@ export interface Flow {
   readonly entryNodeId: string | null;
   readonly nodes: readonly FlowNode[];
   readonly edges: readonly FlowEdge[];
+  readonly codeReferences: readonly CodeReference[];
 }

@@ -26,6 +26,7 @@ function createFlow() {
         kind: 'failure',
       },
     ],
+    codeReferences: [],
   };
 }
 
