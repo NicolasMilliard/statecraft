@@ -39,3 +39,10 @@ export type {
   CodeChange,
   SnapshotEntityDiff,
 } from './diff-snapshot-entities.js';
+
+export { diffSnapshotRelations } from './diff-snapshot-relations.js';
+
+export type {
+  CodeRelationChange,
+  SnapshotRelationDiff,
+} from './diff-snapshot-relations.js';
