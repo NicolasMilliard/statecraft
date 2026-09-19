@@ -44,3 +44,12 @@ export interface CodeGraph {
   readonly entities: readonly CodeEntity[];
   readonly relations: readonly CodeRelation[];
 }
+
+export interface CodeEntity {
+  readonly id: string;
+  readonly kind: CodeEntityKind;
+  readonly name: string;
+  readonly filePath: string;
+  readonly symbol: string | null;
+  readonly structuralHash: string;
+}

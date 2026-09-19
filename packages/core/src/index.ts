@@ -30,3 +30,5 @@ export type { CodeGraphValidationIssue } from './validate-code-graph.js';
 export { resolveCodeReference } from './resolve-code-reference.js';
 
 export type { CodeReferenceResolution } from './resolve-code-reference.js';
+
+export type { SnapshotGitState, SyncSnapshot } from './snapshot.js';

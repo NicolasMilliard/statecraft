@@ -26,6 +26,7 @@ function createCodeGraph(): CodeGraph {
         name: 'PaymentForm',
         filePath: 'src/PaymentForm.tsx',
         symbol: 'PaymentForm',
+        structuralHash: 'payment-form-v1',
       },
     ],
     relations: [],

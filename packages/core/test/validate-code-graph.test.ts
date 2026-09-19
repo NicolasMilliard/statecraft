@@ -12,6 +12,7 @@ function createCodeGraph(): CodeGraph {
         name: 'PaymentForm',
         filePath: 'src/PaymentForm.tsx',
         symbol: 'PaymentForm',
+        structuralHash: 'payment-form-v1',
       },
       {
         id: 'create-order',
@@ -19,6 +20,7 @@ function createCodeGraph(): CodeGraph {
         name: 'createOrder',
         filePath: 'src/create-order.ts',
         symbol: 'createOrder',
+        structuralHash: 'create-order-v1',
       },
     ],
     relations: [
@@ -109,6 +111,7 @@ test('accepts recursive calls and disconnected entities', () => {
         name: 'unused',
         filePath: 'src/unused.ts',
         symbol: 'unused',
+        structuralHash: 'unused-v1',
       },
     ],
     relations: [
