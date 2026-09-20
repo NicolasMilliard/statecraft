@@ -62,3 +62,12 @@ export { evaluateFlowReview } from './flow-review.js';
 export type { FlowReview, FlowReviewAssessment } from './flow-review.js';
 
 export { recordFlowReview } from './record-flow-review.js';
+
+export { SERVICE_OUTCOME_KINDS } from './scenario.js';
+
+export type {
+  Scenario,
+  ScenarioOverride,
+  ServiceOutcome,
+  ServiceOutcomeKind,
+} from './scenario.js';
