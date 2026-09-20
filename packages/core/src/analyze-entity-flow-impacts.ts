@@ -1,30 +1,10 @@
+import type { SnapshotEntityDiff } from './diff-snapshot-entities.js';
 import type {
-  CodeChange,
-  SnapshotEntityDiff,
-} from './diff-snapshot-entities.js';
+  FlowImpact,
+  FlowImpactAnalysis,
+  FlowImpactReason,
+} from './flow-impact.js';
 import type { Flow } from './flow.js';
-
-export interface FlowImpactReason {
-  readonly type: 'entity';
-  readonly referenceId: string;
-  readonly nodeId: string;
-  readonly change: CodeChange;
-}
-
-export interface FlowImpact {
-  readonly flowId: string;
-  readonly reasons: readonly FlowImpactReason[];
-}
-
-export type FlowImpactAnalysis =
-  | {
-      readonly status: 'analyzed';
-      readonly repositoryId: string;
-      readonly beforeSnapshotId: string;
-      readonly afterSnapshotId: string;
-      readonly impacts: readonly FlowImpact[];
-    }
-  | Extract<SnapshotEntityDiff, { status: 'incompatible' }>;
 
 /**
  * Flows must be validated.

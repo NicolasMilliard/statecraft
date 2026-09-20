@@ -48,9 +48,10 @@ export type {
 } from './diff-snapshot-relations.js';
 
 export { analyzeEntityFlowImpacts } from './analyze-entity-flow-impacts.js';
+export { analyzeRelationFlowImpacts } from './analyze-relation-flow-impacts.js';
 
 export type {
   FlowImpact,
   FlowImpactAnalysis,
   FlowImpactReason,
-} from './analyze-entity-flow-impacts.js';
+} from './flow-impact.js';
