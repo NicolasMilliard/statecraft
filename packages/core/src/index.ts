@@ -60,3 +60,5 @@ export type {
 export { evaluateFlowReview } from './flow-review.js';
 
 export type { FlowReview, FlowReviewAssessment } from './flow-review.js';
+
+export { recordFlowReview } from './record-flow-review.js';

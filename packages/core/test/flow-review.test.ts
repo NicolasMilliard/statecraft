@@ -1,6 +1,7 @@
 import {
   analyzeSnapshotFlowImpacts,
   evaluateFlowReview,
+  recordFlowReview,
   type CodeEntity,
   type CodeRelationKind,
   type Flow,
@@ -227,4 +228,103 @@ test('reports unavailable comparisons instead of clearing review status', () => 
       example.reason,
     );
   }
+});
+
+test('records an explicit review and clears the examined impacts', () => {
+  const flow = createFlow();
+  const previous = createSnapshot('a');
+  const examined = createSnapshot('b', 'v2');
+
+  const initial = recordFlowReview([], flow, previous);
+  const [oldReview] = initial;
+  assert.ok(oldReview);
+
+  assert.equal(
+    evaluateFlowReview(flow, oldReview, previous, examined).status,
+    'needs_review',
+  );
+
+  const original = structuredClone({ initial, flow, examined });
+
+  const updated = recordFlowReview(initial, flow, examined);
+
+  assert.deepEqual(updated, [createReview('checkout', 'b')]);
+
+  const [newReview] = updated;
+  assert.ok(newReview);
+
+  assert.deepEqual(evaluateFlowReview(flow, newReview, examined, examined), {
+    status: 'unchanged',
+    flowId: 'checkout',
+    repositoryId: 'storefront',
+    reviewedSnapshotId: 'b',
+    currentSnapshotId: 'b',
+  });
+
+  assert.deepEqual({ initial, flow, examined }, original);
+});
+
+test('preserves reviews belonging to other flows or repositories', () => {
+  const flow = createFlow();
+
+  const neighbors: readonly FlowReview[] = [
+    createReview('renewal', 'a'),
+    {
+      ...createReview('checkout', 'api-a'),
+      repositoryId: 'api',
+    },
+  ];
+
+  const first = recordFlowReview(neighbors, flow, createSnapshot('b'));
+
+  assert.deepEqual(first, [...neighbors, createReview('checkout', 'b')]);
+
+  const original = structuredClone({ neighbors, first });
+
+  const updated = recordFlowReview(first, flow, createSnapshot('c'));
+
+  assert.deepEqual(updated, [...neighbors, createReview('checkout', 'c')]);
+
+  assert.deepEqual({ neighbors, first }, original);
+});
+
+test('recording the same snapshot twice keeps a single review', () => {
+  const flow = createFlow();
+  const snapshot = createSnapshot('b');
+
+  const once = recordFlowReview([], flow, snapshot);
+  const twice = recordFlowReview(once, flow, snapshot);
+
+  assert.deepEqual(twice, once);
+  assert.equal(twice.length, 1);
+});
+
+test('reviewing B leaves newer changes in C pending', () => {
+  const flow = createFlow();
+  const examined = createSnapshot('b', 'v2');
+  const current = createSnapshot('c', 'v3');
+
+  const reviews = recordFlowReview([createReview()], flow, examined);
+
+  const [review] = reviews;
+  assert.ok(review);
+
+  assert.deepEqual(evaluateFlowReview(flow, review, examined, current), {
+    status: 'needs_review',
+    flowId: 'checkout',
+    repositoryId: 'storefront',
+    reviewedSnapshotId: 'b',
+    currentSnapshotId: 'c',
+    reasons: [
+      {
+        type: 'entity',
+        referenceId: 'checkout-ref',
+        nodeId: 'payment',
+        change: {
+          entityId: 'form',
+          kind: 'modified',
+        },
+      },
+    ],
+  });
 });
