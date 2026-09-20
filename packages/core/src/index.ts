@@ -56,3 +56,7 @@ export type {
   FlowImpactAnalysis,
   FlowImpactReason,
 } from './flow-impact.js';
+
+export { evaluateFlowReview } from './flow-review.js';
+
+export type { FlowReview, FlowReviewAssessment } from './flow-review.js';
