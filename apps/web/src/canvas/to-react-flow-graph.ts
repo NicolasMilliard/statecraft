@@ -4,7 +4,7 @@ import {
   type FlowEdgeKind,
   type FlowNodeKind,
 } from '@statecraft/core';
-import { MarkerType, type Edge, type Node } from '@xyflow/react';
+import { MarkerType, Position, type Edge, type Node } from '@xyflow/react';
 import type { FlowLayout } from './flow-layout';
 
 export type CanvasNode = Node<
@@ -47,6 +47,8 @@ export function toReactFlowGraph(
     return {
       id: node.id,
       type: 'default',
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
       className: `statecraft-node--${node.kind}`,
       position: { ...position },
       data: {

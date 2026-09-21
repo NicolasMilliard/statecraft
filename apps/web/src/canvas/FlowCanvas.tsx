@@ -13,7 +13,10 @@ export function FlowCanvas({ flow, layout }: FlowCanvasProps) {
   const graph = useMemo(() => toReactFlowGraph(flow, layout), [flow, layout]);
 
   return (
-    <section className="flow-canvas" aria-label={`${flow.name} flow diagram`}>
+    <section
+      className="h-full min-h-0 w-full"
+      aria-label={`${flow.name} flow diagram`}
+    >
       <ReactFlow<CanvasNode>
         nodes={graph.nodes}
         edges={graph.edges}

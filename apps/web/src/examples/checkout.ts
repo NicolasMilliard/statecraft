@@ -75,11 +75,11 @@ export const checkoutFlow: Flow = {
 export const checkoutLayout: FlowLayout = {
   flowId: 'checkout',
   positions: {
-    'checkout-screen': { x: 280, y: 0 },
-    'payment-form': { x: 280, y: 110 },
-    'submit-order': { x: 280, y: 220 },
-    'create-order': { x: 280, y: 330 },
-    'order-confirmed': { x: 80, y: 470 },
-    'order-error': { x: 480, y: 470 },
+    'checkout-screen': { x: 0, y: 120 },
+    'payment-form': { x: 240, y: 120 },
+    'submit-order': { x: 480, y: 120 },
+    'create-order': { x: 720, y: 120 },
+    'order-confirmed': { x: 1000, y: 20 },
+    'order-error': { x: 1000, y: 220 },
   },
 };
