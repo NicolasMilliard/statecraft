@@ -71,3 +71,7 @@ export type {
   ServiceOutcome,
   ServiceOutcomeKind,
 } from './scenario.js';
+
+export { validateScenario } from './validate-scenario.js';
+
+export type { ScenarioValidationIssue } from './validate-scenario.js';
