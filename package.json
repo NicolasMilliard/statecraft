@@ -6,9 +6,9 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "pnpm --filter @statecraft/web dev",
+    "dev": "pnpm --filter @statecraft/core build && pnpm --filter @statecraft/web dev",
     "build": "pnpm -r run build",
-    "typecheck": "pnpm -r run typecheck",
+    "typecheck": "pnpm --filter @statecraft/core build && pnpm -r run typecheck",
     "test": "pnpm -r run test"
   },
   "devDependencies": {
