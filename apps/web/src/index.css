@@ -1,0 +1,35 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #202124;
+  background: #f7f8fa;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 64px 24px;
+}
+
+.brand {
+  color: #565ac2;
+  font-weight: 700;
+}
+
+h1 {
+  margin: 16px 0;
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+p {
+  line-height: 1.6;
+}

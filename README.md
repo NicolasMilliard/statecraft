@@ -2,8 +2,8 @@
 
 A code-aware visual workspace for frontend user flows.
 
-Statecraft connects functional user journeys to the frontend code
-that implements them.
+Statecraft connects functional user journeys to the frontend code that
+implements them.
 
 ## Principles
 
@@ -15,6 +15,26 @@ that implements them.
 
 ## Current milestone
 
-M0 — Domain foundation: represent and validate a user flow,
-its code references, and its repository context independently
-from the UI.
+M1 — Canvas: build the web workspace and display editable user flows.
+
+## Development
+
+Install dependencies from the repository root:
+
+```bash
+pnpm install
+```
+
+Start the web application:
+
+```bash
+pnpm dev
+```
+
+Run the project checks:
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm build
+```
