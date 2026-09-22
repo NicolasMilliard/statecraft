@@ -50,4 +50,14 @@
   .statecraft-node--state {
     border-left-color: #475569;
   }
+
+  .react-flow__node-default.selected {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 3px;
+  }
+
+  .react-flow__node-default:focus-visible {
+    outline: 2px dashed var(--color-brand);
+    outline-offset: 3px;
+  }
 }

@@ -4,7 +4,8 @@ import {
   Controls,
   ReactFlow,
   useNodesState,
-  type OnNodeDrag,
+  type OnNodesChange,
+  type OnSelectionChangeFunc,
 } from '@xyflow/react';
 import { useCallback, useEffect, useMemo } from 'react';
 import type { FlowLayout } from './flow-layout';
@@ -14,9 +15,15 @@ interface FlowCanvasProps {
   readonly flow: Flow;
   readonly layout: FlowLayout;
   readonly onLayoutChange: (layout: FlowLayout) => void;
+  readonly onNodeSelectionChange: (nodeId: string | null) => void;
 }
 
-export function FlowCanvas({ flow, layout, onLayoutChange }: FlowCanvasProps) {
+export function FlowCanvas({
+  flow,
+  layout,
+  onLayoutChange,
+  onNodeSelectionChange,
+}: FlowCanvasProps) {
   const graph = useMemo(() => toReactFlowGraph(flow, layout), [flow, layout]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(
@@ -34,49 +41,76 @@ export function FlowCanvas({ flow, layout, onLayoutChange }: FlowCanvasProps) {
       return nextNodes.map((node) => {
         const currentNode = currentNodesById.get(node.id);
 
-        // Preserve renderer state, including measured dimensions.
+        // Preserve renderer state, including selection and dimensions.
         return currentNode === undefined ? node : { ...currentNode, ...node };
       });
     });
   }, [flow, layout, setNodes]);
 
-  const handleNodeDragStop = useCallback<OnNodeDrag<CanvasNode>>(
-    (_event, _node, draggedNodes) => {
-      const positions = { ...layout.positions };
+  const handleNodesChange = useCallback<OnNodesChange<CanvasNode>>(
+    (changes) => {
+      onNodesChange(changes);
 
-      for (const node of draggedNodes) {
-        if (positions[node.id] === undefined) {
+      const positions = { ...layout.positions };
+      let hasPositionChange = false;
+
+      for (const change of changes) {
+        if (
+          change.type !== 'position' ||
+          change.dragging === true ||
+          change.position === undefined
+        ) {
           continue;
         }
 
-        positions[node.id] = {
-          x: node.position.x,
-          y: node.position.y,
-        };
+        const currentPosition = positions[change.id];
+
+        if (
+          currentPosition === undefined ||
+          (currentPosition.x === change.position.x &&
+            currentPosition.y === change.position.y)
+        ) {
+          continue;
+        }
+
+        positions[change.id] = { ...change.position };
+        hasPositionChange = true;
       }
 
-      onLayoutChange({
-        ...layout,
-        positions,
-      });
+      if (hasPositionChange) {
+        onLayoutChange({
+          ...layout,
+          positions,
+        });
+      }
     },
-    [layout, onLayoutChange],
+    [layout, onLayoutChange, onNodesChange],
+  );
+
+  const handleSelectionChange = useCallback<OnSelectionChangeFunc<CanvasNode>>(
+    ({ nodes: selectedNodes }) => {
+      onNodeSelectionChange(selectedNodes[0]?.id ?? null);
+    },
+    [onNodeSelectionChange],
   );
 
   return (
     <section
-      className="h-full min-h-0 w-full"
+      className="h-full min-h-0 w-full min-w-0"
       aria-label={`${flow.name} flow diagram`}
     >
       <ReactFlow<CanvasNode>
         nodes={nodes}
         edges={graph.edges}
-        onNodesChange={onNodesChange}
-        onNodeDragStop={handleNodeDragStop}
+        onNodesChange={handleNodesChange}
+        onSelectionChange={handleSelectionChange}
         nodesDraggable
         nodesConnectable={false}
         edgesReconnectable={false}
-        elementsSelectable={false}
+        elementsSelectable
+        selectionOnDrag={false}
+        selectionKeyCode={null}
+        multiSelectionKeyCode={null}
         deleteKeyCode={null}
         fitView
         fitViewOptions={{ padding: 0.2 }}

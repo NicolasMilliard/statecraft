@@ -66,6 +66,8 @@ export function toReactFlowGraph(
       source: edge.sourceNodeId,
       target: edge.targetNodeId,
       type: 'smoothstep',
+      selectable: false,
+      focusable: false,
       label: edge.kind === 'transition' ? '' : edge.kind,
       style: {
         stroke: color,

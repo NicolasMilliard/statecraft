@@ -2,9 +2,14 @@ import { useState } from 'react';
 import { FlowCanvas } from './canvas/FlowCanvas';
 import type { FlowLayout } from './canvas/flow-layout';
 import { checkoutFlow, checkoutLayout } from './examples/checkout';
+import { NodeInspector } from './inspector/NodeInspector';
 
 export default function App() {
   const [layout, setLayout] = useState<FlowLayout>(checkoutLayout);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+
+  const selectedNode =
+    checkoutFlow.nodes.find((node) => node.id === selectedNodeId) ?? null;
 
   return (
     <main className="grid h-dvh w-full grid-rows-[auto_minmax(0,1fr)]">
@@ -30,12 +35,20 @@ export default function App() {
         </div>
       </header>
 
-      <FlowCanvas
-        key={checkoutFlow.id}
-        flow={checkoutFlow}
-        layout={layout}
-        onLayoutChange={setLayout}
-      />
+      <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_18rem] md:grid-rows-1">
+        <FlowCanvas
+          key={checkoutFlow.id}
+          flow={checkoutFlow}
+          layout={layout}
+          onLayoutChange={setLayout}
+          onNodeSelectionChange={setSelectedNodeId}
+        />
+
+        <NodeInspector
+          node={selectedNode}
+          isEntry={selectedNode?.id === checkoutFlow.entryNodeId}
+        />
+      </div>
     </main>
   );
 }
