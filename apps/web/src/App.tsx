@@ -9,6 +9,7 @@ export default function App() {
     flow,
     layout,
     addNode,
+    connectNodes,
     renameNode,
     setEntryNode,
     updateLayout,
@@ -52,8 +53,8 @@ export default function App() {
           onLayoutChange={updateLayout}
           onNodeSelectionChange={setSelectedNodeId}
           onNodeAdd={addNode}
+          onNodesConnect={connectNodes}
         />
-
         <NodeInspector
           node={selectedNode}
           isEntry={selectedNode?.id === flow.entryNodeId}

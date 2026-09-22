@@ -1,7 +1,8 @@
-import type { Flow, FlowNode, FlowNodeKind } from '@statecraft/core';
+import type { Flow, FlowEdge, FlowNode, FlowNodeKind } from '@statecraft/core';
 import { useCallback, useState } from 'react';
 import type { FlowLayout, FlowNodePosition } from '../canvas/flow-layout';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
+import { canAddFlowEdge } from './can-add-flow-edge';
 
 interface FlowEditorState {
   readonly flow: Flow;
@@ -47,6 +48,34 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
       },
     }));
   }
+
+  const connectNodes = useCallback(
+    (sourceNodeId: string, targetNodeId: string) => {
+      const edge: FlowEdge = {
+        id: crypto.randomUUID(),
+        sourceNodeId,
+        targetNodeId,
+        kind: 'transition',
+      };
+
+      setEditor((current) => {
+        if (
+          !canAddFlowEdge(current.flow, sourceNodeId, targetNodeId, edge.kind)
+        ) {
+          return current;
+        }
+
+        return {
+          ...current,
+          flow: {
+            ...current.flow,
+            edges: [...current.flow.edges, edge],
+          },
+        };
+      });
+    },
+    [],
+  );
 
   function renameNode(nodeId: string, label: string) {
     const normalizedLabel = label.trim();
@@ -121,6 +150,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     flow: editor.flow,
     layout: editor.layout,
     addNode,
+    connectNodes,
     renameNode,
     setEntryNode,
     updateLayout,
