@@ -8,13 +8,15 @@
     "build": "pnpm run typecheck && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit"
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p test/tsconfig.json --noEmit"
   },
   "dependencies": {
     "@statecraft/core": "workspace:*",
     "@xyflow/react": "12.11.6",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

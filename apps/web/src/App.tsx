@@ -23,6 +23,10 @@ export default function App() {
     redo,
     canUndo,
     canRedo,
+    save,
+    storageError,
+    hasUnsavedChanges,
+    willReplaceInvalidDraft,
   } = useFlowEditor(checkoutFlow, checkoutLayout);
 
   const [selection, setSelection] = useState<CanvasSelection>(null);
@@ -61,6 +65,19 @@ export default function App() {
             connections
           </p>
 
+          <p role="status" className="text-xs text-slate-500">
+            {hasUnsavedChanges ? 'Unsaved changes' : 'Saved locally'}
+          </p>
+
+          <button
+            type="button"
+            onClick={save}
+            disabled={!hasUnsavedChanges && storageError === null}
+            className="cursor-pointer rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {willReplaceInvalidDraft ? 'Replace local copy' : 'Save'}
+          </button>
+
           <div role="group" aria-label="Edit history" className="flex gap-2">
             <button
               type="button"
@@ -89,6 +106,12 @@ export default function App() {
             Reset layout
           </button>
         </div>
+
+        {storageError !== null && (
+          <p role="alert" className="w-full text-sm text-red-700">
+            {storageError}
+          </p>
+        )}
       </header>
 
       <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_18rem] md:grid-rows-1">

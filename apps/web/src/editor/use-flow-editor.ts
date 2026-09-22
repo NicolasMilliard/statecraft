@@ -5,17 +5,13 @@ import type {
   FlowNode,
   FlowNodeKind,
 } from '@statecraft/core';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import type { FlowLayout, FlowNodePosition } from '../canvas/flow-layout';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
 import { canAddFlowEdge } from './can-add-flow-edge';
+import type { FlowEditorState } from './flow-editor-state';
+import { loadFlowDraft, saveFlowDraft } from './flow-storage';
 import { useHistoryState } from './use-history-state';
-
-interface FlowEditorState {
-  readonly flow: Flow;
-  readonly layout: FlowLayout;
-  readonly initialLayout: FlowLayout;
-}
 
 function areLayoutsEqual(left: FlowLayout, right: FlowLayout): boolean {
   const entries = Object.entries(left.positions);
@@ -35,6 +31,40 @@ function areLayoutsEqual(left: FlowLayout, right: FlowLayout): boolean {
 }
 
 export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
+  const [initialDocument] = useState(() => {
+    const result = loadFlowDraft(initialFlow.id);
+
+    const editor: FlowEditorState =
+      result.status === 'loaded'
+        ? result.editor
+        : {
+            flow: initialFlow,
+            layout: initialLayout,
+            initialLayout,
+          };
+
+    let error: string | null = null;
+
+    if (result.status === 'invalid') {
+      error =
+        'Saved data is invalid or unsupported. The example is open. ' +
+        'Replacing the local copy will overwrite the stored data.';
+    }
+
+    if (result.status === 'unavailable') {
+      error =
+        'Local data could not be read. Your edits remain in memory. ' +
+        'Saving may replace an existing local copy.';
+    }
+
+    return {
+      editor,
+      isSaved: result.status === 'loaded',
+      hasInvalidSavedDraft: result.status === 'invalid',
+      error,
+    };
+  });
+
   const {
     state: editor,
     setState: setEditor,
@@ -42,11 +72,15 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     redo,
     canUndo,
     canRedo,
-  } = useHistoryState<FlowEditorState>(() => ({
-    flow: initialFlow,
-    layout: initialLayout,
-    initialLayout,
-  }));
+  } = useHistoryState<FlowEditorState>(() => initialDocument.editor);
+
+  const [savedEditor, setSavedEditor] = useState<FlowEditorState | null>(
+    initialDocument.isSaved ? initialDocument.editor : null,
+  );
+
+  const [storageError, setStorageError] = useState<string | null>(
+    initialDocument.error,
+  );
 
   function addNode(kind: FlowNodeKind, position: FlowNodePosition) {
     const node: FlowNode = {
@@ -246,6 +280,18 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     });
   }
 
+  function save() {
+    if (!saveFlowDraft(editor)) {
+      setStorageError(
+        'Could not save locally. Your edits remain open. Please try again.',
+      );
+      return;
+    }
+
+    setSavedEditor(editor);
+    setStorageError(null);
+  }
+
   const updateLayout = useCallback(
     (nextLayout: FlowLayout) => {
       setEditor((current) => {
@@ -292,6 +338,11 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     redo,
     canUndo,
     canRedo,
+    save,
+    storageError,
+    hasUnsavedChanges: editor !== savedEditor,
+    willReplaceInvalidDraft:
+      initialDocument.hasInvalidSavedDraft && savedEditor === null,
     updateLayout,
     resetLayout,
   };
