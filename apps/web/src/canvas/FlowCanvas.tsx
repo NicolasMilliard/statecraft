@@ -5,6 +5,7 @@ import {
   ConnectionMode,
   Controls,
   ReactFlow,
+  useEdgesState,
   useNodesState,
   type IsValidConnection,
   type OnConnect,
@@ -13,6 +14,7 @@ import {
 } from '@xyflow/react';
 import { useCallback, useEffect, useMemo } from 'react';
 import { canAddFlowEdge } from '../editor/can-add-flow-edge';
+import type { CanvasSelection } from './canvas-selection';
 import type { FlowLayout, FlowNodePosition } from './flow-layout';
 import { NodePalette } from './NodePalette';
 import { toReactFlowGraph, type CanvasNode } from './to-react-flow-graph';
@@ -21,7 +23,7 @@ interface FlowCanvasProps {
   readonly flow: Flow;
   readonly layout: FlowLayout;
   readonly onLayoutChange: (layout: FlowLayout) => void;
-  readonly onNodeSelectionChange: (nodeId: string | null) => void;
+  readonly onSelectionChange: (selection: CanvasSelection) => void;
   readonly onNodeAdd: (kind: FlowNodeKind, position: FlowNodePosition) => void;
   readonly onNodesConnect: (sourceNodeId: string, targetNodeId: string) => void;
 }
@@ -30,7 +32,7 @@ export function FlowCanvas({
   flow,
   layout,
   onLayoutChange,
-  onNodeSelectionChange,
+  onSelectionChange,
   onNodeAdd,
   onNodesConnect,
 }: FlowCanvasProps) {
@@ -39,9 +41,13 @@ export function FlowCanvas({
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(
     graph.nodes,
   );
+  const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges);
 
   useEffect(() => {
-    const { nodes: nextNodes } = toReactFlowGraph(flow, layout);
+    const { nodes: nextNodes, edges: nextEdges } = toReactFlowGraph(
+      flow,
+      layout,
+    );
 
     setNodes((currentNodes) => {
       const currentNodesById = new Map(
@@ -55,7 +61,20 @@ export function FlowCanvas({
         return currentNode === undefined ? node : { ...currentNode, ...node };
       });
     });
-  }, [flow, layout, setNodes]);
+
+    setEdges((currentEdges) => {
+      const currentEdgesById = new Map(
+        currentEdges.map((edge) => [edge.id, edge]),
+      );
+
+      return nextEdges.map((edge) => {
+        const currentEdge = currentEdgesById.get(edge.id);
+
+        // Preserve selection when domain properties change.
+        return currentEdge === undefined ? edge : { ...currentEdge, ...edge };
+      });
+    });
+  }, [flow, layout, setNodes, setEdges]);
 
   const handleNodesChange = useCallback<OnNodesChange<CanvasNode>>(
     (changes) => {
@@ -98,10 +117,23 @@ export function FlowCanvas({
   );
 
   const handleSelectionChange = useCallback<OnSelectionChangeFunc<CanvasNode>>(
-    ({ nodes: selectedNodes }) => {
-      onNodeSelectionChange(selectedNodes[0]?.id ?? null);
+    ({ nodes: selectedNodes, edges: selectedEdges }) => {
+      const node = selectedNodes[0];
+      const edge = selectedEdges[0];
+
+      if (node !== undefined) {
+        onSelectionChange({ type: 'node', id: node.id });
+        return;
+      }
+
+      if (edge !== undefined) {
+        onSelectionChange({ type: 'edge', id: edge.id });
+        return;
+      }
+
+      onSelectionChange(null);
     },
-    [onNodeSelectionChange],
+    [onSelectionChange],
   );
 
   const isValidConnection = useCallback<IsValidConnection>(
@@ -124,7 +156,8 @@ export function FlowCanvas({
     >
       <ReactFlow<CanvasNode>
         nodes={nodes}
-        edges={graph.edges}
+        edges={edges}
+        onEdgesChange={onEdgesChange}
         onNodesChange={handleNodesChange}
         onSelectionChange={handleSelectionChange}
         onConnect={handleConnect}

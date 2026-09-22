@@ -29,7 +29,7 @@ export function NodeInspector({
 
       {node === null ? (
         <p className="mt-4 text-sm text-slate-500">
-          Select a node to inspect its details.
+          Select a node or connection to inspect its details.
         </p>
       ) : (
         <div className="mt-5">

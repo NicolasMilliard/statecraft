@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import type { CanvasSelection } from './canvas/canvas-selection';
 import { FlowCanvas } from './canvas/FlowCanvas';
 import { useFlowEditor } from './editor/use-flow-editor';
 import { checkoutFlow, checkoutLayout } from './examples/checkout';
+import { EdgeInspector } from './inspector/EdgeInspector';
 import { NodeInspector } from './inspector/NodeInspector';
 
 export default function App() {
@@ -12,14 +14,22 @@ export default function App() {
     connectNodes,
     renameNode,
     setEntryNode,
+    setEdgeKind,
     updateLayout,
     resetLayout,
   } = useFlowEditor(checkoutFlow, checkoutLayout);
 
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<CanvasSelection>(null);
 
   const selectedNode =
-    flow.nodes.find((node) => node.id === selectedNodeId) ?? null;
+    selection?.type === 'node'
+      ? (flow.nodes.find((node) => node.id === selection.id) ?? null)
+      : null;
+
+  const selectedEdge =
+    selection?.type === 'edge'
+      ? (flow.edges.find((edge) => edge.id === selection.id) ?? null)
+      : null;
 
   return (
     <main className="grid h-dvh w-full grid-rows-[auto_minmax(0,1fr)]">
@@ -51,16 +61,24 @@ export default function App() {
           flow={flow}
           layout={layout}
           onLayoutChange={updateLayout}
-          onNodeSelectionChange={setSelectedNodeId}
+          onSelectionChange={setSelection}
           onNodeAdd={addNode}
           onNodesConnect={connectNodes}
         />
-        <NodeInspector
-          node={selectedNode}
-          isEntry={selectedNode?.id === flow.entryNodeId}
-          onNodeRename={renameNode}
-          onEntryNodeChange={setEntryNode}
-        />
+        {selectedEdge !== null ? (
+          <EdgeInspector
+            flow={flow}
+            edge={selectedEdge}
+            onEdgeKindChange={setEdgeKind}
+          />
+        ) : (
+          <NodeInspector
+            node={selectedNode}
+            isEntry={selectedNode?.id === flow.entryNodeId}
+            onNodeRename={renameNode}
+            onEntryNodeChange={setEntryNode}
+          />
+        )}
       </div>
     </main>
   );

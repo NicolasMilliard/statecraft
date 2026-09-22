@@ -63,20 +63,24 @@ export function toReactFlowGraph(
     };
   });
 
+  const nodeLabels = new Map(flow.nodes.map((node) => [node.id, node.label]));
+
   const edges = flow.edges.map((edge): Edge => {
     const color = EDGE_COLORS[edge.kind];
+    const sourceLabel = nodeLabels.get(edge.sourceNodeId) ?? edge.sourceNodeId;
+    const targetLabel = nodeLabels.get(edge.targetNodeId) ?? edge.targetNodeId;
 
     return {
       id: edge.id,
       source: edge.sourceNodeId,
       target: edge.targetNodeId,
       type: 'smoothstep',
-      selectable: false,
-      focusable: false,
+      selectable: true,
+      focusable: true,
+      ariaLabel: `${sourceLabel} to ${targetLabel}, ${edge.kind}`,
       label: edge.kind === 'transition' ? '' : edge.kind,
       style: {
         stroke: color,
-        strokeWidth: 2,
       },
       markerEnd: {
         type: MarkerType.ArrowClosed,

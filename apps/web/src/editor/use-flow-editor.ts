@@ -1,4 +1,10 @@
-import type { Flow, FlowEdge, FlowNode, FlowNodeKind } from '@statecraft/core';
+import type {
+  Flow,
+  FlowEdge,
+  FlowEdgeKind,
+  FlowNode,
+  FlowNodeKind,
+} from '@statecraft/core';
 import { useCallback, useState } from 'react';
 import type { FlowLayout, FlowNodePosition } from '../canvas/flow-layout';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
@@ -126,6 +132,38 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     });
   }
 
+  function setEdgeKind(edgeId: string, kind: FlowEdgeKind) {
+    setEditor((current) => {
+      const targetEdge = current.flow.edges.find((edge) => edge.id === edgeId);
+
+      if (targetEdge === undefined || targetEdge.kind === kind) {
+        return current;
+      }
+
+      if (
+        !canAddFlowEdge(
+          current.flow,
+          targetEdge.sourceNodeId,
+          targetEdge.targetNodeId,
+          kind,
+          edgeId,
+        )
+      ) {
+        return current;
+      }
+
+      return {
+        ...current,
+        flow: {
+          ...current.flow,
+          edges: current.flow.edges.map((edge) =>
+            edge.id === edgeId ? { ...edge, kind } : edge,
+          ),
+        },
+      };
+    });
+  }
+
   const updateLayout = useCallback((nextLayout: FlowLayout) => {
     setEditor((current) => {
       if (nextLayout.flowId !== current.flow.id) {
@@ -153,6 +191,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     connectNodes,
     renameNode,
     setEntryNode,
+    setEdgeKind,
     updateLayout,
     resetLayout,
   };
