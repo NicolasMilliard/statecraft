@@ -164,6 +164,63 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     });
   }
 
+  function deleteEdge(edgeId: string) {
+    setEditor((current) => {
+      if (!current.flow.edges.some((edge) => edge.id === edgeId)) {
+        return current;
+      }
+
+      return {
+        ...current,
+        flow: {
+          ...current.flow,
+          edges: current.flow.edges.filter((edge) => edge.id !== edgeId),
+        },
+      };
+    });
+  }
+
+  function deleteNode(nodeId: string) {
+    setEditor((current) => {
+      if (!current.flow.nodes.some((node) => node.id === nodeId)) {
+        return current;
+      }
+
+      const positions = { ...current.layout.positions };
+      const initialPositions = { ...current.initialLayout.positions };
+
+      delete positions[nodeId];
+      delete initialPositions[nodeId];
+
+      return {
+        ...current,
+        flow: {
+          ...current.flow,
+          entryNodeId:
+            current.flow.entryNodeId === nodeId
+              ? null
+              : current.flow.entryNodeId,
+          nodes: current.flow.nodes.filter((node) => node.id !== nodeId),
+          edges: current.flow.edges.filter(
+            (edge) =>
+              edge.sourceNodeId !== nodeId && edge.targetNodeId !== nodeId,
+          ),
+          codeReferences: current.flow.codeReferences.filter(
+            (reference) => reference.flowNodeId !== nodeId,
+          ),
+        },
+        layout: {
+          ...current.layout,
+          positions,
+        },
+        initialLayout: {
+          ...current.initialLayout,
+          positions: initialPositions,
+        },
+      };
+    });
+  }
+
   const updateLayout = useCallback((nextLayout: FlowLayout) => {
     setEditor((current) => {
       if (nextLayout.flowId !== current.flow.id) {
@@ -192,6 +249,8 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     renameNode,
     setEntryNode,
     setEdgeKind,
+    deleteNode,
+    deleteEdge,
     updateLayout,
     resetLayout,
   };

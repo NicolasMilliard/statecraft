@@ -17,12 +17,14 @@ interface EdgeInspectorProps {
   readonly flow: Flow;
   readonly edge: FlowEdge;
   readonly onEdgeKindChange: (edgeId: string, kind: FlowEdgeKind) => void;
+  readonly onEdgeDelete: (edgeId: string) => void;
 }
 
 export function EdgeInspector({
   flow,
   edge,
   onEdgeKindChange,
+  onEdgeDelete,
 }: EdgeInspectorProps) {
   const kindGroupId = useId();
 
@@ -104,6 +106,15 @@ export function EdgeInspector({
           nodes in this direction.
         </p>
       </fieldset>
+      <div className="mt-6 border-t border-slate-200 pt-4">
+        <button
+          type="button"
+          onClick={() => onEdgeDelete(edge.id)}
+          className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+        >
+          Delete connection
+        </button>
+      </div>
     </aside>
   );
 }

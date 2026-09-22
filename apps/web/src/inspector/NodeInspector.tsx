@@ -7,6 +7,7 @@ interface NodeInspectorProps {
   readonly isEntry: boolean;
   readonly onNodeRename: (nodeId: string, label: string) => void;
   readonly onEntryNodeChange: (nodeId: string | null) => void;
+  readonly onNodeDelete: (nodeId: string) => void;
 }
 
 export function NodeInspector({
@@ -14,6 +15,7 @@ export function NodeInspector({
   isEntry,
   onNodeRename,
   onEntryNodeChange,
+  onNodeDelete,
 }: NodeInspectorProps) {
   return (
     <aside
@@ -59,6 +61,19 @@ export function NodeInspector({
               </dd>
             </div>
           </dl>
+          <div className="mt-6 border-t border-slate-200 pt-4">
+            <p className="mb-3 text-xs text-slate-500">
+              Deleting this node also removes its connections.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => onNodeDelete(node.id)}
+              className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+            >
+              Delete node
+            </button>
+          </div>
         </div>
       )}
     </aside>

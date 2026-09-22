@@ -17,6 +17,8 @@ export default function App() {
     setEdgeKind,
     updateLayout,
     resetLayout,
+    deleteEdge,
+    deleteNode,
   } = useFlowEditor(checkoutFlow, checkoutLayout);
 
   const [selection, setSelection] = useState<CanvasSelection>(null);
@@ -30,6 +32,16 @@ export default function App() {
     selection?.type === 'edge'
       ? (flow.edges.find((edge) => edge.id === selection.id) ?? null)
       : null;
+
+  function handleNodeDelete(nodeId: string) {
+    deleteNode(nodeId);
+    setSelection(null);
+  }
+
+  function handleEdgeDelete(edgeId: string) {
+    deleteEdge(edgeId);
+    setSelection(null);
+  }
 
   return (
     <main className="grid h-dvh w-full grid-rows-[auto_minmax(0,1fr)]">
@@ -70,6 +82,7 @@ export default function App() {
             flow={flow}
             edge={selectedEdge}
             onEdgeKindChange={setEdgeKind}
+            onEdgeDelete={handleEdgeDelete}
           />
         ) : (
           <NodeInspector
@@ -77,6 +90,7 @@ export default function App() {
             isEntry={selectedNode?.id === flow.entryNodeId}
             onNodeRename={renameNode}
             onEntryNodeChange={setEntryNode}
+            onNodeDelete={handleNodeDelete}
           />
         )}
       </div>
