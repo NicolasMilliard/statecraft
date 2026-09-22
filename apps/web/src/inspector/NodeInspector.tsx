@@ -1,4 +1,5 @@
 import type { FlowNode, FlowNodeKind } from '@statecraft/core';
+import { NodeLabelEditor } from './NodeLabelEditor';
 
 const NODE_KIND_LABELS: Record<FlowNodeKind, string> = {
   screen: 'Screen',
@@ -11,9 +12,14 @@ const NODE_KIND_LABELS: Record<FlowNodeKind, string> = {
 interface NodeInspectorProps {
   readonly node: FlowNode | null;
   readonly isEntry: boolean;
+  readonly onNodeRename: (nodeId: string, label: string) => void;
 }
 
-export function NodeInspector({ node, isEntry }: NodeInspectorProps) {
+export function NodeInspector({
+  node,
+  isEntry,
+  onNodeRename,
+}: NodeInspectorProps) {
   return (
     <aside
       className="max-h-64 min-h-0 overflow-y-auto border-t border-slate-200 bg-white p-5 md:max-h-none md:border-t-0 md:border-l"
@@ -32,7 +38,7 @@ export function NodeInspector({ node, isEntry }: NodeInspectorProps) {
         </p>
       ) : (
         <div className="mt-5">
-          <h3 className="text-lg font-semibold">{node.label}</h3>
+          <NodeLabelEditor key={node.id} node={node} onRename={onNodeRename} />
 
           <dl className="mt-5 space-y-4 text-sm">
             <div>
