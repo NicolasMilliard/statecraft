@@ -24,19 +24,21 @@ export function FlowCanvas({ flow, layout, onLayoutChange }: FlowCanvasProps) {
   );
 
   useEffect(() => {
+    const { nodes: nextNodes } = toReactFlowGraph(flow, layout);
+
     setNodes((currentNodes) => {
       const currentNodesById = new Map(
         currentNodes.map((node) => [node.id, node]),
       );
 
-      return graph.nodes.map((node) => {
+      return nextNodes.map((node) => {
         const currentNode = currentNodesById.get(node.id);
 
         // Preserve renderer state, including measured dimensions.
         return currentNode === undefined ? node : { ...currentNode, ...node };
       });
     });
-  }, [graph.nodes, setNodes]);
+  }, [flow, layout, setNodes]);
 
   const handleNodeDragStop = useCallback<OnNodeDrag<CanvasNode>>(
     (_event, _node, draggedNodes) => {
