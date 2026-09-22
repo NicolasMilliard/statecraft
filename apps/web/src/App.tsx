@@ -1,60 +1,24 @@
-import type { Flow } from '@statecraft/core';
 import { useState } from 'react';
 import { FlowCanvas } from './canvas/FlowCanvas';
-import type { FlowLayout } from './canvas/flow-layout';
+import { useFlowEditor } from './editor/use-flow-editor';
 import { checkoutFlow, checkoutLayout } from './examples/checkout';
 import { NodeInspector } from './inspector/NodeInspector';
 
 export default function App() {
-  const [flow, setFlow] = useState<Flow>(checkoutFlow);
-  const [layout, setLayout] = useState<FlowLayout>(checkoutLayout);
+  const {
+    flow,
+    layout,
+    addNode,
+    renameNode,
+    setEntryNode,
+    updateLayout,
+    resetLayout,
+  } = useFlowEditor(checkoutFlow, checkoutLayout);
+
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const selectedNode =
     flow.nodes.find((node) => node.id === selectedNodeId) ?? null;
-
-  function handleNodeRename(nodeId: string, label: string) {
-    const normalizedLabel = label.trim();
-
-    if (normalizedLabel.length === 0) {
-      return;
-    }
-
-    setFlow((currentFlow) => {
-      const targetNode = currentFlow.nodes.find((node) => node.id === nodeId);
-
-      if (targetNode === undefined || targetNode.label === normalizedLabel) {
-        return currentFlow;
-      }
-
-      return {
-        ...currentFlow,
-        nodes: currentFlow.nodes.map((node) =>
-          node.id === nodeId ? { ...node, label: normalizedLabel } : node,
-        ),
-      };
-    });
-  }
-
-  function handleEntryNodeChange(nodeId: string | null) {
-    setFlow((currentFlow) => {
-      if (currentFlow.entryNodeId === nodeId) {
-        return currentFlow;
-      }
-
-      if (
-        nodeId !== null &&
-        !currentFlow.nodes.some((node) => node.id === nodeId)
-      ) {
-        return currentFlow;
-      }
-
-      return {
-        ...currentFlow,
-        entryNodeId: nodeId,
-      };
-    });
-  }
 
   return (
     <main className="grid h-dvh w-full grid-rows-[auto_minmax(0,1fr)]">
@@ -72,7 +36,7 @@ export default function App() {
 
           <button
             type="button"
-            onClick={() => setLayout(checkoutLayout)}
+            onClick={resetLayout}
             className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             Reset layout
@@ -85,14 +49,16 @@ export default function App() {
           key={flow.id}
           flow={flow}
           layout={layout}
-          onLayoutChange={setLayout}
+          onLayoutChange={updateLayout}
           onNodeSelectionChange={setSelectedNodeId}
+          onNodeAdd={addNode}
         />
+
         <NodeInspector
           node={selectedNode}
           isEntry={selectedNode?.id === flow.entryNodeId}
-          onNodeRename={handleNodeRename}
-          onEntryNodeChange={handleEntryNodeChange}
+          onNodeRename={renameNode}
+          onEntryNodeChange={setEntryNode}
         />
       </div>
     </main>

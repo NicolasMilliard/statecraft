@@ -1,13 +1,6 @@
-import type { FlowNode, FlowNodeKind } from '@statecraft/core';
+import type { FlowNode } from '@statecraft/core';
+import { NODE_KIND_LABELS } from '../node-kind-labels';
 import { NodeLabelEditor } from './NodeLabelEditor';
-
-const NODE_KIND_LABELS: Record<FlowNodeKind, string> = {
-  screen: 'Screen',
-  ui: 'UI',
-  action: 'Action',
-  service: 'Service',
-  state: 'State',
-};
 
 interface NodeInspectorProps {
   readonly node: FlowNode | null;

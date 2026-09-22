@@ -1,4 +1,4 @@
-import type { Flow } from '@statecraft/core';
+import type { Flow, FlowNodeKind } from '@statecraft/core';
 import {
   Background,
   Controls,
@@ -8,7 +8,8 @@ import {
   type OnSelectionChangeFunc,
 } from '@xyflow/react';
 import { useCallback, useEffect, useMemo } from 'react';
-import type { FlowLayout } from './flow-layout';
+import type { FlowLayout, FlowNodePosition } from './flow-layout';
+import { NodePalette } from './NodePalette';
 import { toReactFlowGraph, type CanvasNode } from './to-react-flow-graph';
 
 interface FlowCanvasProps {
@@ -16,6 +17,7 @@ interface FlowCanvasProps {
   readonly layout: FlowLayout;
   readonly onLayoutChange: (layout: FlowLayout) => void;
   readonly onNodeSelectionChange: (nodeId: string | null) => void;
+  readonly onNodeAdd: (kind: FlowNodeKind, position: FlowNodePosition) => void;
 }
 
 export function FlowCanvas({
@@ -23,6 +25,7 @@ export function FlowCanvas({
   layout,
   onLayoutChange,
   onNodeSelectionChange,
+  onNodeAdd,
 }: FlowCanvasProps) {
   const graph = useMemo(() => toReactFlowGraph(flow, layout), [flow, layout]);
 
@@ -119,6 +122,7 @@ export function FlowCanvas({
       >
         <Background />
         <Controls showInteractive={false} />
+        <NodePalette onNodeAdd={onNodeAdd} />
       </ReactFlow>
     </section>
   );
