@@ -19,6 +19,10 @@ export default function App() {
     resetLayout,
     deleteEdge,
     deleteNode,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   } = useFlowEditor(checkoutFlow, checkoutLayout);
 
   const [selection, setSelection] = useState<CanvasSelection>(null);
@@ -56,6 +60,26 @@ export default function App() {
             Example flow · {flow.nodes.length} nodes · {flow.edges.length}{' '}
             connections
           </p>
+
+          <div role="group" aria-label="Edit history" className="flex gap-2">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={!canUndo}
+              className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Undo
+            </button>
+
+            <button
+              type="button"
+              onClick={redo}
+              disabled={!canRedo}
+              className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Redo
+            </button>
+          </div>
 
           <button
             type="button"

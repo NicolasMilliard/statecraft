@@ -5,10 +5,11 @@ import type {
   FlowNode,
   FlowNodeKind,
 } from '@statecraft/core';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import type { FlowLayout, FlowNodePosition } from '../canvas/flow-layout';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
 import { canAddFlowEdge } from './can-add-flow-edge';
+import { useHistoryState } from './use-history-state';
 
 interface FlowEditorState {
   readonly flow: Flow;
@@ -16,8 +17,32 @@ interface FlowEditorState {
   readonly initialLayout: FlowLayout;
 }
 
+function areLayoutsEqual(left: FlowLayout, right: FlowLayout): boolean {
+  const entries = Object.entries(left.positions);
+
+  if (
+    left.flowId !== right.flowId ||
+    entries.length !== Object.keys(right.positions).length
+  ) {
+    return false;
+  }
+
+  return entries.every(([nodeId, position]) => {
+    const otherPosition = right.positions[nodeId];
+
+    return position.x === otherPosition?.x && position.y === otherPosition?.y;
+  });
+}
+
 export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
-  const [editor, setEditor] = useState<FlowEditorState>(() => ({
+  const {
+    state: editor,
+    setState: setEditor,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useHistoryState<FlowEditorState>(() => ({
     flow: initialFlow,
     layout: initialLayout,
     initialLayout,
@@ -80,7 +105,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
         };
       });
     },
-    [],
+    [setEditor],
   );
 
   function renameNode(nodeId: string, label: string) {
@@ -221,24 +246,36 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     });
   }
 
-  const updateLayout = useCallback((nextLayout: FlowLayout) => {
+  const updateLayout = useCallback(
+    (nextLayout: FlowLayout) => {
+      setEditor((current) => {
+        if (
+          nextLayout.flowId !== current.flow.id ||
+          areLayoutsEqual(current.layout, nextLayout)
+        ) {
+          return current;
+        }
+
+        return {
+          ...current,
+          layout: nextLayout,
+        };
+      });
+    },
+    [setEditor],
+  );
+
+  function resetLayout() {
     setEditor((current) => {
-      if (nextLayout.flowId !== current.flow.id) {
+      if (areLayoutsEqual(current.layout, current.initialLayout)) {
         return current;
       }
 
       return {
         ...current,
-        layout: nextLayout,
+        layout: current.initialLayout,
       };
     });
-  }, []);
-
-  function resetLayout() {
-    setEditor((current) => ({
-      ...current,
-      layout: current.initialLayout,
-    }));
   }
 
   return {
@@ -251,6 +288,10 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     setEdgeKind,
     deleteNode,
     deleteEdge,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
     updateLayout,
     resetLayout,
   };

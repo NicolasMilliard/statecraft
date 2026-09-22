@@ -9,6 +9,12 @@ interface NodeLabelEditorProps {
 export function NodeLabelEditor({ node, onRename }: NodeLabelEditorProps) {
   const inputId = useId();
   const [draftLabel, setDraftLabel] = useState(node.label);
+  const [previousLabel, setPreviousLabel] = useState(node.label);
+
+  if (previousLabel !== node.label) {
+    setPreviousLabel(node.label);
+    setDraftLabel(node.label);
+  }
 
   const normalizedLabel = draftLabel.trim();
   const isValid = normalizedLabel.length > 0;
