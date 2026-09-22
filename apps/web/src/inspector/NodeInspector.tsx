@@ -13,12 +13,14 @@ interface NodeInspectorProps {
   readonly node: FlowNode | null;
   readonly isEntry: boolean;
   readonly onNodeRename: (nodeId: string, label: string) => void;
+  readonly onEntryNodeChange: (nodeId: string | null) => void;
 }
 
 export function NodeInspector({
   node,
   isEntry,
   onNodeRename,
+  onEntryNodeChange,
 }: NodeInspectorProps) {
   return (
     <aside
@@ -50,7 +52,18 @@ export function NodeInspector({
 
             <div>
               <dt className="text-slate-500">Entry point</dt>
-              <dd className="mt-1 font-medium">{isEntry ? 'Yes' : 'No'}</dd>
+
+              <dd className="mt-1">
+                <p className="font-medium">{isEntry ? 'Yes' : 'No'}</p>
+
+                <button
+                  type="button"
+                  onClick={() => onEntryNodeChange(isEntry ? null : node.id)}
+                  className="mt-2 cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                >
+                  {isEntry ? 'Clear entry point' : 'Set as entry point'}
+                </button>
+              </dd>
             </div>
           </dl>
         </div>

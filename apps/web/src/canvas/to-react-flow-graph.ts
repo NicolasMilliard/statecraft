@@ -44,12 +44,17 @@ export function toReactFlowGraph(
       throw new Error(`Missing position for node "${node.id}"`);
     }
 
+    const isEntry = node.id === flow.entryNodeId;
+
     return {
       id: node.id,
       type: 'default',
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
-      className: `statecraft-node--${node.kind}`,
+      className: isEntry
+        ? `statecraft-node--${node.kind} statecraft-node--entry`
+        : `statecraft-node--${node.kind}`,
+      ariaLabel: isEntry ? `${node.label}, entry point` : node.label,
       position: { ...position },
       data: {
         label: node.label,

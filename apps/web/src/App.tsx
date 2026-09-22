@@ -36,6 +36,26 @@ export default function App() {
     });
   }
 
+  function handleEntryNodeChange(nodeId: string | null) {
+    setFlow((currentFlow) => {
+      if (currentFlow.entryNodeId === nodeId) {
+        return currentFlow;
+      }
+
+      if (
+        nodeId !== null &&
+        !currentFlow.nodes.some((node) => node.id === nodeId)
+      ) {
+        return currentFlow;
+      }
+
+      return {
+        ...currentFlow,
+        entryNodeId: nodeId,
+      };
+    });
+  }
+
   return (
     <main className="grid h-dvh w-full grid-rows-[auto_minmax(0,1fr)]">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-white px-7 py-5">
@@ -68,11 +88,11 @@ export default function App() {
           onLayoutChange={setLayout}
           onNodeSelectionChange={setSelectedNodeId}
         />
-
         <NodeInspector
           node={selectedNode}
           isEntry={selectedNode?.id === flow.entryNodeId}
           onNodeRename={handleNodeRename}
+          onEntryNodeChange={handleEntryNodeChange}
         />
       </div>
     </main>
