@@ -6,6 +6,7 @@ import { useFlowEditor } from './editor/use-flow-editor';
 import { checkoutFlow, checkoutLayout } from './examples/checkout';
 import { EdgeInspector } from './inspector/EdgeInspector';
 import { NodeInspector } from './inspector/NodeInspector';
+import { SelectionInspector } from './inspector/SelectionInspector';
 
 export default function App() {
   const {
@@ -32,27 +33,34 @@ export default function App() {
     willReplaceInvalidDraft,
   } = useFlowEditor(checkoutFlow, checkoutLayout);
 
-  const [selection, setSelection] = useState<CanvasSelection>(null);
+  const [selection, setSelection] = useState<CanvasSelection>({
+    nodeIds: [],
+    edgeIds: [],
+  });
   const [canvasRevision, setCanvasRevision] = useState(0);
 
-  const selectedNode =
-    selection?.type === 'node'
-      ? (flow.nodes.find((node) => node.id === selection.id) ?? null)
-      : null;
+  const selectedNodes = flow.nodes.filter((node) =>
+    selection.nodeIds.includes(node.id),
+  );
 
-  const selectedEdge =
-    selection?.type === 'edge'
-      ? (flow.edges.find((edge) => edge.id === selection.id) ?? null)
-      : null;
+  const selectedEdges = flow.edges.filter((edge) =>
+    selection.edgeIds.includes(edge.id),
+  );
+
+  const selectedCount = selectedNodes.length + selectedEdges.length;
+
+  const selectedNode = selectedCount === 1 ? (selectedNodes[0] ?? null) : null;
+
+  const selectedEdge = selectedCount === 1 ? (selectedEdges[0] ?? null) : null;
 
   function handleNodeDelete(nodeId: string) {
     deleteNode(nodeId);
-    setSelection(null);
+    setSelection({ nodeIds: [], edgeIds: [] });
   }
 
   function handleEdgeDelete(edgeId: string) {
     deleteEdge(edgeId);
-    setSelection(null);
+    setSelection({ nodeIds: [], edgeIds: [] });
   }
 
   function handleDocumentRestore(serialized: string): boolean {
@@ -60,7 +68,7 @@ export default function App() {
       return false;
     }
 
-    setSelection(null);
+    setSelection({ nodeIds: [], edgeIds: [] });
     setCanvasRevision((current) => current + 1);
 
     return true;
@@ -145,7 +153,12 @@ export default function App() {
           onNodeAdd={addNode}
           onNodesConnect={connectNodes}
         />
-        {selectedEdge !== null ? (
+        {selectedCount > 1 ? (
+          <SelectionInspector
+            nodeCount={selectedNodes.length}
+            edgeCount={selectedEdges.length}
+          />
+        ) : selectedEdge !== null ? (
           <EdgeInspector
             flow={flow}
             edge={selectedEdge}

@@ -1,4 +1,4 @@
-export type CanvasSelection =
-  | { readonly type: 'node'; readonly id: string }
-  | { readonly type: 'edge'; readonly id: string }
-  | null;
+export interface CanvasSelection {
+  readonly nodeIds: readonly string[];
+  readonly edgeIds: readonly string[];
+}

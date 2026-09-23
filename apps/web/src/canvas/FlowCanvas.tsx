@@ -142,20 +142,10 @@ function FlowCanvasContent({
 
   const handleSelectionChange = useCallback<OnSelectionChangeFunc<CanvasNode>>(
     ({ nodes: selectedNodes, edges: selectedEdges }) => {
-      const node = selectedNodes[0];
-      const edge = selectedEdges[0];
-
-      if (node !== undefined) {
-        onSelectionChange({ type: 'node', id: node.id });
-        return;
-      }
-
-      if (edge !== undefined) {
-        onSelectionChange({ type: 'edge', id: edge.id });
-        return;
-      }
-
-      onSelectionChange(null);
+      onSelectionChange({
+        nodeIds: selectedNodes.map((node) => node.id),
+        edgeIds: selectedEdges.map((edge) => edge.id),
+      });
     },
     [onSelectionChange],
   );
@@ -228,8 +218,7 @@ function FlowCanvasContent({
         edgesReconnectable={false}
         elementsSelectable
         selectionOnDrag={false}
-        selectionKeyCode={null}
-        multiSelectionKeyCode={null}
+        selectionKeyCode="Shift"
         deleteKeyCode={null}
         fitView
         fitViewOptions={{ padding: 0.2 }}
