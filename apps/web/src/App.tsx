@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CanvasSelection } from './canvas/canvas-selection';
 import { FlowCanvas } from './canvas/FlowCanvas';
+import { FlowFileActions } from './editor/FlowFileActions';
 import { useFlowEditor } from './editor/use-flow-editor';
 import { checkoutFlow, checkoutLayout } from './examples/checkout';
 import { EdgeInspector } from './inspector/EdgeInspector';
@@ -24,12 +25,15 @@ export default function App() {
     canUndo,
     canRedo,
     save,
+    exportDocument,
+    restoreDocument,
     storageError,
     hasUnsavedChanges,
     willReplaceInvalidDraft,
   } = useFlowEditor(checkoutFlow, checkoutLayout);
 
   const [selection, setSelection] = useState<CanvasSelection>(null);
+  const [canvasRevision, setCanvasRevision] = useState(0);
 
   const selectedNode =
     selection?.type === 'node'
@@ -49,6 +53,17 @@ export default function App() {
   function handleEdgeDelete(edgeId: string) {
     deleteEdge(edgeId);
     setSelection(null);
+  }
+
+  function handleDocumentRestore(serialized: string): boolean {
+    if (!restoreDocument(serialized)) {
+      return false;
+    }
+
+    setSelection(null);
+    setCanvasRevision((current) => current + 1);
+
+    return true;
   }
 
   return (
@@ -77,6 +92,12 @@ export default function App() {
           >
             {willReplaceInvalidDraft ? 'Replace local copy' : 'Save'}
           </button>
+
+          <FlowFileActions
+            flowName={flow.name}
+            onExport={exportDocument}
+            onRestore={handleDocumentRestore}
+          />
 
           <div role="group" aria-label="Edit history" className="flex gap-2">
             <button
@@ -116,7 +137,7 @@ export default function App() {
 
       <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_18rem] md:grid-rows-1">
         <FlowCanvas
-          key={flow.id}
+          key={`${flow.id}:${canvasRevision}`}
           flow={flow}
           layout={layout}
           onLayoutChange={updateLayout}

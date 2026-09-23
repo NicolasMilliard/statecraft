@@ -90,8 +90,16 @@ export function serializeFlowDocument(editor: FlowEditorState): string {
   return JSON.stringify(document);
 }
 
-export function parseFlowDocument(serialized: string): FlowEditorState {
+export function parseFlowDocument(
+  serialized: string,
+  expectedFlowId?: string,
+): FlowEditorState {
   const value: unknown = JSON.parse(serialized);
+  const { editor } = documentSchema.parse(value);
 
-  return documentSchema.parse(value).editor;
+  if (expectedFlowId !== undefined && editor.flow.id !== expectedFlowId) {
+    throw new Error('Document belongs to another flow.');
+  }
+
+  return editor;
 }

@@ -106,3 +106,18 @@ test('rejects non-finite coordinates before serialization', () => {
 
   assert.throws(() => serializeFlowDocument(invalid));
 });
+
+test('accepts a document for the expected flow', () => {
+  const serialized = serializeFlowDocument(editor);
+
+  assert.deepEqual(parseFlowDocument(serialized, editor.flow.id), editor);
+});
+
+test('rejects a document for a different flow', () => {
+  const serialized = serializeFlowDocument(editor);
+
+  assert.throws(
+    () => parseFlowDocument(serialized, 'another-flow'),
+    /Document belongs to another flow/,
+  );
+});

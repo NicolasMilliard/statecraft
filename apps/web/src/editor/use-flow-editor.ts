@@ -9,6 +9,7 @@ import { useCallback, useState } from 'react';
 import type { FlowLayout, FlowNodePosition } from '../canvas/flow-layout';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
 import { canAddFlowEdge } from './can-add-flow-edge';
+import { parseFlowDocument, serializeFlowDocument } from './flow-document';
 import type { FlowEditorState } from './flow-editor-state';
 import { loadFlowDraft, saveFlowDraft } from './flow-storage';
 import { useHistoryState } from './use-history-state';
@@ -292,6 +293,28 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     setStorageError(null);
   }
 
+  function exportDocument(): string {
+    return serializeFlowDocument(editor);
+  }
+
+  function restoreDocument(serialized: string): boolean {
+    let restored: FlowEditorState;
+
+    try {
+      restored = parseFlowDocument(serialized, editor.flow.id);
+    } catch {
+      return false;
+    }
+
+    const restoredDocument = serializeFlowDocument(restored);
+
+    setEditor((current) =>
+      serializeFlowDocument(current) === restoredDocument ? current : restored,
+    );
+
+    return true;
+  }
+
   const updateLayout = useCallback(
     (nextLayout: FlowLayout) => {
       setEditor((current) => {
@@ -339,6 +362,8 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     canUndo,
     canRedo,
     save,
+    exportDocument,
+    restoreDocument,
     storageError,
     hasUnsavedChanges: editor !== savedEditor,
     willReplaceInvalidDraft:

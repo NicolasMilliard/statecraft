@@ -28,11 +28,7 @@ export function loadFlowDraft(flowId: string): LoadFlowResult {
   }
 
   try {
-    const editor = parseFlowDocument(serialized);
-
-    if (editor.flow.id !== flowId) {
-      return { status: 'invalid' };
-    }
+    const editor = parseFlowDocument(serialized, flowId);
 
     return { status: 'loaded', editor };
   } catch {
