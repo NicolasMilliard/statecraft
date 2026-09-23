@@ -1,11 +1,13 @@
 interface SelectionInspectorProps {
   readonly nodeCount: number;
   readonly edgeCount: number;
+  readonly onSelectionDelete: () => void;
 }
 
 export function SelectionInspector({
   nodeCount,
   edgeCount,
+  onSelectionDelete,
 }: SelectionInspectorProps) {
   return (
     <aside
@@ -40,6 +42,22 @@ export function SelectionInspector({
       <p className="mt-3 text-sm text-slate-500">
         Select a single item to edit its details.
       </p>
+
+      <div className="mt-6 border-t border-slate-200 pt-4">
+        {nodeCount > 0 && (
+          <p className="mb-3 text-xs text-slate-500">
+            Deleting nodes also removes their connections.
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={onSelectionDelete}
+          className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+        >
+          Delete selection
+        </button>
+      </div>
     </aside>
   );
 }

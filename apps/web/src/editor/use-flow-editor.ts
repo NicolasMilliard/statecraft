@@ -9,6 +9,7 @@ import { useCallback, useState } from 'react';
 import type { FlowLayout, FlowNodePosition } from '../canvas/flow-layout';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
 import { canAddFlowEdge } from './can-add-flow-edge';
+import { deleteFlowElements } from './delete-flow-elements';
 import { parseFlowDocument, serializeFlowDocument } from './flow-document';
 import type { FlowEditorState } from './flow-editor-state';
 import { loadFlowDraft, saveFlowDraft } from './flow-storage';
@@ -224,61 +225,19 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     });
   }
 
-  function deleteEdge(edgeId: string) {
-    setEditor((current) => {
-      if (!current.flow.edges.some((edge) => edge.id === edgeId)) {
-        return current;
-      }
+  function deleteElements(
+    nodeIds: readonly string[],
+    edgeIds: readonly string[],
+  ) {
+    setEditor((current) => deleteFlowElements(current, nodeIds, edgeIds));
+  }
 
-      return {
-        ...current,
-        flow: {
-          ...current.flow,
-          edges: current.flow.edges.filter((edge) => edge.id !== edgeId),
-        },
-      };
-    });
+  function deleteEdge(edgeId: string) {
+    deleteElements([], [edgeId]);
   }
 
   function deleteNode(nodeId: string) {
-    setEditor((current) => {
-      if (!current.flow.nodes.some((node) => node.id === nodeId)) {
-        return current;
-      }
-
-      const positions = { ...current.layout.positions };
-      const initialPositions = { ...current.initialLayout.positions };
-
-      delete positions[nodeId];
-      delete initialPositions[nodeId];
-
-      return {
-        ...current,
-        flow: {
-          ...current.flow,
-          entryNodeId:
-            current.flow.entryNodeId === nodeId
-              ? null
-              : current.flow.entryNodeId,
-          nodes: current.flow.nodes.filter((node) => node.id !== nodeId),
-          edges: current.flow.edges.filter(
-            (edge) =>
-              edge.sourceNodeId !== nodeId && edge.targetNodeId !== nodeId,
-          ),
-          codeReferences: current.flow.codeReferences.filter(
-            (reference) => reference.flowNodeId !== nodeId,
-          ),
-        },
-        layout: {
-          ...current.layout,
-          positions,
-        },
-        initialLayout: {
-          ...current.initialLayout,
-          positions: initialPositions,
-        },
-      };
-    });
+    deleteElements([nodeId], []);
   }
 
   function save() {
@@ -357,6 +316,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     setEdgeKind,
     deleteNode,
     deleteEdge,
+    deleteElements,
     undo,
     redo,
     canUndo,

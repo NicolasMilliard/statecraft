@@ -21,6 +21,7 @@ export default function App() {
     resetLayout,
     deleteEdge,
     deleteNode,
+    deleteElements,
     undo,
     redo,
     canUndo,
@@ -60,6 +61,15 @@ export default function App() {
 
   function handleEdgeDelete(edgeId: string) {
     deleteEdge(edgeId);
+    setSelection({ nodeIds: [], edgeIds: [] });
+  }
+
+  function handleSelectionDelete() {
+    deleteElements(
+      selectedNodes.map((node) => node.id),
+      selectedEdges.map((edge) => edge.id),
+    );
+
     setSelection({ nodeIds: [], edgeIds: [] });
   }
 
@@ -157,6 +167,7 @@ export default function App() {
           <SelectionInspector
             nodeCount={selectedNodes.length}
             edgeCount={selectedEdges.length}
+            onSelectionDelete={handleSelectionDelete}
           />
         ) : selectedEdge !== null ? (
           <EdgeInspector
