@@ -1,4 +1,4 @@
-import { parseFlowDocument, serializeFlowDocument } from './flow-document';
+import { parseFlowDocument, serializeFlowDocument } from './flow-document.ts';
 import type { FlowEditorState } from './flow-editor-state';
 
 type LoadFlowResult =
@@ -10,15 +10,26 @@ type LoadFlowResult =
       readonly status: 'missing' | 'invalid' | 'unavailable';
     };
 
-function storageKey(flowId: string): string {
-  return `statecraft:flow:${flowId}`;
-}
+type FlowDraftStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
-export function loadFlowDraft(flowId: string): LoadFlowResult {
+const ACTIVE_FLOW_KEY = 'statecraft:active-flow';
+
+export function loadFlowDraft(
+  fallbackFlowId: string,
+  storage?: FlowDraftStorage,
+): LoadFlowResult {
   let serialized: string | null;
+  let expectedFlowId: string | undefined;
 
   try {
-    serialized = window.localStorage.getItem(storageKey(flowId));
+    const targetStorage = storage ?? window.localStorage;
+
+    serialized = targetStorage.getItem(ACTIVE_FLOW_KEY);
+
+    if (serialized === null) {
+      serialized = targetStorage.getItem(`statecraft:flow:${fallbackFlowId}`);
+      expectedFlowId = fallbackFlowId;
+    }
   } catch {
     return { status: 'unavailable' };
   }
@@ -28,7 +39,7 @@ export function loadFlowDraft(flowId: string): LoadFlowResult {
   }
 
   try {
-    const editor = parseFlowDocument(serialized, flowId);
+    const editor = parseFlowDocument(serialized, expectedFlowId);
 
     return { status: 'loaded', editor };
   } catch {
@@ -36,11 +47,15 @@ export function loadFlowDraft(flowId: string): LoadFlowResult {
   }
 }
 
-export function saveFlowDraft(editor: FlowEditorState): boolean {
+export function saveFlowDraft(
+  editor: FlowEditorState,
+  storage?: FlowDraftStorage,
+): boolean {
   try {
     const serialized = serializeFlowDocument(editor);
+    const targetStorage = storage ?? window.localStorage;
 
-    window.localStorage.setItem(storageKey(editor.flow.id), serialized);
+    targetStorage.setItem(ACTIVE_FLOW_KEY, serialized);
 
     return true;
   } catch {
