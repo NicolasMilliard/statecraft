@@ -144,6 +144,28 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     [setEditor],
   );
 
+  function renameFlow(name: string) {
+    const normalizedName = name.trim();
+
+    if (normalizedName.length === 0) {
+      return;
+    }
+
+    setEditor((current) => {
+      if (current.flow.name === normalizedName) {
+        return current;
+      }
+
+      return {
+        ...current,
+        flow: {
+          ...current.flow,
+          name: normalizedName,
+        },
+      };
+    });
+  }
+
   function renameNode(nodeId: string, label: string) {
     const normalizedLabel = label.trim();
 
@@ -311,6 +333,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     layout: editor.layout,
     addNode,
     connectNodes,
+    renameFlow,
     renameNode,
     setEntryNode,
     setEdgeKind,

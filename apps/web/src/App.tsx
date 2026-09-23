@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CanvasSelection } from './canvas/canvas-selection';
 import { FlowCanvas } from './canvas/FlowCanvas';
 import { FlowFileActions } from './editor/FlowFileActions';
+import { FlowNameEditor } from './editor/FlowNameEditor';
 import { useFlowEditor } from './editor/use-flow-editor';
 import { checkoutFlow, checkoutLayout } from './examples/checkout';
 import { EdgeInspector } from './inspector/EdgeInspector';
@@ -14,6 +15,7 @@ export default function App() {
     layout,
     addNode,
     connectNodes,
+    renameFlow,
     renameNode,
     setEntryNode,
     setEdgeKind,
@@ -89,13 +91,16 @@ export default function App() {
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-white px-7 py-5">
         <div>
           <p className="mb-1.5 text-[13px] font-bold text-brand">Statecraft</p>
-          <h1 className="text-2xl font-bold">{flow.name}</h1>
+          <FlowNameEditor
+            key={`${flow.id}:${flow.name}`}
+            name={flow.name}
+            onRename={renameFlow}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
           <p className="text-[13px] text-slate-500">
-            Example flow · {flow.nodes.length} nodes · {flow.edges.length}{' '}
-            connections
+            {flow.nodes.length} nodes · {flow.edges.length} connections
           </p>
 
           <p role="status" className="text-xs text-slate-500">
