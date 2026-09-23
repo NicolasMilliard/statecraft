@@ -5,17 +5,20 @@ import {
   ConnectionMode,
   Controls,
   ReactFlow,
+  ReactFlowProvider,
   useEdgesState,
   useNodesState,
+  useReactFlow,
   type IsValidConnection,
   type OnConnect,
   type OnNodesChange,
   type OnSelectionChangeFunc,
 } from '@xyflow/react';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, type DragEvent } from 'react';
 import { canAddFlowEdge } from '../editor/can-add-flow-edge';
 import type { CanvasSelection } from './canvas-selection';
 import type { FlowLayout, FlowNodePosition } from './flow-layout';
+import { NODE_KIND_MIME_TYPE, parseDraggedNodeKind } from './node-drag';
 import { NodePalette } from './NodePalette';
 import { toReactFlowGraph, type CanvasNode } from './to-react-flow-graph';
 
@@ -28,7 +31,26 @@ interface FlowCanvasProps {
   readonly onNodesConnect: (sourceNodeId: string, targetNodeId: string) => void;
 }
 
-export function FlowCanvas({
+function canDropPaletteNode(event: DragEvent<HTMLDivElement>): boolean {
+  const target = event.target;
+
+  return (
+    event.dataTransfer.types.includes(NODE_KIND_MIME_TYPE) &&
+    !(
+      target instanceof Element && target.closest('.react-flow__panel') !== null
+    )
+  );
+}
+
+export function FlowCanvas(props: FlowCanvasProps) {
+  return (
+    <ReactFlowProvider>
+      <FlowCanvasContent {...props} />
+    </ReactFlowProvider>
+  );
+}
+
+function FlowCanvasContent({
   flow,
   layout,
   onLayoutChange,
@@ -36,6 +58,8 @@ export function FlowCanvas({
   onNodeAdd,
   onNodesConnect,
 }: FlowCanvasProps) {
+  const { screenToFlowPosition } = useReactFlow<CanvasNode>();
+
   const graph = useMemo(() => toReactFlowGraph(flow, layout), [flow, layout]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(
@@ -149,6 +173,38 @@ export function FlowCanvas({
     [onNodesConnect],
   );
 
+  const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+
+    event.dataTransfer.dropEffect = canDropPaletteNode(event) ? 'copy' : 'none';
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+
+      if (!canDropPaletteNode(event)) {
+        return;
+      }
+
+      const kind = parseDraggedNodeKind(
+        event.dataTransfer.getData(NODE_KIND_MIME_TYPE),
+      );
+
+      if (kind === null) {
+        return;
+      }
+
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      onNodeAdd(kind, position);
+    },
+    [onNodeAdd, screenToFlowPosition],
+  );
+
   return (
     <section
       className="h-full min-h-0 w-full min-w-0"
@@ -161,6 +217,8 @@ export function FlowCanvas({
         onNodesChange={handleNodesChange}
         onSelectionChange={handleSelectionChange}
         onConnect={handleConnect}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
         isValidConnection={isValidConnection}
         nodesDraggable
         nodesConnectable
