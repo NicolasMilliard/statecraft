@@ -15,7 +15,9 @@ implements them.
 
 ## Current milestone
 
-M1 — Canvas: build the web workspace and display editable user flows.
+M1 — Canvas: functional scope implemented.
+
+Next milestone: M2 — local scanner and CLI.
 
 ## Development
 
