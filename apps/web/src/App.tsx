@@ -8,6 +8,7 @@ import { checkoutFlow, checkoutLayout } from './examples/checkout';
 import { EdgeInspector } from './inspector/EdgeInspector';
 import { NodeInspector } from './inspector/NodeInspector';
 import { SelectionInspector } from './inspector/SelectionInspector';
+import { Button } from './ui/Button';
 
 export default function App() {
   const {
@@ -114,24 +115,20 @@ export default function App() {
             {hasUnsavedChanges ? 'Unsaved changes' : 'Saved locally'}
           </p>
 
-          <button
-            type="button"
+          <Button
             onClick={handleNewFlow}
             disabled={isRestoring}
             title="Create an empty flow. This can be undone."
-            className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
           >
             New flow
-          </button>
+          </Button>
 
-          <button
-            type="button"
+          <Button
             onClick={save}
             disabled={!hasUnsavedChanges && storageError === null}
-            className="cursor-pointer rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
           >
             {willReplaceInvalidDraft ? 'Replace local copy' : 'Save'}
-          </button>
+          </Button>
 
           <FlowFileActions
             key={flow.id}
@@ -143,32 +140,26 @@ export default function App() {
           />
 
           <div role="group" aria-label="Edit history" className="flex gap-2">
-            <button
-              type="button"
+            <Button
               onClick={undo}
               disabled={!canUndo || isRestoring}
-              className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+              variant="secondary"
             >
               Undo
-            </button>
+            </Button>
 
-            <button
-              type="button"
+            <Button
               onClick={redo}
               disabled={!canRedo || isRestoring}
-              className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+              variant="secondary"
             >
               Redo
-            </button>
+            </Button>
           </div>
 
-          <button
-            type="button"
-            onClick={resetLayout}
-            className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          >
+          <Button onClick={resetLayout} variant="secondary">
             Reset layout
-          </button>
+          </Button>
         </div>
 
         {storageError !== null && (
