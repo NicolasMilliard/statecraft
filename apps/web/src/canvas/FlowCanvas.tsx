@@ -14,7 +14,13 @@ import {
   type OnNodesChange,
   type OnSelectionChangeFunc,
 } from '@xyflow/react';
-import { useCallback, useEffect, useMemo, type DragEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type DragEvent,
+} from 'react';
 import { canAddFlowEdge } from '../editor/can-add-flow-edge';
 import type { CanvasSelection } from './canvas-selection';
 import type { FlowLayout, FlowNodePosition } from './flow-layout';
@@ -59,6 +65,7 @@ function FlowCanvasContent({
   onNodesConnect,
 }: FlowCanvasProps) {
   const { screenToFlowPosition } = useReactFlow<CanvasNode>();
+  const [fitViewOnMount] = useState(() => flow.nodes.length > 0);
 
   const graph = useMemo(() => toReactFlowGraph(flow, layout), [flow, layout]);
 
@@ -220,7 +227,7 @@ function FlowCanvasContent({
         selectionOnDrag={false}
         selectionKeyCode="Shift"
         deleteKeyCode={null}
-        fitView
+        fitView={fitViewOnMount}
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.25}
         maxZoom={1.5}

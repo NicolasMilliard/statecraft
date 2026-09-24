@@ -49,8 +49,8 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
 
     if (result.status === 'invalid') {
       error =
-        'Saved data is invalid or unsupported. The example is open. ' +
-        'Replacing the local copy will overwrite the stored data.';
+        'Saved data is invalid or unsupported. ' +
+        'Saving will replace the local copy with the open flow.';
     }
 
     if (result.status === 'unavailable') {
@@ -83,6 +83,31 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
   const [storageError, setStorageError] = useState<string | null>(
     initialDocument.error,
   );
+
+  function createFlow() {
+    const flowId = crypto.randomUUID();
+
+    const next: FlowEditorState = {
+      flow: {
+        id: flowId,
+        name: 'Untitled flow',
+        entryNodeId: null,
+        nodes: [],
+        edges: [],
+        codeReferences: [],
+      },
+      layout: {
+        flowId,
+        positions: {},
+      },
+      initialLayout: {
+        flowId,
+        positions: {},
+      },
+    };
+
+    setEditor(() => next);
+  }
 
   function addNode(kind: FlowNodeKind, position: FlowNodePosition) {
     const node: FlowNode = {
@@ -282,7 +307,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     let restored: FlowEditorState;
 
     try {
-      restored = parseFlowDocument(serialized, editor.flow.id);
+      restored = parseFlowDocument(serialized);
     } catch {
       return false;
     }
@@ -331,6 +356,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
   return {
     flow: editor.flow,
     layout: editor.layout,
+    createFlow,
     addNode,
     connectNodes,
     renameFlow,

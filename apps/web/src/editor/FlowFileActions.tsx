@@ -4,15 +4,18 @@ interface FlowFileActionsProps {
   readonly flowName: string;
   readonly onExport: () => string;
   readonly onRestore: (serialized: string) => boolean;
+  readonly isRestoring: boolean;
+  readonly onRestoringChange: (isRestoring: boolean) => void;
 }
 
 export function FlowFileActions({
   flowName,
   onExport,
   onRestore,
+  isRestoring,
+  onRestoringChange,
 }: FlowFileActionsProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isRestoring, setIsRestoring] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function handleExport() {
@@ -50,22 +53,19 @@ export function FlowFileActions({
   }
 
   async function handleRestore(file: File) {
-    setIsRestoring(true);
+    onRestoringChange(true);
     setError(null);
 
     try {
       const serialized = await file.text();
 
       if (!onRestore(serialized)) {
-        setError(
-          'Restore failed. Choose a valid Statecraft JSON file ' +
-            'for the open flow.',
-        );
+        setError('Open failed. Choose a valid Statecraft JSON file.');
       }
     } catch {
       setError('Could not read this file. Please try again.');
     } finally {
-      setIsRestoring(false);
+      onRestoringChange(false);
     }
   }
 
@@ -106,10 +106,10 @@ export function FlowFileActions({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={isRestoring}
-        title="Restore a version of this flow. This can be undone."
+        title="Open a Statecraft flow. This can be undone."
         className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isRestoring ? 'Restoring…' : 'Restore JSON'}
+        {isRestoring ? 'Opening…' : 'Open JSON'}
       </button>
 
       {error !== null && (

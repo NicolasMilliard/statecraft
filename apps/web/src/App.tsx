@@ -15,6 +15,7 @@ export default function App() {
     layout,
     addNode,
     connectNodes,
+    createFlow,
     renameFlow,
     renameNode,
     setEntryNode,
@@ -41,6 +42,7 @@ export default function App() {
     edgeIds: [],
   });
   const [canvasRevision, setCanvasRevision] = useState(0);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   const selectedNodes = flow.nodes.filter((node) =>
     selection.nodeIds.includes(node.id),
@@ -72,6 +74,11 @@ export default function App() {
       selectedEdges.map((edge) => edge.id),
     );
 
+    setSelection({ nodeIds: [], edgeIds: [] });
+  }
+
+  function handleNewFlow() {
+    createFlow();
     setSelection({ nodeIds: [], edgeIds: [] });
   }
 
@@ -109,6 +116,16 @@ export default function App() {
 
           <button
             type="button"
+            onClick={handleNewFlow}
+            disabled={isRestoring}
+            title="Create an empty flow. This can be undone."
+            className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            New flow
+          </button>
+
+          <button
+            type="button"
             onClick={save}
             disabled={!hasUnsavedChanges && storageError === null}
             className="cursor-pointer rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
@@ -117,16 +134,19 @@ export default function App() {
           </button>
 
           <FlowFileActions
+            key={flow.id}
             flowName={flow.name}
             onExport={exportDocument}
             onRestore={handleDocumentRestore}
+            isRestoring={isRestoring}
+            onRestoringChange={setIsRestoring}
           />
 
           <div role="group" aria-label="Edit history" className="flex gap-2">
             <button
               type="button"
               onClick={undo}
-              disabled={!canUndo}
+              disabled={!canUndo || isRestoring}
               className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
             >
               Undo
@@ -135,7 +155,7 @@ export default function App() {
             <button
               type="button"
               onClick={redo}
-              disabled={!canRedo}
+              disabled={!canRedo || isRestoring}
               className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
             >
               Redo
