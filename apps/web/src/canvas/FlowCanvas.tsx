@@ -26,7 +26,16 @@ import type { CanvasSelection } from './canvas-selection';
 import type { FlowLayout, FlowNodePosition } from './flow-layout';
 import { NODE_KIND_MIME_TYPE, parseDraggedNodeKind } from './node-drag';
 import { NodePalette } from './NodePalette';
-import { toReactFlowGraph, type CanvasNode } from './to-react-flow-graph';
+import { StatecraftEdge } from './StatecraftEdge';
+import { StatecraftNode } from './StatecraftNode';
+import {
+  toReactFlowGraph,
+  type CanvasEdge,
+  type CanvasNode,
+} from './to-react-flow-graph';
+
+const nodeTypes = { statecraft: StatecraftNode };
+const edgeTypes = { statecraft: StatecraftEdge };
 
 interface FlowCanvasProps {
   readonly flow: Flow;
@@ -207,9 +216,11 @@ function FlowCanvasContent({
       className="h-full min-h-0 w-full min-w-0"
       aria-label={`${flow.name} flow diagram`}
     >
-      <ReactFlow<CanvasNode>
+      <ReactFlow<CanvasNode, CanvasEdge>
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onEdgesChange={onEdgesChange}
         onNodesChange={handleNodesChange}
         onSelectionChange={handleSelectionChange}
@@ -232,7 +243,7 @@ function FlowCanvasContent({
         minZoom={0.25}
         maxZoom={1.5}
       >
-        <Background />
+        <Background gap={20} size={1} />
         <Controls showInteractive={false} />
         <NodePalette onNodeAdd={onNodeAdd} />
       </ReactFlow>

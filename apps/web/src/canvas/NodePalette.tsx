@@ -4,7 +4,11 @@ import { NODE_KIND_LABELS } from '../node-kind-labels';
 import { Button } from '../ui/Button';
 import type { FlowNodePosition } from './flow-layout';
 import { NODE_KIND_MIME_TYPE } from './node-drag';
-import type { CanvasNode } from './to-react-flow-graph';
+import {
+  CANVAS_NODE_MIN_HEIGHT,
+  CANVAS_NODE_WIDTH,
+  type CanvasNode,
+} from './to-react-flow-graph';
 
 interface NodePaletteProps {
   readonly onNodeAdd: (kind: FlowNodeKind, position: FlowNodePosition) => void;
@@ -18,20 +22,21 @@ export function NodePalette({ onNodeAdd }: NodePaletteProps) {
     const nodes = getNodes();
     const bounds = getNodesBounds(nodes);
 
-    // Default nodes are 180px wide and approximately 54px tall.
     const position: FlowNodePosition =
       nodes.length === 0
         ? { x: 0, y: 0 }
         : {
             x: bounds.x + bounds.width + 80,
-            y: bounds.y + bounds.height / 2 - 27,
+            y: bounds.y + bounds.height / 2 - CANVAS_NODE_MIN_HEIGHT / 2,
           };
 
     onNodeAdd(kind, position);
 
-    void setCenter(position.x + 90, position.y + 27, {
-      zoom: getZoom(),
-    });
+    void setCenter(
+      position.x + CANVAS_NODE_WIDTH / 2,
+      position.y + CANVAS_NODE_MIN_HEIGHT / 2,
+      { zoom: getZoom() },
+    );
   }
 
   return (

@@ -4,27 +4,27 @@ import {
   type FlowEdgeKind,
   type FlowNodeKind,
 } from '@statecraft/core';
-import { MarkerType, Position, type Edge, type Node } from '@xyflow/react';
+import type { Edge, Node } from '@xyflow/react';
 import type { FlowLayout } from './flow-layout';
 
 export type CanvasNode = Node<
   {
     label: string;
     kind: FlowNodeKind;
+    isEntry: boolean;
   },
-  'default'
+  'statecraft'
 >;
 
-const EDGE_COLORS: Record<FlowEdgeKind, string> = {
-  transition: '#64748b',
-  success: '#15803d',
-  failure: '#b91c1c',
-};
+export type CanvasEdge = Edge<{ kind: FlowEdgeKind }, 'statecraft'>;
+
+export const CANVAS_NODE_WIDTH = 192;
+export const CANVAS_NODE_MIN_HEIGHT = 80;
 
 export function toReactFlowGraph(
   flow: Flow,
   layout: FlowLayout,
-): { nodes: CanvasNode[]; edges: Edge[] } {
+): { nodes: CanvasNode[]; edges: CanvasEdge[] } {
   const issues = validateFlow(flow);
 
   if (issues.length > 0) {
@@ -48,25 +48,21 @@ export function toReactFlowGraph(
 
     return {
       id: node.id,
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      className: isEntry
-        ? `statecraft-node--${node.kind} statecraft-node--entry`
-        : `statecraft-node--${node.kind}`,
-      ariaLabel: isEntry ? `${node.label}, entry point` : node.label,
+      type: 'statecraft',
+      ariaLabel: `${node.label}, ${node.kind}${isEntry ? ', entry point' : ''}`,
       position: { ...position },
+      style: { width: CANVAS_NODE_WIDTH, minHeight: CANVAS_NODE_MIN_HEIGHT },
       data: {
         label: node.label,
         kind: node.kind,
+        isEntry,
       },
     };
   });
 
   const nodeLabels = new Map(flow.nodes.map((node) => [node.id, node.label]));
 
-  const edges = flow.edges.map((edge): Edge => {
-    const color = EDGE_COLORS[edge.kind];
+  const edges = flow.edges.map((edge): CanvasEdge => {
     const sourceLabel = nodeLabels.get(edge.sourceNodeId) ?? edge.sourceNodeId;
     const targetLabel = nodeLabels.get(edge.targetNodeId) ?? edge.targetNodeId;
 
@@ -74,18 +70,11 @@ export function toReactFlowGraph(
       id: edge.id,
       source: edge.sourceNodeId,
       target: edge.targetNodeId,
-      type: 'smoothstep',
+      type: 'statecraft',
       selectable: true,
       focusable: true,
       ariaLabel: `${sourceLabel} to ${targetLabel}, ${edge.kind}`,
-      label: edge.kind === 'transition' ? '' : edge.kind,
-      style: {
-        stroke: color,
-      },
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        color,
-      },
+      data: { kind: edge.kind },
     };
   });
 
