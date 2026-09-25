@@ -109,7 +109,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     setEditor(() => next);
   }
 
-  function addNode(kind: FlowNodeKind, position: FlowNodePosition) {
+  function addNode(kind: FlowNodeKind, position: FlowNodePosition): string {
     const node: FlowNode = {
       id: crypto.randomUUID(),
       kind,
@@ -139,6 +139,8 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
         },
       },
     }));
+
+    return node.id;
   }
 
   const connectNodes = useCallback(

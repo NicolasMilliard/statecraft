@@ -1,44 +1,16 @@
-import { FLOW_NODE_KINDS, type FlowNodeKind } from '@statecraft/core';
-import { Panel, useReactFlow } from '@xyflow/react';
+import { FLOW_NODE_KINDS } from '@statecraft/core';
+import { Panel } from '@xyflow/react';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
-import { Button } from '../ui/Button';
-import type { FlowNodePosition } from './flow-layout';
+import { CommandButton } from '../editor/CommandButton';
+import type { CommandRegistry, ShortcutPlatform } from '../editor/commands';
 import { NODE_KIND_MIME_TYPE } from './node-drag';
-import {
-  CANVAS_NODE_MIN_HEIGHT,
-  CANVAS_NODE_WIDTH,
-  type CanvasNode,
-} from './to-react-flow-graph';
 
 interface NodePaletteProps {
-  readonly onNodeAdd: (kind: FlowNodeKind, position: FlowNodePosition) => void;
+  readonly commands: CommandRegistry;
+  readonly platform: ShortcutPlatform;
 }
 
-export function NodePalette({ onNodeAdd }: NodePaletteProps) {
-  const { getNodes, getNodesBounds, getZoom, setCenter } =
-    useReactFlow<CanvasNode>();
-
-  function handleAdd(kind: FlowNodeKind) {
-    const nodes = getNodes();
-    const bounds = getNodesBounds(nodes);
-
-    const position: FlowNodePosition =
-      nodes.length === 0
-        ? { x: 0, y: 0 }
-        : {
-            x: bounds.x + bounds.width + 80,
-            y: bounds.y + bounds.height / 2 - CANVAS_NODE_MIN_HEIGHT / 2,
-          };
-
-    onNodeAdd(kind, position);
-
-    void setCenter(
-      position.x + CANVAS_NODE_WIDTH / 2,
-      position.y + CANVAS_NODE_MIN_HEIGHT / 2,
-      { zoom: getZoom() },
-    );
-  }
-
+export function NodePalette({ commands, platform }: NodePaletteProps) {
   return (
     <Panel
       position="top-left"
@@ -51,7 +23,9 @@ export function NodePalette({ onNodeAdd }: NodePaletteProps) {
 
       <div role="group" aria-label="Add node" className="flex flex-wrap gap-2">
         {FLOW_NODE_KINDS.map((kind) => (
-          <Button
+          <CommandButton
+            command={commands[`add-${kind}`]}
+            platform={platform}
             key={kind}
             variant="secondary"
             draggable
@@ -59,11 +33,10 @@ export function NodePalette({ onNodeAdd }: NodePaletteProps) {
               event.dataTransfer.setData(NODE_KIND_MIME_TYPE, kind);
               event.dataTransfer.effectAllowed = 'copy';
             }}
-            onClick={() => handleAdd(kind)}
             aria-label={`Add ${NODE_KIND_LABELS[kind]} node`}
           >
             {NODE_KIND_LABELS[kind]}
-          </Button>
+          </CommandButton>
         ))}
       </div>
     </Panel>

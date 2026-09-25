@@ -1,7 +1,17 @@
-import { useRef, useState } from 'react';
-import { Button } from '../ui/Button';
+import { useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { CommandButton } from './CommandButton';
+import type { EditorCommand, ShortcutPlatform } from './commands';
+
+export interface FlowFileActionsHandle {
+  open: () => void;
+  export: () => void;
+}
 
 interface FlowFileActionsProps {
+  readonly ref?: Ref<FlowFileActionsHandle>;
+  readonly openCommand: EditorCommand;
+  readonly exportCommand: EditorCommand;
+  readonly platform: ShortcutPlatform;
   readonly flowName: string;
   readonly onExport: () => string;
   readonly onRestore: (serialized: string) => boolean;
@@ -10,6 +20,10 @@ interface FlowFileActionsProps {
 }
 
 export function FlowFileActions({
+  ref,
+  openCommand,
+  exportCommand,
+  platform,
   flowName,
   onExport,
   onRestore,
@@ -53,6 +67,11 @@ export function FlowFileActions({
     }
   }
 
+  useImperativeHandle(ref, () => ({
+    open: () => inputRef.current?.click(),
+    export: handleExport,
+  }));
+
   async function handleRestore(file: File) {
     onRestoringChange(true);
     setError(null);
@@ -94,22 +113,22 @@ export function FlowFileActions({
         }}
       />
 
-      <Button
+      <CommandButton
+        command={exportCommand}
+        platform={platform}
         variant="secondary"
-        onClick={handleExport}
-        disabled={isRestoring}
       >
         Export JSON
-      </Button>
+      </CommandButton>
 
-      <Button
+      <CommandButton
+        command={openCommand}
+        platform={platform}
         variant="secondary"
-        onClick={() => inputRef.current?.click()}
-        disabled={isRestoring}
         title="Open a Statecraft flow. This can be undone."
       >
         {isRestoring ? 'Opening…' : 'Open JSON'}
-      </Button>
+      </CommandButton>
 
       {error !== null && (
         <p role="alert" className="w-full text-ui text-danger">

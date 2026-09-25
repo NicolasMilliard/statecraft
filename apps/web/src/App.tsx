@@ -1,42 +1,24 @@
-import { useState } from 'react';
+import type { FlowNodeKind } from '@statecraft/core';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { CanvasSelection } from './canvas/canvas-selection';
-import { FlowCanvas } from './canvas/FlowCanvas';
-import { FlowFileActions } from './editor/FlowFileActions';
+import type { FlowNodePosition } from './canvas/flow-layout';
+import { FlowCanvas, type FlowCanvasHandle } from './canvas/FlowCanvas';
+import { FlowFileActions, type FlowFileActionsHandle } from './editor/FlowFileActions';
 import { FlowNameEditor } from './editor/FlowNameEditor';
+import { EditorHeader } from './editor/EditorHeader';
+import { EditorStatusBar } from './editor/EditorStatusBar';
+import { CommandPalette } from './editor/CommandPalette';
+import { createCommands, getShortcutPlatform } from './editor/commands';
+import { useEditorShortcuts } from './editor/use-editor-shortcuts';
 import { useFlowEditor } from './editor/use-flow-editor';
 import { checkoutFlow, checkoutLayout } from './examples/checkout';
 import { EdgeInspector } from './inspector/EdgeInspector';
 import { NodeInspector } from './inspector/NodeInspector';
 import { SelectionInspector } from './inspector/SelectionInspector';
-import { Button } from './ui/Button';
 
 export default function App() {
-  const {
-    flow,
-    layout,
-    addNode,
-    connectNodes,
-    createFlow,
-    renameFlow,
-    renameNode,
-    setEntryNode,
-    setEdgeKind,
-    updateLayout,
-    resetLayout,
-    deleteEdge,
-    deleteNode,
-    deleteElements,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    save,
-    exportDocument,
-    restoreDocument,
-    storageError,
-    hasUnsavedChanges,
-    willReplaceInvalidDraft,
-  } = useFlowEditor(checkoutFlow, checkoutLayout);
+  const editor = useFlowEditor(checkoutFlow, checkoutLayout);
+  const { flow, layout } = editor;
 
   const [selection, setSelection] = useState<CanvasSelection>({
     nodeIds: [],
@@ -44,6 +26,22 @@ export default function App() {
   });
   const [canvasRevision, setCanvasRevision] = useState(0);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [renamingFlowId, setRenamingFlowId] = useState<string | null>(null);
+  const [platform] = useState(() => getShortcutPlatform(navigator.platform));
+  const workspaceRef = useRef<HTMLElement>(null);
+  const canvasRef = useRef<FlowCanvasHandle>(null);
+  const filesRef = useRef<FlowFileActionsHandle>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const nodeLabelInputRef = useRef<HTMLInputElement>(null);
+  const commandsButtonRef = useRef<HTMLButtonElement>(null);
+  const paletteReturnFocus = useRef<HTMLElement | SVGElement | null>(null);
+  const focusCanvasAfterUpdate = useRef(false);
+  const pendingLabelFocusId = useRef<string | null>(null);
+
+  if (renamingFlowId !== null && renamingFlowId !== flow.id) {
+    setRenamingFlowId(null);
+  }
 
   const selectedNodes = flow.nodes.filter((node) =>
     selection.nodeIds.includes(node.id),
@@ -59,18 +57,39 @@ export default function App() {
 
   const selectedEdge = selectedCount === 1 ? (selectedEdges[0] ?? null) : null;
 
+  useLayoutEffect(() => {
+    if (focusCanvasAfterUpdate.current) {
+      focusCanvasAfterUpdate.current = false;
+      pendingLabelFocusId.current = null;
+      canvasRef.current?.focus();
+    } else if (selectedNode?.id === pendingLabelFocusId.current && nodeLabelInputRef.current) {
+      nodeLabelInputRef.current.focus();
+      nodeLabelInputRef.current.select();
+      pendingLabelFocusId.current = null;
+    }
+  });
+
+  function handleNodeAdd(kind: FlowNodeKind, position: FlowNodePosition, focusTarget: 'canvas' | 'label') {
+    const nodeId = editor.addNode(kind, position);
+    pendingLabelFocusId.current = focusTarget === 'label' ? nodeId : null;
+    return nodeId;
+  }
+
   function handleNodeDelete(nodeId: string) {
-    deleteNode(nodeId);
+    focusCanvasAfterUpdate.current = true;
+    editor.deleteNode(nodeId);
     setSelection({ nodeIds: [], edgeIds: [] });
   }
 
   function handleEdgeDelete(edgeId: string) {
-    deleteEdge(edgeId);
+    focusCanvasAfterUpdate.current = true;
+    editor.deleteEdge(edgeId);
     setSelection({ nodeIds: [], edgeIds: [] });
   }
 
   function handleSelectionDelete() {
-    deleteElements(
+    focusCanvasAfterUpdate.current = true;
+    editor.deleteElements(
       selectedNodes.map((node) => node.id),
       selectedEdges.map((edge) => edge.id),
     );
@@ -79,117 +98,133 @@ export default function App() {
   }
 
   function handleNewFlow() {
-    createFlow();
+    focusCanvasAfterUpdate.current = true;
+    editor.createFlow();
     setSelection({ nodeIds: [], edgeIds: [] });
   }
 
   function handleDocumentRestore(serialized: string): boolean {
-    if (!restoreDocument(serialized)) {
+    if (!editor.restoreDocument(serialized)) {
       return false;
     }
 
     setSelection({ nodeIds: [], edgeIds: [] });
     setCanvasRevision((current) => current + 1);
+    focusCanvasAfterUpdate.current = true;
 
     return true;
   }
 
+  // The factory stores these handlers; it never calls them during render.
+  // eslint-disable-next-line react/refs
+  const commands = createCommands({
+    commands: () => {
+      const active = document.activeElement;
+      paletteReturnFocus.current = active instanceof HTMLElement || active instanceof SVGElement ? active : null;
+      setPaletteOpen(true);
+    },
+    'new-flow': handleNewFlow,
+    'rename-flow': () => {
+      setRenamingFlowId(flow.id);
+      nameInputRef.current?.focus();
+    },
+    save: editor.save,
+    'open-json': () => filesRef.current?.open(),
+    'export-json': () => filesRef.current?.export(),
+    undo: () => { focusCanvasAfterUpdate.current = true; editor.undo(); },
+    redo: () => { focusCanvasAfterUpdate.current = true; editor.redo(); },
+    'reset-layout': editor.resetLayout,
+    'fit-view': () => canvasRef.current?.fitView(),
+    'select-all': () => canvasRef.current?.selectAll(),
+    'delete-selection': handleSelectionDelete,
+    cancel: () => canvasRef.current?.cancel(),
+    'add-screen': () => canvasRef.current?.addNode('screen'),
+    'add-ui': () => canvasRef.current?.addNode('ui'),
+    'add-action': () => canvasRef.current?.addNode('action'),
+    'add-service': () => canvasRef.current?.addNode('service'),
+    'add-state': () => canvasRef.current?.addNode('state'),
+  }, {
+    'new-flow': !isRestoring,
+    'rename-flow': !isRestoring,
+    save: !isRestoring && (editor.hasUnsavedChanges || editor.storageError !== null),
+    'open-json': !isRestoring,
+    'export-json': !isRestoring,
+    undo: editor.canUndo && !isRestoring,
+    redo: editor.canRedo && !isRestoring,
+    'reset-layout': !isRestoring && flow.nodes.length > 0,
+    'fit-view': flow.nodes.length > 0,
+    'select-all': selectedCount < flow.nodes.length + flow.edges.length,
+    'delete-selection': selectedCount > 0 && !isRestoring,
+    'add-screen': !isRestoring,
+    'add-ui': !isRestoring,
+    'add-action': !isRestoring,
+    'add-service': !isRestoring,
+    'add-state': !isRestoring,
+  });
+
+  if (editor.willReplaceInvalidDraft) commands.save = { ...commands.save, label: 'Replace local copy' };
+
+  useEditorShortcuts({ workspaceRef, commands, platform, paletteOpen });
+
   return (
-    <main className="grid min-h-dvh w-full grid-rows-[auto_minmax(0,1fr)] md:h-dvh">
-      <header className="flex min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-border bg-chrome px-4 py-3 lg:px-5">
-        <div className="flex min-w-0 flex-1 basis-80 items-center gap-3">
-          <p className="shrink-0 text-sm font-semibold tracking-tight">
-            statecraft
-          </p>
-          <span aria-hidden="true" className="text-border-strong">
-            /
-          </span>
+    <main ref={workspaceRef} className="grid min-h-dvh w-full grid-rows-[auto_minmax(0,1fr)] md:h-dvh">
+      <EditorHeader
+        commands={commands}
+        platform={platform}
+        hasUnsavedChanges={editor.hasUnsavedChanges}
+        willReplaceInvalidDraft={editor.willReplaceInvalidDraft}
+        storageError={editor.storageError}
+        paletteOpen={paletteOpen}
+        commandsButtonRef={commandsButtonRef}
+        nameEditor={
           <FlowNameEditor
-            key={`${flow.id}:${flow.name}`}
+            key={flow.id}
+            ref={nameInputRef}
+            command={commands['rename-flow']}
+            platform={platform}
             name={flow.name}
-            onRename={renameFlow}
+            isEditing={renamingFlowId === flow.id}
+            onRename={editor.renameFlow}
+            onClose={() => setRenamingFlowId(null)}
           />
-        </div>
-
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <p role="status" className="mr-2 text-xs text-muted">
-            {hasUnsavedChanges ? 'Unsaved changes' : 'Saved locally'}
-          </p>
-
-          <Button
-            variant="secondary"
-            onClick={handleNewFlow}
-            disabled={isRestoring}
-            title="Create an empty flow. This can be undone."
-          >
-            New flow
-          </Button>
-
+        }
+        fileActions={
           <FlowFileActions
             key={flow.id}
+            ref={filesRef}
+            openCommand={commands['open-json']}
+            exportCommand={commands['export-json']}
+            platform={platform}
             flowName={flow.name}
-            onExport={exportDocument}
+            onExport={editor.exportDocument}
             onRestore={handleDocumentRestore}
             isRestoring={isRestoring}
             onRestoringChange={setIsRestoring}
           />
-
-          <Button
-            onClick={save}
-            disabled={!hasUnsavedChanges && storageError === null}
-          >
-            {willReplaceInvalidDraft ? 'Replace local copy' : 'Save'}
-          </Button>
-        </div>
-
-        {storageError !== null && (
-          <p role="alert" className="w-full text-ui text-danger">
-            {storageError}
-          </p>
-        )}
-      </header>
+        }
+      />
 
       <div className="grid min-h-0 min-w-0 grid-rows-[minmax(28rem,1fr)_auto] md:grid-cols-[minmax(0,1fr)_17.5rem] md:grid-rows-[minmax(0,1fr)]">
         <div className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto]">
           <FlowCanvas
             key={`${flow.id}:${canvasRevision}`}
+            ref={canvasRef}
+            commands={commands}
+            platform={platform}
             flow={flow}
             layout={layout}
-            onLayoutChange={updateLayout}
+            onLayoutChange={editor.updateLayout}
             onSelectionChange={setSelection}
-            onNodeAdd={addNode}
-            onNodesConnect={connectNodes}
+            onNodeAdd={handleNodeAdd}
+            onNodesConnect={editor.connectNodes}
           />
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-chrome px-4 py-2">
-            <p className="text-xs text-muted">
-              {flow.nodes.length} nodes · {flow.edges.length} connections
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <div role="group" aria-label="Edit history" className="flex gap-1">
-                <Button
-                  onClick={undo}
-                  disabled={!canUndo || isRestoring}
-                  variant="secondary"
-                >
-                  Undo
-                </Button>
-
-                <Button
-                  onClick={redo}
-                  disabled={!canRedo || isRestoring}
-                  variant="secondary"
-                >
-                  Redo
-                </Button>
-              </div>
-
-              <Button onClick={resetLayout} variant="secondary">
-                Reset layout
-              </Button>
-            </div>
-          </div>
+          <EditorStatusBar
+            nodeCount={flow.nodes.length}
+            edgeCount={flow.edges.length}
+            commands={commands}
+            platform={platform}
+          />
         </div>
         {selectedCount > 1 ? (
           <SelectionInspector
@@ -201,19 +236,35 @@ export default function App() {
           <EdgeInspector
             flow={flow}
             edge={selectedEdge}
-            onEdgeKindChange={setEdgeKind}
+            onEdgeKindChange={editor.setEdgeKind}
             onEdgeDelete={handleEdgeDelete}
           />
         ) : (
           <NodeInspector
+            labelInputRef={nodeLabelInputRef}
             node={selectedNode}
             isEntry={selectedNode?.id === flow.entryNodeId}
-            onNodeRename={renameNode}
-            onEntryNodeChange={setEntryNode}
+            onNodeRename={editor.renameNode}
+            onEntryNodeChange={editor.setEntryNode}
             onNodeDelete={handleNodeDelete}
           />
         )}
       </div>
+      {paletteOpen && (
+        <CommandPalette
+          commands={Object.values(commands)}
+          platform={platform}
+          onClose={() => setPaletteOpen(false)}
+          onRestoreFocus={() => {
+            const previous = paletteReturnFocus.current;
+            if (previous?.isConnected && previous !== document.body && !previous.matches(':disabled')) {
+              previous.focus({ preventScroll: true });
+            } else {
+              commandsButtonRef.current?.focus({ preventScroll: true });
+            }
+          }}
+        />
+      )}
     </main>
   );
 }

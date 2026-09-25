@@ -49,6 +49,23 @@
 }
 
 @layer components {
+  .command-palette {
+    width: min(32rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - min(12dvh, 5rem) - 1rem);
+    margin: min(12dvh, 5rem) auto auto;
+    padding: 0;
+    overflow-y: auto;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 12px;
+    background: var(--color-surface);
+    color: var(--color-foreground);
+    box-shadow: 0 20px 60px rgb(20 20 32 / 18%);
+  }
+
+  .command-palette::backdrop {
+    background: rgb(24 24 32 / 20%);
+  }
+
   .react-flow {
     --xy-background-color: var(--color-canvas);
     --xy-background-pattern-color: var(--color-grid);
@@ -85,7 +102,9 @@
   .react-flow__node-statecraft.selected {
     border-color: var(--color-brand-border);
     background: var(--color-surface);
-    box-shadow: 0 0 0 3px var(--color-brand-soft), var(--shadow-node);
+    box-shadow:
+      0 0 0 3px var(--color-brand-soft),
+      var(--shadow-node);
   }
 
   .react-flow__node-statecraft:focus-visible {

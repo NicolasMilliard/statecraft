@@ -1,16 +1,44 @@
-import { useId, useState } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type Ref } from 'react';
 import { Button } from '../ui/Button';
 import { TextInput } from '../ui/TextInput';
+import { CommandButton } from './CommandButton';
+import type { EditorCommand, ShortcutPlatform } from './commands';
 
 interface FlowNameEditorProps {
+  readonly ref?: Ref<HTMLInputElement>;
+  readonly command: EditorCommand;
+  readonly platform: ShortcutPlatform;
   readonly name: string;
+  readonly isEditing: boolean;
   readonly onRename: (name: string) => void;
+  readonly onClose: () => void;
 }
 
-export function FlowNameEditor({ name, onRename }: FlowNameEditorProps) {
+export function FlowNameEditor({ ref, command, platform, name, isEditing, onRename, onClose }: FlowNameEditorProps) {
   const inputId = useId();
-  const [isEditing, setIsEditing] = useState(false);
   const [draftName, setDraftName] = useState(name);
+  const [previousName, setPreviousName] = useState(name);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
+
+  // Keep the draft in sync with history and imports without remounting the input.
+  if (previousName !== name) {
+    setPreviousName(name);
+    setDraftName(name);
+  }
+
+  useLayoutEffect(() => {
+    if (!isEditing && restoreFocus.current) {
+      restoreFocus.current = false;
+      buttonRef.current?.focus();
+    }
+  }, [isEditing]);
+
+  function closeEditor() {
+    restoreFocus.current = true;
+    setDraftName(name);
+    onClose();
+  }
 
   const normalizedName = draftName.trim();
   const isValid = normalizedName.length > 0;
@@ -23,17 +51,16 @@ export function FlowNameEditor({ name, onRename }: FlowNameEditorProps) {
           {name}
         </h1>
 
-        <Button
+        <CommandButton
+          ref={buttonRef}
+          command={command}
+          platform={platform}
           variant="secondary"
           aria-label="Rename flow"
-          onClick={() => {
-            setDraftName(name);
-            setIsEditing(true);
-          }}
           className="shrink-0"
         >
           Rename
-        </Button>
+        </CommandButton>
       </div>
     );
   }
@@ -49,12 +76,13 @@ export function FlowNameEditor({ name, onRename }: FlowNameEditorProps) {
         }
 
         onRename(normalizedName);
-        setIsEditing(false);
+        closeEditor();
       }}
       onKeyDown={(event) => {
-        if (event.key === 'Escape') {
+        if (event.key === 'Escape' && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
           event.preventDefault();
-          setIsEditing(false);
+          event.stopPropagation();
+          closeEditor();
         }
       }}
     >
@@ -65,6 +93,7 @@ export function FlowNameEditor({ name, onRename }: FlowNameEditorProps) {
 
       <div className="flex flex-wrap items-center gap-2">
         <TextInput
+          ref={ref}
           id={inputId}
           name="flowName"
           autoComplete="off"
@@ -80,7 +109,7 @@ export function FlowNameEditor({ name, onRename }: FlowNameEditorProps) {
           Apply
         </Button>
 
-        <Button variant="secondary" onClick={() => setIsEditing(false)}>
+        <Button variant="secondary" onClick={closeEditor}>
           Cancel
         </Button>
       </div>

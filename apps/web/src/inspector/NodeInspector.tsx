@@ -1,10 +1,12 @@
 import type { FlowNode } from '@statecraft/core';
+import type { Ref } from 'react';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
 import { Button } from '../ui/Button';
 import { InspectorPanel } from './InspectorPanel';
 import { NodeLabelEditor } from './NodeLabelEditor';
 
 interface NodeInspectorProps {
+  readonly labelInputRef?: Ref<HTMLInputElement>;
   readonly node: FlowNode | null;
   readonly isEntry: boolean;
   readonly onNodeRename: (nodeId: string, label: string) => void;
@@ -13,6 +15,7 @@ interface NodeInspectorProps {
 }
 
 export function NodeInspector({
+  labelInputRef = null,
   node,
   isEntry,
   onNodeRename,
@@ -42,7 +45,7 @@ export function NodeInspector({
             </p>
           </div>
 
-          <NodeLabelEditor key={node.id} node={node} onRename={onNodeRename} />
+          <NodeLabelEditor ref={labelInputRef} key={node.id} node={node} onRename={onNodeRename} />
 
           <dl className="mt-6 space-y-5 text-ui">
             <div className="flex items-center justify-between gap-3">
