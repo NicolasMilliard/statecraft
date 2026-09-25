@@ -18,8 +18,10 @@ export function FlowNameEditor({ name, onRename }: FlowNameEditorProps) {
 
   if (!isEditing) {
     return (
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold wrap-anywhere">{name}</h1>
+      <div className="flex min-w-0 items-center gap-3">
+        <h1 className="truncate text-ui font-medium" title={name}>
+          {name}
+        </h1>
 
         <Button
           variant="secondary"
@@ -28,6 +30,7 @@ export function FlowNameEditor({ name, onRename }: FlowNameEditorProps) {
             setDraftName(name);
             setIsEditing(true);
           }}
+          className="shrink-0"
         >
           Rename
         </Button>
@@ -37,7 +40,7 @@ export function FlowNameEditor({ name, onRename }: FlowNameEditorProps) {
 
   return (
     <form
-      className="w-full max-w-md"
+      className="min-w-0 flex-1 basis-64"
       onSubmit={(event) => {
         event.preventDefault();
 
@@ -55,24 +58,32 @@ export function FlowNameEditor({ name, onRename }: FlowNameEditorProps) {
         }
       }}
     >
-      <label
-        htmlFor={inputId}
-        className="block text-ui font-medium text-foreground"
-      >
+      <h1 className="sr-only">{name}</h1>
+      <label htmlFor={inputId} className="sr-only">
         Flow name
       </label>
 
-      <TextInput
-        id={inputId}
-        name="flowName"
-        autoComplete="off"
-        autoFocus
-        value={draftName}
-        onChange={(event) => setDraftName(event.target.value)}
-        aria-invalid={!isValid}
-        aria-describedby={!isValid ? `${inputId}-error` : undefined}
-        className="mt-2"
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <TextInput
+          id={inputId}
+          name="flowName"
+          autoComplete="off"
+          autoFocus
+          value={draftName}
+          onChange={(event) => setDraftName(event.target.value)}
+          aria-invalid={!isValid}
+          aria-describedby={!isValid ? `${inputId}-error` : undefined}
+          className="flex-1 basis-32"
+        />
+
+        <Button type="submit" disabled={!canApply}>
+          Apply
+        </Button>
+
+        <Button variant="secondary" onClick={() => setIsEditing(false)}>
+          Cancel
+        </Button>
+      </div>
 
       {!isValid && (
         <p
@@ -83,16 +94,6 @@ export function FlowNameEditor({ name, onRename }: FlowNameEditorProps) {
           Name cannot be empty.
         </p>
       )}
-
-      <div className="mt-3 flex gap-2">
-        <Button type="submit" disabled={!canApply}>
-          Apply
-        </Button>
-
-        <Button variant="secondary" onClick={() => setIsEditing(false)}>
-          Cancel
-        </Button>
-      </div>
     </form>
   );
 }

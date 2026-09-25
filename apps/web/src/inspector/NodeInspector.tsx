@@ -1,6 +1,7 @@
 import type { FlowNode } from '@statecraft/core';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
 import { Button } from '../ui/Button';
+import { InspectorPanel } from './InspectorPanel';
 import { NodeLabelEditor } from './NodeLabelEditor';
 
 interface NodeInspectorProps {
@@ -19,49 +20,52 @@ export function NodeInspector({
   onNodeDelete,
 }: NodeInspectorProps) {
   return (
-    <aside
-      className="max-h-64 min-h-0 overflow-y-auto border-t border-border bg-surface p-5 md:max-h-none md:border-t-0 md:border-l"
-      aria-labelledby="node-inspector-title"
-    >
-      <h2
-        id="node-inspector-title"
-        className="text-ui font-semibold text-foreground"
-      >
-        Node details
-      </h2>
-
+    <InspectorPanel context={node === null ? 'No selection' : 'Node'}>
       {node === null ? (
-        <p className="mt-4 text-ui text-muted">
-          Select a node or connection to inspect its details.
-        </p>
+        <div className="py-5">
+          <h3 className="text-ui font-medium">Explore your flow</h3>
+          <p className="mt-2 text-ui text-muted">
+            Select a node or connection to inspect and edit its details.
+          </p>
+          <p className="mt-4 text-xs text-muted">
+            Hold Shift and drag on the canvas to select several items.
+          </p>
+        </div>
       ) : (
-        <div className="mt-5">
+        <div>
+          <div className="mb-6">
+            <h3 className="text-sm font-medium wrap-anywhere">
+              {node.label}
+            </h3>
+            <p className="mt-1 font-mono text-xs text-muted wrap-anywhere">
+              {node.id}
+            </p>
+          </div>
+
           <NodeLabelEditor key={node.id} node={node} onRename={onNodeRename} />
 
-          <dl className="mt-5 space-y-4 text-ui">
-            <div>
+          <dl className="mt-6 space-y-5 text-ui">
+            <div className="flex items-center justify-between gap-3">
               <dt className="text-muted">Type</dt>
-              <dd className="mt-1 font-medium">
+              <dd className="rounded border border-border bg-surface px-2 py-0.5 text-xs">
                 {NODE_KIND_LABELS[node.kind]}
               </dd>
             </div>
 
-            <div>
+            <div className="flex items-center justify-between gap-3">
               <dt className="text-muted">Entry point</dt>
-
-              <dd className="mt-1">
-                <p className="font-medium">{isEntry ? 'Yes' : 'No'}</p>
-
-                <Button
-                  variant="secondary"
-                  onClick={() => onEntryNodeChange(isEntry ? null : node.id)}
-                  className="mt-2"
-                >
-                  {isEntry ? 'Clear entry point' : 'Set as entry point'}
-                </Button>
-              </dd>
+              <dd>{isEntry ? 'Yes' : 'No'}</dd>
             </div>
           </dl>
+
+          <Button
+            variant="secondary"
+            onClick={() => onEntryNodeChange(isEntry ? null : node.id)}
+            className="mt-3 w-full"
+          >
+            {isEntry ? 'Clear entry point' : 'Set as entry point'}
+          </Button>
+
           <div className="mt-6 border-t border-border pt-4">
             <p className="mb-3 text-xs text-muted">
               Deleting this node also removes its connections.
@@ -73,6 +77,6 @@ export function NodeInspector({
           </div>
         </div>
       )}
-    </aside>
+    </InspectorPanel>
   );
 }

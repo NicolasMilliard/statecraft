@@ -7,6 +7,7 @@ import {
 import { useId } from 'react';
 import { canAddFlowEdge } from '../editor/can-add-flow-edge';
 import { Button } from '../ui/Button';
+import { InspectorPanel } from './InspectorPanel';
 
 const EDGE_KIND_LABELS: Record<FlowEdgeKind, string> = {
   transition: 'Transition',
@@ -33,18 +34,15 @@ export function EdgeInspector({
   const targetNode = flow.nodes.find((node) => node.id === edge.targetNodeId);
 
   return (
-    <aside
-      className="max-h-64 min-h-0 overflow-y-auto border-t border-border bg-surface p-5 md:max-h-none md:border-t-0 md:border-l"
-      aria-labelledby="edge-inspector-title"
-    >
-      <h2
-        id="edge-inspector-title"
-        className="text-ui font-semibold text-foreground"
-      >
-        Connection details
-      </h2>
+    <InspectorPanel context="Connection">
+      <div className="mb-6">
+        <h3 className="text-sm font-medium">Connection details</h3>
+        <p className="mt-1 font-mono text-xs text-muted wrap-anywhere">
+          {edge.id}
+        </p>
+      </div>
 
-      <dl className="mt-5 space-y-4 text-ui">
+      <dl className="space-y-4 rounded-control border border-border bg-surface p-3 text-ui">
         <div>
           <dt className="text-muted">From</dt>
           <dd className="mt-1 font-medium wrap-anywhere">
@@ -76,7 +74,7 @@ export function EdgeInspector({
             return (
               <label
                 key={kind}
-                className="flex items-center gap-2 rounded-control border border-border p-3 text-ui"
+                className="flex items-center gap-2 rounded-control border border-border bg-surface px-3 py-2 text-ui"
               >
                 <input
                   type="radio"
@@ -112,6 +110,6 @@ export function EdgeInspector({
           Delete connection
         </Button>
       </div>
-    </aside>
+    </InspectorPanel>
   );
 }

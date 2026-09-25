@@ -1,4 +1,5 @@
 import { Button } from '../ui/Button';
+import { InspectorPanel } from './InspectorPanel';
 
 interface SelectionInspectorProps {
   readonly nodeCount: number;
@@ -12,26 +13,20 @@ export function SelectionInspector({
   onSelectionDelete,
 }: SelectionInspectorProps) {
   return (
-    <aside
-      className="max-h-64 min-h-0 overflow-y-auto border-t border-border bg-surface p-5 md:max-h-none md:border-t-0 md:border-l"
-      aria-labelledby="selection-inspector-title"
-    >
-      <h2
-        id="selection-inspector-title"
-        className="text-ui font-semibold text-foreground"
-      >
-        Selection
-      </h2>
+    <InspectorPanel context="Selection">
+      <h3 className="text-sm font-medium">
+        {nodeCount + edgeCount} items selected
+      </h3>
 
-      <dl className="mt-5 space-y-4 text-ui">
-        <div>
+      <dl className="mt-5 space-y-3 text-ui">
+        <div className="flex items-center justify-between gap-3">
           <dt className="text-muted">Nodes</dt>
-          <dd className="mt-1 font-medium">{nodeCount}</dd>
+          <dd className="font-medium tabular-nums">{nodeCount}</dd>
         </div>
 
-        <div>
+        <div className="flex items-center justify-between gap-3">
           <dt className="text-muted">Connections</dt>
-          <dd className="mt-1 font-medium">{edgeCount}</dd>
+          <dd className="font-medium tabular-nums">{edgeCount}</dd>
         </div>
       </dl>
 
@@ -56,6 +51,6 @@ export function SelectionInspector({
           Delete selection
         </Button>
       </div>
-    </aside>
+    </InspectorPanel>
   );
 }

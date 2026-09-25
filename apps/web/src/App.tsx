@@ -95,10 +95,15 @@ export default function App() {
   }
 
   return (
-    <main className="grid h-dvh w-full grid-rows-[auto_minmax(0,1fr)]">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-white px-7 py-5">
-        <div>
-          <p className="mb-1.5 text-[13px] font-bold text-brand">Statecraft</p>
+    <main className="grid min-h-dvh w-full grid-rows-[auto_minmax(0,1fr)] md:h-dvh">
+      <header className="flex min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-border bg-chrome px-4 py-3 lg:px-5">
+        <div className="flex min-w-0 flex-1 basis-80 items-center gap-3">
+          <p className="shrink-0 text-sm font-semibold tracking-tight">
+            statecraft
+          </p>
+          <span aria-hidden="true" className="text-border-strong">
+            /
+          </span>
           <FlowNameEditor
             key={`${flow.id}:${flow.name}`}
             name={flow.name}
@@ -106,12 +111,8 @@ export default function App() {
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <p className="text-[13px] text-slate-500">
-            {flow.nodes.length} nodes · {flow.edges.length} connections
-          </p>
-
-          <p role="status" className="text-xs text-slate-500">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <p role="status" className="mr-2 text-xs text-muted">
             {hasUnsavedChanges ? 'Unsaved changes' : 'Saved locally'}
           </p>
 
@@ -124,13 +125,6 @@ export default function App() {
             New flow
           </Button>
 
-          <Button
-            onClick={save}
-            disabled={!hasUnsavedChanges && storageError === null}
-          >
-            {willReplaceInvalidDraft ? 'Replace local copy' : 'Save'}
-          </Button>
-
           <FlowFileActions
             key={flow.id}
             flowName={flow.name}
@@ -140,26 +134,11 @@ export default function App() {
             onRestoringChange={setIsRestoring}
           />
 
-          <div role="group" aria-label="Edit history" className="flex gap-2">
-            <Button
-              onClick={undo}
-              disabled={!canUndo || isRestoring}
-              variant="secondary"
-            >
-              Undo
-            </Button>
-
-            <Button
-              onClick={redo}
-              disabled={!canRedo || isRestoring}
-              variant="secondary"
-            >
-              Redo
-            </Button>
-          </div>
-
-          <Button onClick={resetLayout} variant="secondary">
-            Reset layout
+          <Button
+            onClick={save}
+            disabled={!hasUnsavedChanges && storageError === null}
+          >
+            {willReplaceInvalidDraft ? 'Replace local copy' : 'Save'}
           </Button>
         </div>
 
@@ -170,16 +149,48 @@ export default function App() {
         )}
       </header>
 
-      <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_18rem] md:grid-rows-1">
-        <FlowCanvas
-          key={`${flow.id}:${canvasRevision}`}
-          flow={flow}
-          layout={layout}
-          onLayoutChange={updateLayout}
-          onSelectionChange={setSelection}
-          onNodeAdd={addNode}
-          onNodesConnect={connectNodes}
-        />
+      <div className="grid min-h-0 min-w-0 grid-rows-[minmax(28rem,1fr)_auto] md:grid-cols-[minmax(0,1fr)_17.5rem] md:grid-rows-[minmax(0,1fr)]">
+        <div className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto]">
+          <FlowCanvas
+            key={`${flow.id}:${canvasRevision}`}
+            flow={flow}
+            layout={layout}
+            onLayoutChange={updateLayout}
+            onSelectionChange={setSelection}
+            onNodeAdd={addNode}
+            onNodesConnect={connectNodes}
+          />
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-chrome px-4 py-2">
+            <p className="text-xs text-muted">
+              {flow.nodes.length} nodes · {flow.edges.length} connections
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div role="group" aria-label="Edit history" className="flex gap-1">
+                <Button
+                  onClick={undo}
+                  disabled={!canUndo || isRestoring}
+                  variant="secondary"
+                >
+                  Undo
+                </Button>
+
+                <Button
+                  onClick={redo}
+                  disabled={!canRedo || isRestoring}
+                  variant="secondary"
+                >
+                  Redo
+                </Button>
+              </div>
+
+              <Button onClick={resetLayout} variant="secondary">
+                Reset layout
+              </Button>
+            </div>
+          </div>
+        </div>
         {selectedCount > 1 ? (
           <SelectionInspector
             nodeCount={selectedNodes.length}

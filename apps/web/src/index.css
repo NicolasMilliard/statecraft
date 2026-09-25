@@ -4,6 +4,7 @@
 @theme {
   --color-canvas: #f8f8f8;
   --color-surface: #ffffff;
+  --color-chrome: #fcfcfc;
   --color-surface-hover: #f1f1f2;
   --color-surface-pressed: #e8e8eb;
 
