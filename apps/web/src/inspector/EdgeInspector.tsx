@@ -6,6 +6,7 @@ import {
 } from '@statecraft/core';
 import { useId } from 'react';
 import { canAddFlowEdge } from '../editor/can-add-flow-edge';
+import { Button } from '../ui/Button';
 
 const EDGE_KIND_LABELS: Record<FlowEdgeKind, string> = {
   transition: 'Transition',
@@ -33,26 +34,26 @@ export function EdgeInspector({
 
   return (
     <aside
-      className="max-h-64 min-h-0 overflow-y-auto border-t border-slate-200 bg-white p-5 md:max-h-none md:border-t-0 md:border-l"
+      className="max-h-64 min-h-0 overflow-y-auto border-t border-border bg-surface p-5 md:max-h-none md:border-t-0 md:border-l"
       aria-labelledby="edge-inspector-title"
     >
       <h2
         id="edge-inspector-title"
-        className="text-sm font-semibold text-slate-700"
+        className="text-ui font-semibold text-foreground"
       >
         Connection details
       </h2>
 
-      <dl className="mt-5 space-y-4 text-sm">
+      <dl className="mt-5 space-y-4 text-ui">
         <div>
-          <dt className="text-slate-500">From</dt>
+          <dt className="text-muted">From</dt>
           <dd className="mt-1 font-medium wrap-anywhere">
             {sourceNode?.label ?? edge.sourceNodeId}
           </dd>
         </div>
 
         <div>
-          <dt className="text-slate-500">To</dt>
+          <dt className="text-muted">To</dt>
           <dd className="mt-1 font-medium wrap-anywhere">
             {targetNode?.label ?? edge.targetNodeId}
           </dd>
@@ -60,7 +61,7 @@ export function EdgeInspector({
       </dl>
 
       <fieldset className="mt-5" aria-describedby={`${kindGroupId}-hint`}>
-        <legend className="text-sm text-slate-500">Type</legend>
+        <legend className="text-ui text-muted">Type</legend>
 
         <div className="mt-2 space-y-2">
           {FLOW_EDGE_KINDS.map((kind) => {
@@ -75,7 +76,7 @@ export function EdgeInspector({
             return (
               <label
                 key={kind}
-                className="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm"
+                className="flex items-center gap-2 rounded-control border border-border p-3 text-ui"
               >
                 <input
                   type="radio"
@@ -90,7 +91,7 @@ export function EdgeInspector({
                 <span>
                   {EDGE_KIND_LABELS[kind]}
                   {!isAvailable && (
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-muted">
                       {' '}
                       (already exists)
                     </span>
@@ -101,19 +102,15 @@ export function EdgeInspector({
           })}
         </div>
 
-        <p id={`${kindGroupId}-hint`} className="mt-3 text-xs text-slate-500">
+        <p id={`${kindGroupId}-hint`} className="mt-3 text-xs text-muted">
           Changes apply immediately. Unavailable types already connect these
           nodes in this direction.
         </p>
       </fieldset>
-      <div className="mt-6 border-t border-slate-200 pt-4">
-        <button
-          type="button"
-          onClick={() => onEdgeDelete(edge.id)}
-          className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
-        >
+      <div className="mt-6 border-t border-border pt-4">
+        <Button variant="danger" onClick={() => onEdgeDelete(edge.id)}>
           Delete connection
-        </button>
+        </Button>
       </div>
     </aside>
   );

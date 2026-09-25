@@ -1,5 +1,6 @@
 import type { FlowNode } from '@statecraft/core';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
+import { Button } from '../ui/Button';
 import { NodeLabelEditor } from './NodeLabelEditor';
 
 interface NodeInspectorProps {
@@ -19,60 +20,56 @@ export function NodeInspector({
 }: NodeInspectorProps) {
   return (
     <aside
-      className="max-h-64 min-h-0 overflow-y-auto border-t border-slate-200 bg-white p-5 md:max-h-none md:border-t-0 md:border-l"
+      className="max-h-64 min-h-0 overflow-y-auto border-t border-border bg-surface p-5 md:max-h-none md:border-t-0 md:border-l"
       aria-labelledby="node-inspector-title"
     >
       <h2
         id="node-inspector-title"
-        className="text-sm font-semibold text-slate-700"
+        className="text-ui font-semibold text-foreground"
       >
         Node details
       </h2>
 
       {node === null ? (
-        <p className="mt-4 text-sm text-slate-500">
+        <p className="mt-4 text-ui text-muted">
           Select a node or connection to inspect its details.
         </p>
       ) : (
         <div className="mt-5">
           <NodeLabelEditor key={node.id} node={node} onRename={onNodeRename} />
 
-          <dl className="mt-5 space-y-4 text-sm">
+          <dl className="mt-5 space-y-4 text-ui">
             <div>
-              <dt className="text-slate-500">Type</dt>
+              <dt className="text-muted">Type</dt>
               <dd className="mt-1 font-medium">
                 {NODE_KIND_LABELS[node.kind]}
               </dd>
             </div>
 
             <div>
-              <dt className="text-slate-500">Entry point</dt>
+              <dt className="text-muted">Entry point</dt>
 
               <dd className="mt-1">
                 <p className="font-medium">{isEntry ? 'Yes' : 'No'}</p>
 
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
                   onClick={() => onEntryNodeChange(isEntry ? null : node.id)}
-                  className="mt-2 cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  className="mt-2"
                 >
                   {isEntry ? 'Clear entry point' : 'Set as entry point'}
-                </button>
+                </Button>
               </dd>
             </div>
           </dl>
-          <div className="mt-6 border-t border-slate-200 pt-4">
-            <p className="mb-3 text-xs text-slate-500">
+          <div className="mt-6 border-t border-border pt-4">
+            <p className="mb-3 text-xs text-muted">
               Deleting this node also removes its connections.
             </p>
 
-            <button
-              type="button"
-              onClick={() => onNodeDelete(node.id)}
-              className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
-            >
+            <Button variant="danger" onClick={() => onNodeDelete(node.id)}>
               Delete node
-            </button>
+            </Button>
           </div>
         </div>
       )}
