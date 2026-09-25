@@ -27,7 +27,7 @@ const variantClasses = {
 };
 
 export function Button({
-  variant = 'secondary',
+  variant = 'primary',
   type = 'button',
   className = '',
   ...props

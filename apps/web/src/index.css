@@ -11,12 +11,14 @@
   --color-muted: #666671;
 
   --color-border: #e3e3e5;
-  --color-border-strong: #b6b6bc;
+  --color-border-strong: #8b8b95;
 
   --color-brand: #565ac2;
   --color-brand-hover: #484ca8;
   --color-brand-pressed: #3f4396;
   --color-brand-foreground: #ffffff;
+
+  --color-danger: #b91c1c;
 
   --radius-control: 0.375rem;
 

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Button } from '../ui/Button';
 
 interface FlowFileActionsProps {
   readonly flowName: string;
@@ -93,27 +94,25 @@ export function FlowFileActions({
         }}
       />
 
-      <button
-        type="button"
+      <Button
+        variant="secondary"
         onClick={handleExport}
         disabled={isRestoring}
-        className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
       >
         Export JSON
-      </button>
+      </Button>
 
-      <button
-        type="button"
+      <Button
+        variant="secondary"
         onClick={() => inputRef.current?.click()}
         disabled={isRestoring}
         title="Open a Statecraft flow. This can be undone."
-        className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isRestoring ? 'Opening…' : 'Open JSON'}
-      </button>
+      </Button>
 
       {error !== null && (
-        <p role="alert" className="w-full text-sm text-red-700">
+        <p role="alert" className="w-full text-ui text-danger">
           {error}
         </p>
       )}

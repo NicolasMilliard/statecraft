@@ -116,6 +116,7 @@ export default function App() {
           </p>
 
           <Button
+            variant="secondary"
             onClick={handleNewFlow}
             disabled={isRestoring}
             title="Create an empty flow. This can be undone."
@@ -163,7 +164,7 @@ export default function App() {
         </div>
 
         {storageError !== null && (
-          <p role="alert" className="w-full text-sm text-red-700">
+          <p role="alert" className="w-full text-ui text-danger">
             {storageError}
           </p>
         )}

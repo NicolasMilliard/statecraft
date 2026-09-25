@@ -1,4 +1,6 @@
 import { useId, useState } from 'react';
+import { Button } from '../ui/Button';
+import { TextInput } from '../ui/TextInput';
 
 interface FlowNameEditorProps {
   readonly name: string;
@@ -19,17 +21,16 @@ export function FlowNameEditor({ name, onRename }: FlowNameEditorProps) {
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold wrap-anywhere">{name}</h1>
 
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           aria-label="Rename flow"
           onClick={() => {
             setDraftName(name);
             setIsEditing(true);
           }}
-          className="cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
           Rename
-        </button>
+        </Button>
       </div>
     );
   }
@@ -56,50 +57,41 @@ export function FlowNameEditor({ name, onRename }: FlowNameEditorProps) {
     >
       <label
         htmlFor={inputId}
-        className="block text-sm font-medium text-slate-700"
+        className="block text-ui font-medium text-foreground"
       >
         Flow name
       </label>
 
-      <input
+      <TextInput
         id={inputId}
         name="flowName"
-        type="text"
         autoComplete="off"
         autoFocus
         value={draftName}
         onChange={(event) => setDraftName(event.target.value)}
         aria-invalid={!isValid}
         aria-describedby={!isValid ? `${inputId}-error` : undefined}
-        className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="mt-2"
       />
 
       {!isValid && (
         <p
           id={`${inputId}-error`}
           role="alert"
-          className="mt-2 text-sm text-red-700"
+          className="mt-2 text-ui text-danger"
         >
           Name cannot be empty.
         </p>
       )}
 
       <div className="mt-3 flex gap-2">
-        <button
-          type="submit"
-          disabled={!canApply}
-          className="cursor-pointer rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button type="submit" disabled={!canApply}>
           Apply
-        </button>
+        </Button>
 
-        <button
-          type="button"
-          onClick={() => setIsEditing(false)}
-          className="cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
+        <Button variant="secondary" onClick={() => setIsEditing(false)}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );
