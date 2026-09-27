@@ -3,15 +3,18 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import type { CanvasSelection } from './canvas/canvas-selection';
 import type { FlowNodePosition } from './canvas/flow-layout';
 import { FlowCanvas, type FlowCanvasHandle } from './canvas/FlowCanvas';
-import { FlowFileActions, type FlowFileActionsHandle } from './editor/FlowFileActions';
-import { FlowNameEditor } from './editor/FlowNameEditor';
-import { EditorHeader } from './editor/EditorHeader';
-import { EditorStatusBar } from './editor/EditorStatusBar';
 import { CommandPalette } from './editor/CommandPalette';
 import { createCommands, getShortcutPlatform } from './editor/commands';
+import { EditorHeader } from './editor/EditorHeader';
+import { EditorStatusBar } from './editor/EditorStatusBar';
+import {
+  FlowFileActions,
+  type FlowFileActionsHandle,
+} from './editor/FlowFileActions';
+import { FlowNameEditor } from './editor/FlowNameEditor';
+import { notifySaveResult } from './editor/save-feedback';
 import { useEditorShortcuts } from './editor/use-editor-shortcuts';
 import { useFlowEditor } from './editor/use-flow-editor';
-import { notifySaveResult } from './editor/save-feedback';
 import { checkoutFlow, checkoutLayout } from './examples/checkout';
 import { EdgeInspector } from './inspector/EdgeInspector';
 import { NodeInspector } from './inspector/NodeInspector';
@@ -63,14 +66,21 @@ export default function App() {
       focusCanvasAfterUpdate.current = false;
       pendingLabelFocusId.current = null;
       canvasRef.current?.focus();
-    } else if (selectedNode?.id === pendingLabelFocusId.current && nodeLabelInputRef.current) {
+    } else if (
+      selectedNode?.id === pendingLabelFocusId.current &&
+      nodeLabelInputRef.current
+    ) {
       nodeLabelInputRef.current.focus();
       nodeLabelInputRef.current.select();
       pendingLabelFocusId.current = null;
     }
   });
 
-  function handleNodeAdd(kind: FlowNodeKind, position: FlowNodePosition, focusTarget: 'canvas' | 'label') {
+  function handleNodeAdd(
+    kind: FlowNodeKind,
+    position: FlowNodePosition,
+    focusTarget: 'canvas' | 'label',
+  ) {
     const nodeId = editor.addNode(kind, position);
     pendingLabelFocusId.current = focusTarget === 'label' ? nodeId : null;
     return nodeId;
@@ -118,58 +128,78 @@ export default function App() {
 
   // The factory stores these handlers; it never calls them during render.
   // eslint-disable-next-line react/refs
-  const commands = createCommands({
-    commands: () => {
-      const active = document.activeElement;
-      paletteReturnFocus.current = active instanceof HTMLElement || active instanceof SVGElement ? active : null;
-      setPaletteOpen(true);
+  const commands = createCommands(
+    {
+      commands: () => {
+        const active = document.activeElement;
+        paletteReturnFocus.current =
+          active instanceof HTMLElement || active instanceof SVGElement
+            ? active
+            : null;
+        setPaletteOpen(true);
+      },
+      'new-flow': handleNewFlow,
+      'rename-flow': () => {
+        setRenamingFlowId(flow.id);
+        nameInputRef.current?.focus();
+      },
+      save: () =>
+        notifySaveResult(editor.save(), () => filesRef.current?.export()),
+      'open-json': () => filesRef.current?.open(),
+      'export-json': () => filesRef.current?.export(),
+      undo: () => {
+        focusCanvasAfterUpdate.current = true;
+        editor.undo();
+      },
+      redo: () => {
+        focusCanvasAfterUpdate.current = true;
+        editor.redo();
+      },
+      'reset-layout': editor.resetLayout,
+      'fit-view': () => canvasRef.current?.fitView(),
+      'select-all': () => canvasRef.current?.selectAll(),
+      'delete-selection': handleSelectionDelete,
+      cancel: () => canvasRef.current?.cancel(),
+      'add-screen': () => canvasRef.current?.addNode('screen'),
+      'add-ui': () => canvasRef.current?.addNode('ui'),
+      'add-action': () => canvasRef.current?.addNode('action'),
+      'add-service': () => canvasRef.current?.addNode('service'),
+      'add-state': () => canvasRef.current?.addNode('state'),
     },
-    'new-flow': handleNewFlow,
-    'rename-flow': () => {
-      setRenamingFlowId(flow.id);
-      nameInputRef.current?.focus();
+    {
+      'new-flow': !isRestoring,
+      'rename-flow': !isRestoring,
+      save:
+        !isRestoring &&
+        (editor.hasUnsavedChanges || editor.storageIssue !== null),
+      'open-json': !isRestoring,
+      'export-json': !isRestoring,
+      undo: editor.canUndo && !isRestoring,
+      redo: editor.canRedo && !isRestoring,
+      'reset-layout': !isRestoring && flow.nodes.length > 0,
+      'fit-view': flow.nodes.length > 0,
+      'select-all': selectedCount < flow.nodes.length + flow.edges.length,
+      'delete-selection': selectedCount > 0 && !isRestoring,
+      'add-screen': !isRestoring,
+      'add-ui': !isRestoring,
+      'add-action': !isRestoring,
+      'add-service': !isRestoring,
+      'add-state': !isRestoring,
     },
-    save: () => notifySaveResult(editor.save(), () => filesRef.current?.export()),
-    'open-json': () => filesRef.current?.open(),
-    'export-json': () => filesRef.current?.export(),
-    undo: () => { focusCanvasAfterUpdate.current = true; editor.undo(); },
-    redo: () => { focusCanvasAfterUpdate.current = true; editor.redo(); },
-    'reset-layout': editor.resetLayout,
-    'fit-view': () => canvasRef.current?.fitView(),
-    'select-all': () => canvasRef.current?.selectAll(),
-    'delete-selection': handleSelectionDelete,
-    cancel: () => canvasRef.current?.cancel(),
-    'add-screen': () => canvasRef.current?.addNode('screen'),
-    'add-ui': () => canvasRef.current?.addNode('ui'),
-    'add-action': () => canvasRef.current?.addNode('action'),
-    'add-service': () => canvasRef.current?.addNode('service'),
-    'add-state': () => canvasRef.current?.addNode('state'),
-  }, {
-    'new-flow': !isRestoring,
-    'rename-flow': !isRestoring,
-    save: !isRestoring && (editor.hasUnsavedChanges || editor.storageIssue !== null),
-    'open-json': !isRestoring,
-    'export-json': !isRestoring,
-    undo: editor.canUndo && !isRestoring,
-    redo: editor.canRedo && !isRestoring,
-    'reset-layout': !isRestoring && flow.nodes.length > 0,
-    'fit-view': flow.nodes.length > 0,
-    'select-all': selectedCount < flow.nodes.length + flow.edges.length,
-    'delete-selection': selectedCount > 0 && !isRestoring,
-    'add-screen': !isRestoring,
-    'add-ui': !isRestoring,
-    'add-action': !isRestoring,
-    'add-service': !isRestoring,
-    'add-state': !isRestoring,
-  });
+  );
 
-  if (editor.willReplaceInvalidDraft) commands.save = { ...commands.save, label: 'Replace local copy' };
-  else if (editor.storageIssue === 'save-failed') commands.save = { ...commands.save, label: 'Retry save' };
+  if (editor.willReplaceInvalidDraft)
+    commands.save = { ...commands.save, label: 'Replace local copy' };
+  else if (editor.storageIssue === 'save-failed')
+    commands.save = { ...commands.save, label: 'Retry save' };
 
   useEditorShortcuts({ workspaceRef, commands, platform, paletteOpen });
 
   return (
-    <main ref={workspaceRef} className="grid min-h-dvh w-full grid-rows-[auto_minmax(0,1fr)] md:h-dvh">
+    <main
+      ref={workspaceRef}
+      className="grid min-h-dvh w-full grid-rows-[auto_minmax(0,1fr)] md:h-dvh md:min-h-min md:grid-rows-[auto_minmax(32rem,1fr)]"
+    >
       <EditorHeader
         commands={commands}
         platform={platform}
@@ -207,7 +237,7 @@ export default function App() {
         }
       />
 
-      <div className="grid min-h-0 min-w-0 grid-rows-[minmax(28rem,1fr)_auto] md:grid-cols-[minmax(0,1fr)_17.5rem] md:grid-rows-[minmax(0,1fr)]">
+      <div className="grid min-h-0 min-w-0 grid-rows-[minmax(32rem,1fr)_auto] md:grid-cols-[minmax(0,1fr)_17.5rem] md:grid-rows-[minmax(0,1fr)]">
         <div className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto]">
           <FlowCanvas
             key={`${flow.id}:${canvasRevision}`}
@@ -261,7 +291,11 @@ export default function App() {
           onClose={() => setPaletteOpen(false)}
           onRestoreFocus={() => {
             const previous = paletteReturnFocus.current;
-            if (previous?.isConnected && previous !== document.body && !previous.matches(':disabled')) {
+            if (
+              previous?.isConnected &&
+              previous !== document.body &&
+              !previous.matches(':disabled')
+            ) {
               previous.focus({ preventScroll: true });
             } else {
               commandsButtonRef.current?.focus({ preventScroll: true });

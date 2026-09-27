@@ -18,6 +18,7 @@ function dismissClickedToast(event: MouseEvent<HTMLDivElement> | KeyboardEvent<H
 export function EditorToaster() {
   return (
     <div
+      data-editor-notifications
       onClick={dismissClickedToast}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ' || event.key === 'Escape') {
@@ -31,7 +32,7 @@ export function EditorToaster() {
         offset={{ bottom: 64, right: 16 }}
         mobileOffset={16}
         visibleToasts={3}
-        closeButton={false}
+        closeButton
         style={{
           fontFamily: 'inherit',
           '--normal-bg': 'var(--color-surface)',
@@ -41,7 +42,12 @@ export function EditorToaster() {
         } as CSSProperties}
         toastOptions={{
           duration: 4000,
-          classNames: { toast: 'cursor-pointer', description: 'text-muted!' },
+          closeButtonAriaLabel: 'Dismiss notification',
+          classNames: {
+            toast: 'cursor-pointer',
+            description: 'text-muted!',
+            closeButton: 'pointer-events-none opacity-0! focus-visible:pointer-events-auto focus-visible:opacity-100! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+          },
           actionButtonStyle: {
             minHeight: 32,
             background: 'var(--color-surface-hover)',
