@@ -14,7 +14,8 @@ export function useEditorShortcuts({ workspaceRef, commands, platform, paletteOp
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target;
       if (!(target instanceof HTMLElement || target instanceof SVGElement)) return;
-      if (target !== document.body && !workspaceRef.current?.contains(target)) return;
+      const inNotifications = target.closest('[data-editor-notifications]') !== null;
+      if (target !== document.body && !workspaceRef.current?.contains(target) && !inNotifications) return;
 
       handleCommandShortcut(event, commands, {
         platform,
