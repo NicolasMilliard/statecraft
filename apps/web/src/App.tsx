@@ -243,6 +243,7 @@ export default function App() {
           <NodeInspector
             labelInputRef={nodeLabelInputRef}
             node={selectedNode}
+            isFlowEmpty={flow.nodes.length === 0}
             isEntry={selectedNode?.id === flow.entryNodeId}
             onNodeRename={editor.renameNode}
             onEntryNodeChange={editor.setEntryNode}

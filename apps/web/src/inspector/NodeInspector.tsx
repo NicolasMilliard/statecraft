@@ -8,6 +8,7 @@ import { NodeLabelEditor } from './NodeLabelEditor';
 interface NodeInspectorProps {
   readonly labelInputRef?: Ref<HTMLInputElement>;
   readonly node: FlowNode | null;
+  readonly isFlowEmpty: boolean;
   readonly isEntry: boolean;
   readonly onNodeRename: (nodeId: string, label: string) => void;
   readonly onEntryNodeChange: (nodeId: string | null) => void;
@@ -17,6 +18,7 @@ interface NodeInspectorProps {
 export function NodeInspector({
   labelInputRef = null,
   node,
+  isFlowEmpty,
   isEntry,
   onNodeRename,
   onEntryNodeChange,
@@ -26,13 +28,19 @@ export function NodeInspector({
     <InspectorPanel context={node === null ? 'No selection' : 'Node'}>
       {node === null ? (
         <div className="py-5">
-          <h3 className="text-ui font-medium">Explore your flow</h3>
+          <h3 className="text-ui font-medium">
+            {isFlowEmpty ? 'Give your flow a starting point' : 'Explore your flow'}
+          </h3>
           <p className="mt-2 text-ui text-muted">
-            Select a node or connection to inspect and edit its details.
+            {isFlowEmpty
+              ? 'Add a node to name it and edit its details here.'
+              : 'Select a node or connection to inspect and edit its details.'}
           </p>
-          <p className="mt-4 text-xs text-muted">
-            Hold Shift and drag on the canvas to select several items.
-          </p>
+          {!isFlowEmpty && (
+            <p className="mt-4 text-xs text-muted">
+              Hold Shift and drag on the canvas to select several items.
+            </p>
+          )}
         </div>
       ) : (
         <div>

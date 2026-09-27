@@ -33,6 +33,7 @@ import type { CanvasSelection } from './canvas-selection';
 import type { FlowLayout, FlowNodePosition } from './flow-layout';
 import { NODE_KIND_MIME_TYPE, parseDraggedNodeKind } from './node-drag';
 import { NodePalette } from './NodePalette';
+import { CanvasEmptyState } from './CanvasEmptyState';
 import { StatecraftEdge } from './StatecraftEdge';
 import { StatecraftNode } from './StatecraftNode';
 import {
@@ -319,6 +320,7 @@ function FlowCanvasContent({
         maxZoom={1.5}
       >
         <Background gap={20} size={1} />
+        {flow.nodes.length === 0 && <CanvasEmptyState commands={commands} platform={platform} />}
         <Controls showInteractive={false} showFitView={false}>
           <ControlButton aria-label="Fit View" title="Fit view" disabled={!commands['fit-view'].enabled} onClick={() => runCommand(commands['fit-view'])}>
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4v1H3v3zm8-4h4v4h-1V3h-3zM2 10h1v3h3v1H2zm11 0h1v4h-4v-1h3z" /></svg>
