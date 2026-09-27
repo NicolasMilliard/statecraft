@@ -37,6 +37,11 @@
 
 @layer base {
   :root {
+    --motion-duration-feedback: 120ms;
+    --motion-duration-press: 100ms;
+    --motion-duration-release: 160ms;
+    --motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
     font-family: system-ui, sans-serif;
     color: var(--color-foreground);
     background: var(--color-canvas);
@@ -49,6 +54,21 @@
 }
 
 @layer components {
+  /* Move the contents, keeping the button's hit area and focus ring stable. */
+  .ui-button__content {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: inherit;
+    gap: inherit;
+    pointer-events: none;
+  }
+
+  .ui-button:enabled:active,
+  .react-flow__controls-button:enabled:active {
+    box-shadow: inset 0 1px 2px rgb(20 20 32 / 12%);
+  }
+
   .command-palette {
     width: min(32rem, calc(100vw - 2rem));
     max-height: calc(100dvh - min(12dvh, 5rem) - 1rem);
@@ -170,7 +190,6 @@
   }
 
   .react-flow__node-statecraft.selected .react-flow__handle,
-  .react-flow__node-statecraft .react-flow__handle:hover,
   .react-flow__node-statecraft .react-flow__handle.connectingfrom,
   .react-flow__node-statecraft .react-flow__handle.clickconnecting,
   .react-flow__node-statecraft .react-flow__handle.connectingto.valid {
@@ -180,6 +199,14 @@
 
   .react-flow__node-statecraft .react-flow__handle.connectingto {
     box-shadow: 0 0 0 3px var(--color-brand-soft);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .react-flow__node-statecraft .react-flow__handle:hover {
+      border-color: var(--color-brand-border);
+      background: var(--color-brand);
+      box-shadow: 0 0 0 3px var(--color-brand-soft);
+    }
   }
 
   .react-flow__node-statecraft .react-flow__handle.connectingto:not(.valid) {
@@ -254,6 +281,10 @@
     height: 32px;
   }
 
+  .react-flow__controls-button:enabled:active {
+    background: var(--color-surface-pressed);
+  }
+
   .react-flow__controls-button:first-child {
     border-radius: var(--radius-control) var(--radius-control) 0 0;
   }
@@ -266,5 +297,39 @@
     position: relative;
     outline: 2px solid var(--color-brand);
     outline-offset: 2px;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .ui-button,
+    .react-flow__controls-button {
+      transition-property: background-color, border-color, color;
+      transition-duration: var(--motion-duration-feedback);
+      transition-timing-function: ease;
+    }
+
+    .ui-button:enabled:active,
+    .ui-button:focus-visible,
+    .ui-button:disabled,
+    .react-flow__controls-button:enabled:active,
+    .react-flow__controls-button:focus-visible,
+    .react-flow__controls-button:disabled {
+      transition: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ui-button:enabled:not([draggable='true']):not(:focus-visible)
+      > .ui-button__content,
+    .react-flow__controls-button:enabled:not(:focus-visible) > svg {
+      transition: transform var(--motion-duration-release)
+        var(--motion-ease-out);
+    }
+
+    .ui-button:enabled:not([draggable='true']):not(:focus-visible):active
+      > .ui-button__content,
+    .react-flow__controls-button:enabled:not(:focus-visible):active > svg {
+      transform: scale(0.98);
+      transition-duration: var(--motion-duration-press);
+    }
   }
 }

@@ -12,7 +12,6 @@ const classes = [
   'aria-invalid:focus-visible:outline-danger',
   'disabled:cursor-not-allowed',
   'disabled:bg-surface-hover disabled:text-muted',
-  'motion-safe:transition-colors motion-safe:duration-150',
 ].join(' ');
 
 export function TextInput({ className = '', ...props }: TextInputProps) {
