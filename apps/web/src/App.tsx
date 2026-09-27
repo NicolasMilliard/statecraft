@@ -11,6 +11,7 @@ import { CommandPalette } from './editor/CommandPalette';
 import { createCommands, getShortcutPlatform } from './editor/commands';
 import { useEditorShortcuts } from './editor/use-editor-shortcuts';
 import { useFlowEditor } from './editor/use-flow-editor';
+import { notifySaveResult } from './editor/save-feedback';
 import { checkoutFlow, checkoutLayout } from './examples/checkout';
 import { EdgeInspector } from './inspector/EdgeInspector';
 import { NodeInspector } from './inspector/NodeInspector';
@@ -128,7 +129,7 @@ export default function App() {
       setRenamingFlowId(flow.id);
       nameInputRef.current?.focus();
     },
-    save: editor.save,
+    save: () => notifySaveResult(editor.save(), () => filesRef.current?.export()),
     'open-json': () => filesRef.current?.open(),
     'export-json': () => filesRef.current?.export(),
     undo: () => { focusCanvasAfterUpdate.current = true; editor.undo(); },
@@ -146,7 +147,7 @@ export default function App() {
   }, {
     'new-flow': !isRestoring,
     'rename-flow': !isRestoring,
-    save: !isRestoring && (editor.hasUnsavedChanges || editor.storageError !== null),
+    save: !isRestoring && (editor.hasUnsavedChanges || editor.storageIssue !== null),
     'open-json': !isRestoring,
     'export-json': !isRestoring,
     undo: editor.canUndo && !isRestoring,
@@ -163,6 +164,7 @@ export default function App() {
   });
 
   if (editor.willReplaceInvalidDraft) commands.save = { ...commands.save, label: 'Replace local copy' };
+  else if (editor.storageIssue === 'save-failed') commands.save = { ...commands.save, label: 'Retry save' };
 
   useEditorShortcuts({ workspaceRef, commands, platform, paletteOpen });
 
@@ -173,7 +175,8 @@ export default function App() {
         platform={platform}
         hasUnsavedChanges={editor.hasUnsavedChanges}
         willReplaceInvalidDraft={editor.willReplaceInvalidDraft}
-        storageError={editor.storageError}
+        storageIssue={editor.storageIssue}
+        isRestoring={isRestoring}
         paletteOpen={paletteOpen}
         commandsButtonRef={commandsButtonRef}
         nameEditor={

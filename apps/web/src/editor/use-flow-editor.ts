@@ -14,6 +14,7 @@ import { parseFlowDocument, serializeFlowDocument } from './flow-document';
 import type { FlowEditorState } from './flow-editor-state';
 import { loadFlowDraft, saveFlowDraft } from './flow-storage';
 import { useHistoryState } from './use-history-state';
+import type { StorageIssue } from './storage-feedback';
 
 function areLayoutsEqual(left: FlowLayout, right: FlowLayout): boolean {
   const entries = Object.entries(left.positions);
@@ -45,25 +46,15 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
             initialLayout,
           };
 
-    let error: string | null = null;
-
-    if (result.status === 'invalid') {
-      error =
-        'Saved data is invalid or unsupported. ' +
-        'Saving will replace the local copy with the open flow.';
-    }
-
-    if (result.status === 'unavailable') {
-      error =
-        'Local data could not be read. Your edits remain in memory. ' +
-        'Saving may replace an existing local copy.';
-    }
+    const issue: StorageIssue | null = result.status === 'invalid'
+      ? 'invalid-draft'
+      : result.status === 'unavailable' ? 'unavailable' : null;
 
     return {
       editor,
       isSaved: result.status === 'loaded',
       hasInvalidSavedDraft: result.status === 'invalid',
-      error,
+      issue,
     };
   });
 
@@ -80,8 +71,8 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     initialDocument.isSaved ? initialDocument.editor : null,
   );
 
-  const [storageError, setStorageError] = useState<string | null>(
-    initialDocument.error,
+  const [storageIssue, setStorageIssue] = useState<StorageIssue | null>(
+    initialDocument.issue,
   );
 
   function createFlow() {
@@ -291,14 +282,13 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
 
   function save() {
     if (!saveFlowDraft(editor)) {
-      setStorageError(
-        'Could not save locally. Your edits remain open. Please try again.',
-      );
-      return;
+      setStorageIssue('save-failed');
+      return false;
     }
 
     setSavedEditor(editor);
-    setStorageError(null);
+    setStorageIssue(null);
+    return true;
   }
 
   function exportDocument(): string {
@@ -375,7 +365,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     save,
     exportDocument,
     restoreDocument,
-    storageError,
+    storageIssue,
     hasUnsavedChanges: editor !== savedEditor,
     willReplaceInvalidDraft:
       initialDocument.hasInvalidSavedDraft && savedEditor === null,

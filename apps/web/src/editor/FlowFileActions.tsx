@@ -1,11 +1,16 @@
-import { useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
+import { toast } from 'sonner';
 import { CommandButton } from './CommandButton';
 import type { EditorCommand, ShortcutPlatform } from './commands';
+import { toastMessage } from './toast-message';
 
 export interface FlowFileActionsHandle {
   open: () => void;
   export: () => void;
 }
+
+const FILE_ERROR_TOAST = 'flow-file-error';
+const FILE_SUCCESS_TOAST = 'flow-file-success';
 
 interface FlowFileActionsProps {
   readonly ref?: Ref<FlowFileActionsHandle>;
@@ -31,11 +36,28 @@ export function FlowFileActions({
   onRestoringChange,
 }: FlowFileActionsProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState<string | null>(null);
+  const exportButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => () => { toast.dismiss(FILE_ERROR_TOAST); }, []);
+
+  function showError(action: 'open' | 'export', title: string, description: string) {
+    toast.error(toastMessage(FILE_ERROR_TOAST, title), {
+      id: FILE_ERROR_TOAST,
+      description,
+      duration: Infinity,
+      action: {
+        label: action === 'open' ? 'Choose file' : 'Retry export',
+        onClick: (event) => {
+          event.preventDefault();
+          // Use the live controls so retry never exports an older render's flow.
+          if (action === 'open') inputRef.current?.click();
+          else exportButtonRef.current?.click();
+        },
+      },
+    });
+  }
 
   function handleExport() {
-    setError(null);
-
     try {
       const serialized = onExport();
       const blob = new Blob([serialized], {
@@ -62,8 +84,13 @@ export function FlowFileActions({
         // Allow the browser to start consuming the download URL.
         window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
+      toast.dismiss(FILE_ERROR_TOAST);
+      toast.success(toastMessage(FILE_SUCCESS_TOAST, 'Download started'), {
+        id: FILE_SUCCESS_TOAST,
+        description: `${baseName}.statecraft.json`,
+      });
     } catch {
-      setError('Could not export this flow. Please try again.');
+      showError('export', 'The download could not be started', 'Your flow is still open. Try exporting it again.');
     }
   }
 
@@ -74,16 +101,18 @@ export function FlowFileActions({
 
   async function handleRestore(file: File) {
     onRestoringChange(true);
-    setError(null);
 
     try {
       const serialized = await file.text();
 
       if (!onRestore(serialized)) {
-        setError('Open failed. Choose a valid Statecraft JSON file.');
+        showError('open', `Could not open “${file.name}”`, 'Choose a supported JSON file exported from Statecraft. Your current flow is unchanged.');
+      } else {
+        toast.dismiss(FILE_ERROR_TOAST);
+        toast.success(toastMessage(FILE_SUCCESS_TOAST, 'Flow opened'), { id: FILE_SUCCESS_TOAST, description: file.name });
       }
     } catch {
-      setError('Could not read this file. Please try again.');
+      showError('open', `Could not read “${file.name}”`, 'Check that the file is available, then choose it again. Your current flow is unchanged.');
     } finally {
       onRestoringChange(false);
     }
@@ -114,6 +143,7 @@ export function FlowFileActions({
       />
 
       <CommandButton
+        ref={exportButtonRef}
         command={exportCommand}
         platform={platform}
         variant="secondary"
@@ -125,16 +155,10 @@ export function FlowFileActions({
         command={openCommand}
         platform={platform}
         variant="secondary"
-        title="Open a Statecraft flow. This can be undone."
+        title=""
       >
         {isRestoring ? 'Opening…' : 'Open JSON'}
       </CommandButton>
-
-      {error !== null && (
-        <p role="alert" className="w-full text-ui text-danger">
-          {error}
-        </p>
-      )}
     </div>
   );
 }
