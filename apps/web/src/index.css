@@ -1,7 +1,13 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
 @import '@xyflow/react/dist/style.css' layer(base);
 
 @theme {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, 'Liberation Mono', 'Courier New', monospace;
+
   --color-canvas: #f8f8f8;
   --color-surface: #ffffff;
   --color-chrome: #fcfcfc;
@@ -16,10 +22,12 @@
   --color-grid: #dddddf;
   --color-edge: #8b8b95;
 
+  --color-primary: #212126;
+  --color-primary-hover: #34343b;
+  --color-primary-pressed: #161619;
+  --color-primary-foreground: #ffffff;
+
   --color-brand: #565ac2;
-  --color-brand-hover: #484ca8;
-  --color-brand-pressed: #3f4396;
-  --color-brand-foreground: #ffffff;
   --color-brand-soft: #f0f0fa;
   --color-brand-border: #777bd1;
 
@@ -42,7 +50,7 @@
     --motion-duration-release: 160ms;
     --motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 
-    font-family: system-ui, sans-serif;
+    font-family: var(--font-sans);
     color: var(--color-foreground);
     background: var(--color-canvas);
     font-synthesis: none;
@@ -91,7 +99,7 @@
     --xy-background-pattern-color: var(--color-grid);
     --xy-connectionline-stroke: var(--color-brand-border);
     --xy-connectionline-stroke-width: 1.5;
-    --xy-selection-background-color: rgb(86 90 194 / 6%);
+    --xy-selection-background-color: color-mix(in srgb, var(--color-brand) 6%, transparent);
     --xy-selection-border: 1px solid var(--color-brand-border);
     --xy-controls-button-background-color: var(--color-surface);
     --xy-controls-button-background-color-hover: var(--color-surface-hover);

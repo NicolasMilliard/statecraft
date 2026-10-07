@@ -16,9 +16,9 @@ const baseClasses = [
 
 const variantClasses = {
   primary: [
-    'border-transparent bg-brand text-brand-foreground',
-    'enabled:hover:bg-brand-hover',
-    'enabled:active:bg-brand-pressed',
+    'border-transparent bg-primary text-primary-foreground',
+    'enabled:hover:bg-primary-hover',
+    'enabled:active:bg-primary-pressed',
     'focus-visible:outline-brand',
   ].join(' '),
   secondary: [

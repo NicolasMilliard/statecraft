@@ -36,7 +36,7 @@ export function EditorHeader({
   return (
     <header className="flex min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-border bg-chrome px-4 py-3 lg:px-5">
       <div className="flex min-w-0 flex-1 basis-80 items-center gap-3">
-        <p className="shrink-0 text-sm font-semibold tracking-tight">statecraft</p>
+        <p className="shrink-0 text-base font-semibold tracking-[-0.035em]">statecraft</p>
         <span aria-hidden="true" className="text-border-strong">/</span>
         {nameEditor}
       </div>
