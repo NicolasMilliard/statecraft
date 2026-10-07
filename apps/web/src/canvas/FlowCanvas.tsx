@@ -36,6 +36,7 @@ import { NodePalette } from './NodePalette';
 import { CanvasEmptyState } from './CanvasEmptyState';
 import { StatecraftEdge } from './StatecraftEdge';
 import { StatecraftNode } from './StatecraftNode';
+import { syncCanvasEdges, syncCanvasNodes } from './sync-canvas-graph';
 import {
   toReactFlowGraph,
   CANVAS_NODE_WIDTH,
@@ -144,48 +145,18 @@ function FlowCanvasContent({
   }));
 
   useEffect(() => {
-    const { nodes: nextNodes, edges: nextEdges } = toReactFlowGraph(
-      flow,
-      layout,
-    );
     const nodeToSelect = addedNodeId.current;
     addedNodeId.current = null;
 
-    setNodes((currentNodes) => {
-      const currentNodesById = new Map(
-        currentNodes.map((node) => [node.id, node]),
-      );
-
-      return nextNodes.map((node) => {
-        const currentNode = currentNodesById.get(node.id);
-
-        // Preserve renderer state, selecting only the new node after an addition.
-        const nextNode = currentNode === undefined ? node : { ...currentNode, ...node };
-        return nodeToSelect === null ? nextNode : { ...nextNode, selected: node.id === nodeToSelect };
-      });
-    });
-
-    setEdges((currentEdges) => {
-      const currentEdgesById = new Map(
-        currentEdges.map((edge) => [edge.id, edge]),
-      );
-
-      return nextEdges.map((edge) => {
-        const currentEdge = currentEdgesById.get(edge.id);
-
-        // Preserve selection when domain properties change.
-        const nextEdge = currentEdge === undefined ? edge : { ...currentEdge, ...edge };
-        return nodeToSelect === null ? nextEdge : { ...nextEdge, selected: false };
-      });
-    });
-  }, [flow, layout, setNodes, setEdges]);
+    setNodes((current) => syncCanvasNodes(current, graph.nodes, nodeToSelect));
+    setEdges((current) => syncCanvasEdges(current, graph.edges, nodeToSelect !== null));
+  }, [graph, setNodes, setEdges]);
 
   const handleNodesChange = useCallback<OnNodesChange<CanvasNode>>(
     (changes) => {
       onNodesChange(changes);
 
-      const positions = { ...layout.positions };
-      let hasPositionChange = false;
+      let positions: Record<string, FlowNodePosition> | undefined;
 
       for (const change of changes) {
         if (
@@ -196,7 +167,7 @@ function FlowCanvasContent({
           continue;
         }
 
-        const currentPosition = positions[change.id];
+        const currentPosition = (positions ?? layout.positions)[change.id];
 
         if (
           currentPosition === undefined ||
@@ -206,11 +177,11 @@ function FlowCanvasContent({
           continue;
         }
 
+        positions ??= { ...layout.positions };
         positions[change.id] = { ...change.position };
-        hasPositionChange = true;
       }
 
-      if (hasPositionChange) {
+      if (positions !== undefined) {
         onLayoutChange({
           ...layout,
           positions,
