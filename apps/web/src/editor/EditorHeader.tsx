@@ -1,4 +1,5 @@
 import type { ReactNode, Ref } from 'react';
+import { StatecraftMark } from '../ui/StatecraftMark';
 import { CommandButton } from './CommandButton';
 import type { CommandRegistry, ShortcutPlatform } from './commands';
 import { EditorNotice } from './EditorNotice';
@@ -36,7 +37,10 @@ export function EditorHeader({
   return (
     <header className="flex min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-border bg-chrome px-4 py-3 lg:px-5">
       <div className="flex min-w-0 flex-1 basis-80 items-center gap-3">
-        <p className="shrink-0 text-base font-semibold tracking-[-0.035em]">statecraft</p>
+        <p className="flex shrink-0 items-center gap-2 text-base font-normal tracking-[-0.035em]">
+          <StatecraftMark />
+          statecraft
+        </p>
         <span aria-hidden="true" className="text-border-strong">/</span>
         {nameEditor}
       </div>

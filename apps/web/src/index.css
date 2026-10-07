@@ -5,7 +5,8 @@
 
 @theme {
   --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco,
+  --font-mono:
+    'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco,
     Consolas, 'Liberation Mono', 'Courier New', monospace;
 
   --color-canvas: #f8f8f8;
@@ -99,7 +100,11 @@
     --xy-background-pattern-color: var(--color-grid);
     --xy-connectionline-stroke: var(--color-brand-border);
     --xy-connectionline-stroke-width: 1.5;
-    --xy-selection-background-color: color-mix(in srgb, var(--color-brand) 6%, transparent);
+    --xy-selection-background-color: color-mix(
+      in srgb,
+      var(--color-brand) 6%,
+      transparent
+    );
     --xy-selection-border: 1px solid var(--color-brand-border);
     --xy-controls-button-background-color: var(--color-surface);
     --xy-controls-button-background-color-hover: var(--color-surface-hover);
@@ -326,6 +331,16 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
+    .statecraft-mark__line {
+      animation: statecraft-line-enter 480ms var(--motion-ease-out) both;
+    }
+
+    .statecraft-mark__dot {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: statecraft-dot-enter 360ms 180ms both;
+    }
+
     .ui-button:enabled:not([draggable='true']):not(:focus-visible)
       > .ui-button__content,
     .react-flow__controls-button:enabled:not(:focus-visible) > svg {
@@ -339,5 +354,32 @@
       transform: scale(0.98);
       transition-duration: var(--motion-duration-press);
     }
+  }
+}
+
+@keyframes statecraft-line-enter {
+  from {
+    transform: translate(34px, 34px);
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes statecraft-dot-enter {
+  0% {
+    transform: scale(0);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  65% {
+    transform: scale(1.14);
+    animation-timing-function: ease-in-out;
+  }
+  85% {
+    transform: scale(0.97);
+    animation-timing-function: ease-out;
+  }
+  100% {
+    transform: scale(1);
   }
 }
