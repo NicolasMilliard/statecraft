@@ -25,8 +25,8 @@ test('writes a machine-readable report to stdout', () => {
     graph: { entities: unknown[]; relations: unknown[] };
   };
   assert.equal(report.formatVersion, 1);
-  assert.equal(report.graph.entities.length, 8);
-  assert.equal(report.graph.relations.length, 7);
+  assert.equal(report.graph.entities.length, 10);
+  assert.equal(report.graph.relations.length, 9);
 });
 
 test('writes to a file when requested', () => {

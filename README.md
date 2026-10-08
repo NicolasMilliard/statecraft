@@ -52,5 +52,7 @@ node packages/cli/dist/index.js scan examples/storefront --repository-id storefr
 
 The current preview emits routes, components, reachable local hooks/functions,
 and direct TanStack Query queries and mutations with referenced local
-functions. Its JSON diagnostics identify unsupported options and the remaining
-HTTP detector.
+functions, plus static fetch and Axios HTTP call sites. Its JSON diagnostics
+identify unsupported dynamic patterns. Opening this scan report in the web
+application is planned for M3; the current Open JSON command accepts flow
+exports only.

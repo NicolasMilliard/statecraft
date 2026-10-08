@@ -9,20 +9,22 @@ import { fileURLToPath } from 'node:url';
 
 const fixture = fileURLToPath(new URL('../../../examples/storefront/', import.meta.url));
 
-test('detects the Checkout route, component, hook, query, mutation, and service chain', () => {
+test('detects the complete Checkout route-to-HTTP chain', () => {
   const report = scanRepository({
     repositoryPath: fixture,
     repositoryId: 'storefront',
   });
 
   assert.equal(report.formatVersion, 1);
-  assert.equal(report.analysisProfileId, 'react-ts-v0.2');
+  assert.equal(report.analysisProfileId, 'react-ts-v0.3');
   assert.deepEqual(validateCodeGraph(report.graph), []);
   assert.deepEqual(
     report.graph.entities.map(({ kind, name }) => ({ kind, name })),
     [
       { kind: 'component', name: 'CheckoutForm' },
       { kind: 'component', name: 'CheckoutPage' },
+      { kind: 'endpoint', name: 'GET /api/cart' },
+      { kind: 'endpoint', name: 'POST /api/orders' },
       { kind: 'function', name: 'getCart' },
       { kind: 'function', name: 'createOrder' },
       { kind: 'hook', name: 'useCheckout' },
@@ -46,6 +48,8 @@ test('detects the Checkout route, component, hook, query, mutation, and service 
       ['hook:useCheckout', 'uses', 'mutation:createOrder'],
       ['query:cart', 'calls', 'function:getCart'],
       ['mutation:createOrder', 'calls', 'function:createOrder'],
+      ['function:getCart', 'calls', 'endpoint:GET /api/cart'],
+      ['function:createOrder', 'calls', 'endpoint:POST /api/orders'],
       ['route:/checkout', 'renders', 'component:CheckoutPage'],
     ].sort(),
   );
@@ -87,6 +91,17 @@ test('is stable across scans, checkout paths, and formatting changes', () => {
     assert.ok(beforePage && afterPage);
     assert.equal(afterPage.id, beforePage.id);
     assert.notEqual(afterPage.structuralHash, beforePage.structuralHash);
+
+    writeFileSync(pagePath, source);
+    const ordersPath = join(copied, 'src/services/orders.ts');
+    const orders = readFileSync(ordersPath, 'utf8');
+    writeFileSync(ordersPath, orders.replace('return response.data;', 'return { ...response.data };'));
+    const changedOrder = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
+    const beforeOrder = original.graph.entities.find((entity) => entity.kind === 'function' && entity.name === 'createOrder');
+    const afterOrder = changedOrder.graph.entities.find((entity) => entity.kind === 'function' && entity.name === 'createOrder');
+    assert.ok(beforeOrder && afterOrder);
+    assert.equal(afterOrder.id, beforeOrder.id);
+    assert.notEqual(afterOrder.structuralHash, beforeOrder.structuralHash);
   } finally {
     rmSync(copied, { recursive: true, force: true });
   }
@@ -155,8 +170,8 @@ test('includes local files reached through imports when tsconfig lists only the 
       repositoryPath: copied,
       repositoryId: 'storefront',
     });
-    assert.equal(report.graph.entities.length, 8);
-    assert.equal(report.graph.relations.length, 7);
+    assert.equal(report.graph.entities.length, 10);
+    assert.equal(report.graph.relations.length, 9);
   } finally {
     rmSync(copied, { recursive: true, force: true });
   }
@@ -207,10 +222,12 @@ test('follows aliased local function calls transitively', () => {
         ['function:formatCart', 'function:normalizeCartId'],
         ['query:cart', 'function:getCart'],
         ['mutation:createOrder', 'function:createOrder'],
+        ['function:getCart', 'endpoint:GET /api/cart'],
+        ['function:createOrder', 'endpoint:POST /api/orders'],
       ].sort(),
     );
-    assert.equal(report.graph.entities.length, 10);
-    assert.equal(report.graph.relations.length, 9);
+    assert.equal(report.graph.entities.length, 12);
+    assert.equal(report.graph.relations.length, 11);
   } finally {
     rmSync(copied, { recursive: true, force: true });
   }
@@ -284,6 +301,71 @@ test('reports unsupported query options without inventing a query', () => {
     const spreadReport = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
     assert.equal(spreadReport.graph.entities.some((entity) => entity.kind === 'query'), false);
     assert.equal(spreadReport.diagnostics[0]?.code, 'unsupported_query_options');
+  } finally {
+    rmSync(copied, { recursive: true, force: true });
+  }
+});
+
+test('does not classify a local fetch function as the global HTTP API', () => {
+  const copied = mkdtempSync(join(tmpdir(), 'statecraft-scanner-local-fetch-'));
+  try {
+    cpSync(fixture, copied, { recursive: true });
+    const cartPath = join(copied, 'src/services/cart.ts');
+    writeFileSync(cartPath, 'function fetch(path: string) { return { json: () => ({ id: path }) }; }\n' + readFileSync(cartPath, 'utf8'));
+    const report = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
+    assert.equal(report.graph.entities.some((entity) => entity.name === 'GET /api/cart'), false);
+    assert.ok(report.graph.entities.some((entity) => entity.kind === 'function' && entity.name === 'fetch'));
+  } finally {
+    rmSync(copied, { recursive: true, force: true });
+  }
+});
+
+test('resolves an aliased Axios import and normalizes a static fetch method', () => {
+  const copied = mkdtempSync(join(tmpdir(), 'statecraft-scanner-http-alias-'));
+  try {
+    cpSync(fixture, copied, { recursive: true });
+    const ordersPath = join(copied, 'src/services/orders.ts');
+    writeFileSync(ordersPath, readFileSync(ordersPath, 'utf8')
+      .replace("import axios from 'axios';", "import client from 'axios';")
+      .replace('axios.post(', 'client.post('));
+    const cartPath = join(copied, 'src/services/cart.ts');
+    writeFileSync(cartPath, readFileSync(cartPath, 'utf8')
+      .replace("fetch('/api/cart')", "globalThis.fetch('/api/cart', { method: 'pOsT' })"));
+    const report = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
+    assert.deepEqual(report.graph.entities
+      .filter((entity) => entity.kind === 'endpoint')
+      .map((entity) => entity.name), ['POST /api/cart', 'POST /api/orders']);
+  } finally {
+    rmSync(copied, { recursive: true, force: true });
+  }
+});
+
+test('reports dynamic HTTP targets and Axios instances without invented endpoints', () => {
+  const copied = mkdtempSync(join(tmpdir(), 'statecraft-scanner-http-dynamic-'));
+  try {
+    cpSync(fixture, copied, { recursive: true });
+    const cartPath = join(copied, 'src/services/cart.ts');
+    writeFileSync(cartPath, readFileSync(cartPath, 'utf8')
+      .replace("fetch('/api/cart')", 'fetch(path)'));
+    const ordersPath = join(copied, 'src/services/orders.ts');
+    writeFileSync(ordersPath, readFileSync(ordersPath, 'utf8')
+      .replace('axios.post(', 'axios.create().post('));
+    const report = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
+    assert.equal(report.graph.entities.some((entity) => entity.kind === 'endpoint'), false);
+    assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.code), [
+      'dynamic_http_url',
+      'unsupported_axios_call',
+      'partial_coverage',
+    ]);
+
+    const originalCart = readFileSync(join(fixture, 'src/services/cart.ts'), 'utf8');
+    writeFileSync(cartPath, originalCart.replace(
+      "fetch('/api/cart')",
+      "fetch('/api/cart', { method: requestedMethod })",
+    ));
+    const dynamicMethod = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
+    assert.equal(dynamicMethod.graph.entities.some((entity) => entity.name === 'GET /api/cart'), false);
+    assert.ok(dynamicMethod.diagnostics.some((diagnostic) => diagnostic.code === 'unsupported_fetch_options'));
   } finally {
     rmSync(copied, { recursive: true, force: true });
   }
