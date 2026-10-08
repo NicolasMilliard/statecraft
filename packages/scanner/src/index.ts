@@ -3,6 +3,8 @@ import {
   type CodeEntity,
   type CodeGraph,
   type CodeRelation,
+  type ScanDiagnostic,
+  type ScanReport,
 } from '@statecraft/core';
 import { createHash } from 'node:crypto';
 import { existsSync, realpathSync, statSync } from 'node:fs';
@@ -47,18 +49,7 @@ export interface ScanOptions {
   readonly tsconfigPath?: string;
 }
 
-export interface ScanDiagnostic {
-  readonly code: string;
-  readonly filePath: string | null;
-  readonly message: string;
-}
-
-export interface ScanReport {
-  readonly formatVersion: 1;
-  readonly analysisProfileId: 'react-ts-v1';
-  readonly graph: CodeGraph;
-  readonly diagnostics: readonly ScanDiagnostic[];
-}
+export type { ScanDiagnostic, ScanReport } from '@statecraft/core';
 
 interface ComponentRecord {
   readonly entity: CodeEntity;

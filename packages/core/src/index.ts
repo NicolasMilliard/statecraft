@@ -23,6 +23,8 @@ export type {
 
 export type { CodeReference, CodeReferenceRole } from './code-reference.js';
 
+export type { ScanDiagnostic, ScanReport } from './scan-report.js';
+
 export { validateCodeGraph } from './validate-code-graph.js';
 
 export type { CodeGraphValidationIssue } from './validate-code-graph.js';
