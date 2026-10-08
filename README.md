@@ -19,6 +19,8 @@ M1 — Canvas: functional scope implemented.
 M1.5 — Branding & UI/UX craft: completed.
 
 Next milestone: M2 — local React/TypeScript scanner and CLI.
+The [M2 scanner contract](docs/m2-scanner-contract.md) defines the first
+supported patterns and Checkout acceptance fixture.
 
 ## Development
 
