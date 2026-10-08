@@ -19,7 +19,7 @@ M1 — Canvas: functional scope implemented.
 M1.5 — Branding & UI/UX craft: completed.
 
 Next milestone: M2 — local React/TypeScript scanner and CLI.
-The [M2 scanner contract](docs/m2-scanner-contract.md) defines the first
+The [M2 scanner contract](docs/milestones/m2-scanner-contract.md) defines the first
 supported patterns and Checkout acceptance fixture.
 
 ## Development
@@ -43,3 +43,12 @@ pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+After building, run the M2 scanner preview on the Checkout fixture:
+
+```bash
+node packages/cli/dist/index.js scan examples/storefront --repository-id storefront
+```
+
+The current preview emits routes and components. Its JSON diagnostics identify
+the remaining M2 detectors.

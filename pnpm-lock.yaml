@@ -225,7 +225,30 @@ importers:
         specifier: ^8.3.0
         version: 8.3.0(@types/node@24.13.5)(jiti@2.7.0)
 
+  packages/cli:
+    dependencies:
+      '@statecraft/scanner':
+        specifier: workspace:*
+        version: link:../scanner
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.5
+        version: 24.13.5
+
   packages/core:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.5
+        version: 24.13.5
+
+  packages/scanner:
+    dependencies:
+      '@statecraft/core':
+        specifier: workspace:*
+        version: link:../core
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
     devDependencies:
       '@types/node':
         specifier: ^24.13.5

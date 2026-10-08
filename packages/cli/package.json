@@ -1,0 +1,20 @@
+{
+  "name": "@statecraft/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "statecraft": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p test/tsconfig.json",
+    "test": "pnpm run build && node --test \"test/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@statecraft/scanner": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.5"
+  }
+}
