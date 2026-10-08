@@ -50,5 +50,7 @@ After building, run the M2 scanner preview on the Checkout fixture:
 node packages/cli/dist/index.js scan examples/storefront --repository-id storefront
 ```
 
-The current preview emits routes, components, and reachable local
-hooks/functions. Its JSON diagnostics identify the remaining M2 detectors.
+The current preview emits routes, components, reachable local hooks/functions,
+and direct TanStack Query queries and mutations with referenced local
+functions. Its JSON diagnostics identify unsupported options and the remaining
+HTTP detector.

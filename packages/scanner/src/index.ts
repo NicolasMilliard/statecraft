@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, realpathSync, statSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import {
+  isArrayLiteralExpression,
   isArrowFunction,
   isCallExpression,
   isFunctionDeclaration,
@@ -52,7 +53,7 @@ export interface ScanDiagnostic {
 
 export interface ScanReport {
   readonly formatVersion: 1;
-  readonly analysisProfileId: 'react-ts-v0.1';
+  readonly analysisProfileId: 'react-ts-v0.2';
   readonly graph: CodeGraph;
   readonly diagnostics: readonly ScanDiagnostic[];
 }
@@ -69,7 +70,7 @@ interface CallableRecord {
 
 /**
  * Preview profile: finds named JSX components, direct TanStack file routes,
- * and reachable local hooks/functions.
+ * reachable local hooks/functions, and direct TanStack Query calls.
  * The diagnostic makes the still-missing M2 detectors visible to callers.
  */
 export function scanRepository(options: ScanOptions): ScanReport {
@@ -109,7 +110,8 @@ export function scanRepository(options: ScanOptions): ScanReport {
         );
       }
 
-      const graph = buildGraph(project, repositoryRoot, repositoryId);
+      const diagnostics: ScanDiagnostic[] = [];
+      const graph = buildGraph(project, repositoryRoot, repositoryId, diagnostics);
       const issues = validateCodeGraph(graph);
       if (issues.length > 0) {
         throw new Error(
@@ -119,14 +121,20 @@ export function scanRepository(options: ScanOptions): ScanReport {
 
       return {
         formatVersion: 1,
-        analysisProfileId: 'react-ts-v0.1',
+        analysisProfileId: 'react-ts-v0.2',
         graph,
         diagnostics: [
+          ...diagnostics.sort((left, right) =>
+            compareIds(
+              JSON.stringify([left.filePath, left.code, left.message]),
+              JSON.stringify([right.filePath, right.code, right.message]),
+            ),
+          ),
           {
             code: 'partial_coverage',
             filePath: null,
             message:
-              'This preview detects routes, components, and reachable local hooks/functions. Queries, mutations, and HTTP calls are pending.',
+              'This preview detects routes, components, reachable local hooks/functions, and direct TanStack Query calls. HTTP calls are pending.',
           },
         ],
       };
@@ -142,6 +150,7 @@ function buildGraph(
   project: Project,
   repositoryRoot: string,
   repositoryId: string,
+  diagnostics: ScanDiagnostic[],
 ): CodeGraph {
   const sourceFiles = [...project.program.getSourceFileNames()]
     .filter((fileName) => isScannable(repositoryRoot, fileName))
@@ -150,6 +159,19 @@ function buildGraph(
     .filter((file): file is SourceFile => file !== undefined);
   const components: ComponentRecord[] = [];
   const componentsBySymbol = new Map<number, CodeEntity>();
+  const queryImports = new Map<string, ReadonlySet<number>>();
+  const mutationImports = new Map<string, ReadonlySet<number>>();
+  for (const sourceFile of sourceFiles) {
+    const filePath = normalizePath(repositoryRoot, sourceFile.fileName);
+    queryImports.set(
+      filePath,
+      importedSymbolIds(sourceFile, '@tanstack/react-query', 'useQuery', project.checker),
+    );
+    mutationImports.set(
+      filePath,
+      importedSymbolIds(sourceFile, '@tanstack/react-query', 'useMutation', project.checker),
+    );
+  }
 
   for (const sourceFile of sourceFiles) {
     for (const statement of sourceFile.statements) {
@@ -277,18 +299,90 @@ function buildGraph(
   }
 
   const includedCallables = new Set<string>();
+  function includeCallable(target: CallableRecord): void {
+    if (includedCallables.has(target.entity.id)) return;
+    includedCallables.add(target.entity.id);
+    entities.push(target.entity);
+    includeCalls(target.entity, target.declaration);
+  }
+
   function includeCalls(caller: CodeEntity, declaration: Node): void {
+    let queryOrdinal = 0;
+    let mutationOrdinal = 0;
     visit(declaration, (node) => {
       if (!isCallExpression(node) || !isIdentifier(node.expression)) return;
+      const importSymbolId = project.checker.getSymbolAtLocation(node.expression)?.id;
+      const kind = importSymbolId !== undefined && queryImports.get(caller.filePath)?.has(importSymbolId)
+        ? 'query'
+        : importSymbolId !== undefined && mutationImports.get(caller.filePath)?.has(importSymbolId)
+          ? 'mutation'
+          : undefined;
+      if (kind) {
+        const ordinal = kind === 'query' ? queryOrdinal++ : mutationOrdinal++;
+        const options = node.arguments[0];
+        const properties = options && isObjectLiteralExpression(options)
+          ? options.properties
+          : undefined;
+        const directProperties = properties?.every((property) =>
+          isPropertyAssignment(property) && isIdentifier(property.name),
+        ) ? properties : undefined;
+        const functionProperty = kind === 'query' ? 'queryFn' : 'mutationFn';
+        const functionReferences = directProperties?.filter((property) =>
+          isPropertyAssignment(property) &&
+          isIdentifier(property.name) &&
+          property.name.text === functionProperty,
+        );
+        const functionReference = functionReferences?.length === 1
+          ? functionReferences[0]
+          : undefined;
+        const functionNode = functionReference && isPropertyAssignment(functionReference)
+          ? functionReference.initializer
+          : undefined;
+        const functionId = functionNode && isIdentifier(functionNode)
+          ? resolveSymbolId(functionNode, project.checker)
+          : undefined;
+        const target = functionId === undefined ? undefined : callablesBySymbol.get(functionId);
+        if (!target) {
+          diagnostics.push({
+            code: 'unsupported_' + kind + '_options',
+            filePath: caller.filePath,
+            message: 'Could not resolve the direct ' + functionProperty + ' function in ' + caller.name + '.',
+          });
+          return;
+        }
+
+        const queryKey = directProperties?.find((property) =>
+          isPropertyAssignment(property) &&
+          isIdentifier(property.name) &&
+          property.name.text === 'queryKey',
+        );
+        const keyValue = queryKey && isPropertyAssignment(queryKey) && isArrayLiteralExpression(queryKey.initializer)
+          ? queryKey.initializer.elements.find(isStringLiteral)
+          : undefined;
+        const name = kind === 'query' && keyValue && isStringLiteral(keyValue)
+          ? keyValue.text
+          : kind === 'mutation'
+            ? target.entity.name
+            : caller.name + ' ' + kind + ' ' + ordinal;
+        const entity: CodeEntity = {
+          id: entityId(kind, caller.filePath, (caller.symbol ?? caller.name) + '/' + kind + '[' + ordinal + ']'),
+          kind,
+          name,
+          filePath: caller.filePath,
+          symbol: null,
+          structuralHash: structuralHash(node),
+        };
+        entities.push(entity);
+        addRelation('uses', caller, entity);
+        includeCallable(target);
+        addRelation('calls', entity, target.entity);
+        return;
+      }
       const symbolId = resolveSymbolId(node.expression, project.checker);
       if (symbolId === undefined) return;
       const target = callablesBySymbol.get(symbolId);
       if (!target) return;
-      if (!includedCallables.has(target.entity.id)) {
-        includedCallables.add(target.entity.id);
-        entities.push(target.entity);
-        includeCalls(target.entity, target.declaration);
-      }
+      includeCallable(target);
       addRelation(
         target.entity.kind === 'hook' ? 'uses' : 'calls',
         caller,
@@ -412,6 +506,31 @@ function importedNames(
     }
   }
   return names;
+}
+
+function importedSymbolIds(
+  sourceFile: SourceFile,
+  moduleName: string,
+  importedName: string,
+  checker: Checker,
+): ReadonlySet<number> {
+  const ids = new Set<number>();
+  for (const statement of sourceFile.statements) {
+    if (
+      !isImportDeclaration(statement) ||
+      !isStringLiteral(statement.moduleSpecifier) ||
+      statement.moduleSpecifier.text !== moduleName
+    )
+      continue;
+    const bindings = statement.importClause?.namedBindings;
+    if (!bindings || !isNamedImports(bindings)) continue;
+    for (const element of bindings.elements) {
+      if ((element.propertyName?.text ?? element.name.text) !== importedName) continue;
+      const symbol = checker.getSymbolAtLocation(element.name);
+      if (symbol) ids.add(symbol.id);
+    }
+  }
+  return ids;
 }
 
 function returnsJsx(body: Node): boolean {
