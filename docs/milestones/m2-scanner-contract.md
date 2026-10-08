@@ -17,6 +17,11 @@ M3. Persisting and comparing repository snapshots by commit is M5. The scanner
 may use the core SyncSnapshot model later, but the first CLI output is a scan
 report without timestamps or Git metadata.
 
+M3 also owns opening a scan report in the application, including file drag and
+drop and a CLI-to-app handoff. The M2 CLI should keep its output file suitable
+for that handoff. The opening and confirmation behavior is specified in
+[the M3 milestone](m3-code-mapping.md).
+
 The repository currently pins TypeScript 7.0.2. Its package root exports
 version information rather than the old compiler API. Use the locally
 available typescript/unstable/sync project API and typescript/unstable/ast

@@ -52,7 +52,7 @@ export interface ScanDiagnostic {
 
 export interface ScanReport {
   readonly formatVersion: 1;
-  readonly analysisProfileId: 'react-ts-v0';
+  readonly analysisProfileId: 'react-ts-v0.1';
   readonly graph: CodeGraph;
   readonly diagnostics: readonly ScanDiagnostic[];
 }
@@ -62,8 +62,14 @@ interface ComponentRecord {
   readonly declaration: Node;
 }
 
+interface CallableRecord {
+  readonly entity: CodeEntity;
+  readonly declaration: Node;
+}
+
 /**
- * Preview profile: finds named JSX components and direct TanStack file routes.
+ * Preview profile: finds named JSX components, direct TanStack file routes,
+ * and reachable local hooks/functions.
  * The diagnostic makes the still-missing M2 detectors visible to callers.
  */
 export function scanRepository(options: ScanOptions): ScanReport {
@@ -113,14 +119,14 @@ export function scanRepository(options: ScanOptions): ScanReport {
 
       return {
         formatVersion: 1,
-        analysisProfileId: 'react-ts-v0',
+        analysisProfileId: 'react-ts-v0.1',
         graph,
         diagnostics: [
           {
             code: 'partial_coverage',
             filePath: null,
             message:
-              'This preview detects React components and direct TanStack file routes. Hooks, queries, mutations, and HTTP calls are pending.',
+              'This preview detects routes, components, and reachable local hooks/functions. Queries, mutations, and HTTP calls are pending.',
           },
         ],
       };
@@ -196,6 +202,47 @@ function buildGraph(
   const entities: CodeEntity[] = components.map(
     (component) => component.entity,
   );
+  const callablesBySymbol = new Map<number, CallableRecord>();
+  for (const sourceFile of sourceFiles) {
+    for (const statement of sourceFile.statements) {
+      if (isFunctionDeclaration(statement) && statement.name && statement.body) {
+        addCallable(statement.name, statement, sourceFile);
+      } else if (isVariableStatement(statement)) {
+        for (const declaration of statement.declarationList.declarations) {
+          if (
+            isIdentifier(declaration.name) &&
+            declaration.initializer &&
+            isArrowFunction(declaration.initializer)
+          ) {
+            addCallable(declaration.name, declaration, sourceFile);
+          }
+        }
+      }
+    }
+  }
+
+  function addCallable(
+    name: Node & { text: string },
+    declaration: Node,
+    sourceFile: SourceFile,
+  ): void {
+    const symbol = project.checker.getSymbolAtLocation(name);
+    if (!symbol || componentsBySymbol.has(symbol.id)) return;
+    const kind = /^use[A-Z0-9]/.test(name.text) ? 'hook' : 'function';
+    const filePath = normalizePath(repositoryRoot, sourceFile.fileName);
+    callablesBySymbol.set(symbol.id, {
+      entity: {
+        id: entityId(kind, filePath, name.text),
+        kind,
+        name: name.text,
+        filePath,
+        symbol: name.text,
+        structuralHash: structuralHash(declaration),
+      },
+      declaration,
+    });
+  }
+
   const relations: CodeRelation[] = [];
   const relationIds = new Set<string>();
 
@@ -227,6 +274,31 @@ function buildGraph(
       );
       if (target) addRelation('renders', component.entity, target);
     });
+  }
+
+  const includedCallables = new Set<string>();
+  function includeCalls(caller: CodeEntity, declaration: Node): void {
+    visit(declaration, (node) => {
+      if (!isCallExpression(node) || !isIdentifier(node.expression)) return;
+      const symbolId = resolveSymbolId(node.expression, project.checker);
+      if (symbolId === undefined) return;
+      const target = callablesBySymbol.get(symbolId);
+      if (!target) return;
+      if (!includedCallables.has(target.entity.id)) {
+        includedCallables.add(target.entity.id);
+        entities.push(target.entity);
+        includeCalls(target.entity, target.declaration);
+      }
+      addRelation(
+        target.entity.kind === 'hook' ? 'uses' : 'calls',
+        caller,
+        target.entity,
+      );
+    });
+  }
+
+  for (const component of components) {
+    includeCalls(component.entity, component.declaration);
   }
 
   for (const sourceFile of sourceFiles) {
@@ -304,13 +376,18 @@ function resolveComponent(
   componentsBySymbol: ReadonlyMap<number, CodeEntity>,
 ): CodeEntity | undefined {
   if (!isIdentifier(node)) return undefined;
+  const symbolId = resolveSymbolId(node, checker);
+  return symbolId === undefined ? undefined : componentsBySymbol.get(symbolId);
+}
+
+function resolveSymbolId(node: Node, checker: Checker): number | undefined {
   const symbol = checker.getSymbolAtLocation(node);
   if (!symbol) return undefined;
   const resolved =
     symbol.flags & SymbolFlags.Alias
       ? checker.getAliasedSymbol(symbol)
       : symbol;
-  return componentsBySymbol.get(resolved.id);
+  return checker.isUnknownSymbol(resolved) ? undefined : resolved.id;
 }
 
 function importedNames(

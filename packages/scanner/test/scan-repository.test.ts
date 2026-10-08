@@ -9,20 +9,21 @@ import { fileURLToPath } from 'node:url';
 
 const fixture = fileURLToPath(new URL('../../../examples/storefront/', import.meta.url));
 
-test('detects the route and component rendering chain', () => {
+test('detects the route, component rendering chain, and imported hook', () => {
   const report = scanRepository({
     repositoryPath: fixture,
     repositoryId: 'storefront',
   });
 
   assert.equal(report.formatVersion, 1);
-  assert.equal(report.analysisProfileId, 'react-ts-v0');
+  assert.equal(report.analysisProfileId, 'react-ts-v0.1');
   assert.deepEqual(validateCodeGraph(report.graph), []);
   assert.deepEqual(
     report.graph.entities.map(({ kind, name }) => ({ kind, name })),
     [
       { kind: 'component', name: 'CheckoutForm' },
       { kind: 'component', name: 'CheckoutPage' },
+      { kind: 'hook', name: 'useCheckout' },
       { kind: 'route', name: '/checkout' },
     ],
   );
@@ -36,6 +37,7 @@ test('detects the route and component rendering chain', () => {
     ]).sort(),
     [
       ['CheckoutPage', 'renders', 'CheckoutForm'],
+      ['CheckoutForm', 'uses', 'useCheckout'],
       ['/checkout', 'renders', 'CheckoutPage'],
     ].sort(),
   );
@@ -145,8 +147,60 @@ test('includes local files reached through imports when tsconfig lists only the 
       repositoryPath: copied,
       repositoryId: 'storefront',
     });
-    assert.equal(report.graph.entities.length, 3);
-    assert.equal(report.graph.relations.length, 2);
+    assert.equal(report.graph.entities.length, 4);
+    assert.equal(report.graph.relations.length, 3);
+  } finally {
+    rmSync(copied, { recursive: true, force: true });
+  }
+});
+
+test('follows aliased local function calls transitively', () => {
+  const copied = mkdtempSync(join(tmpdir(), 'statecraft-scanner-callables-'));
+  try {
+    cpSync(fixture, copied, { recursive: true });
+    writeFileSync(
+      join(copied, 'src/services/formatCart.ts'),
+      [
+        'export function normalizeCartId(id: string) { return id.trim(); }',
+        'export function formatCart(id: string) { return normalizeCartId(id).toUpperCase(); }',
+      ].join('\n'),
+    );
+    const formPath = join(copied, 'src/components/CheckoutForm.tsx');
+    const form = readFileSync(formPath, 'utf8');
+    writeFileSync(
+      formPath,
+      form
+        .replace(
+          "import { useCheckout as useCheckoutFlow } from '../hooks/useCheckout';",
+          "import { useCheckout as useCheckoutFlow } from '../hooks/useCheckout';\nimport { formatCart as renderCartLabel } from '../services/formatCart';",
+        )
+        .replace(
+          '  const { cart, createOrder } = useCheckoutFlow();',
+          "  const { cart, createOrder } = useCheckoutFlow();\n  const label = renderCartLabel(cart.data?.id ?? '');\n  void label;",
+        ),
+    );
+
+    const report = scanRepository({
+      repositoryPath: copied,
+      repositoryId: 'storefront',
+    });
+    assert.deepEqual(validateCodeGraph(report.graph), []);
+    const names = new Map(report.graph.entities.map((entity) => [entity.id, entity.name]));
+    assert.deepEqual(
+      report.graph.relations
+        .filter((relation) => relation.kind === 'calls')
+        .map((relation) => [
+          names.get(relation.sourceEntityId),
+          names.get(relation.targetEntityId),
+        ])
+        .sort(),
+      [
+        ['CheckoutForm', 'formatCart'],
+        ['formatCart', 'normalizeCartId'],
+      ].sort(),
+    );
+    assert.equal(report.graph.entities.length, 6);
+    assert.equal(report.graph.relations.length, 5);
   } finally {
     rmSync(copied, { recursive: true, force: true });
   }
