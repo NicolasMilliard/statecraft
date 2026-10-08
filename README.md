@@ -17,9 +17,10 @@ implements them.
 
 M1 — Canvas: functional scope implemented.
 M1.5 — Branding & UI/UX craft: completed.
+M2 — Local React/TypeScript scanner and CLI: implementation complete.
 
-Next milestone: M2 — local React/TypeScript scanner and CLI.
-The [M2 scanner contract](docs/milestones/m2-scanner-contract.md) defines the first
+Next milestone: M3 — code mapping and local handoff.
+The [M2 scanner contract](docs/milestones/m2-scanner-contract.md) records the
 supported patterns and Checkout acceptance fixture.
 
 ## Development
@@ -44,15 +45,16 @@ pnpm test
 pnpm build
 ```
 
-After building, run the M2 scanner preview on the Checkout fixture:
+After building, scan the Checkout fixture:
 
 ```bash
 node packages/cli/dist/index.js scan examples/storefront --repository-id storefront
 ```
 
-The current preview emits routes, components, reachable local hooks/functions,
-and direct TanStack Query queries and mutations with referenced local
-functions, plus static fetch and Axios HTTP call sites. Its JSON diagnostics
-identify unsupported dynamic patterns. Opening this scan report in the web
-application is planned for M3; the current Open JSON command accepts flow
-exports only.
+The `react-ts-v1` profile detects direct TanStack file routes, named JSX
+components, reachable local hooks/functions, direct TanStack Query queries and
+mutations, and static global `fetch` or Axios HTTP calls. The CLI accepts
+`--tsconfig` for a selected TypeScript project and `--output` to save JSON.
+Unsupported dynamic paths, options, or requests produce diagnostics instead
+of guessed graph links. Opening a scan report in the web application is
+planned for M3; the current Open JSON command accepts flow exports only.

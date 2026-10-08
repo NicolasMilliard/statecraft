@@ -1,7 +1,7 @@
 import { validateCodeGraph } from '@statecraft/core';
 import { scanRepository } from '@statecraft/scanner';
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -16,7 +16,7 @@ test('detects the complete Checkout route-to-HTTP chain', () => {
   });
 
   assert.equal(report.formatVersion, 1);
-  assert.equal(report.analysisProfileId, 'react-ts-v0.3');
+  assert.equal(report.analysisProfileId, 'react-ts-v1');
   assert.deepEqual(validateCodeGraph(report.graph), []);
   assert.deepEqual(
     report.graph.entities.map(({ kind, name }) => ({ kind, name })),
@@ -53,9 +53,7 @@ test('detects the complete Checkout route-to-HTTP chain', () => {
       ['route:/checkout', 'renders', 'component:CheckoutPage'],
     ].sort(),
   );
-  assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.code), [
-    'partial_coverage',
-  ]);
+  assert.deepEqual(report.diagnostics, []);
 });
 
 test('is stable across scans, checkout paths, and formatting changes', () => {
@@ -149,6 +147,45 @@ test('does not classify a function from JSX returned only by a nested callback',
   }
 });
 
+test('reports unsupported route forms without inventing a route', () => {
+  const copied = mkdtempSync(join(tmpdir(), 'statecraft-scanner-route-options-'));
+  try {
+    cpSync(fixture, copied, { recursive: true });
+    const routePath = join(copied, 'src/routes/checkout.tsx');
+    const source = readFileSync(routePath, 'utf8');
+    const cases = [
+      ["createFileRoute('/checkout')", 'createFileRoute(path)', 'unsupported_route_path'],
+      ['({ component: Page })', '(options)', 'unsupported_route_options'],
+      ['component: Page', 'component: Missing', 'unsupported_route_component'],
+    ] as const;
+    for (const [before, after, code] of cases) {
+      writeFileSync(routePath, source.replace(before, after));
+      const report = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
+      assert.equal(report.graph.entities.some((entity) => entity.kind === 'route'), false);
+      assert.equal(report.diagnostics[0]?.code, code);
+      assert.equal(report.diagnostics[0]?.filePath, 'src/routes/checkout.tsx');
+    }
+  } finally {
+    rmSync(copied, { recursive: true, force: true });
+  }
+});
+
+test('does not classify a same-named local route factory as TanStack Router', () => {
+  const copied = mkdtempSync(join(tmpdir(), 'statecraft-scanner-local-route-'));
+  try {
+    cpSync(fixture, copied, { recursive: true });
+    writeFileSync(join(copied, 'src/routes/local.tsx'), [
+      'function createFileRoute(path: string) { return (options: object) => ({ path, options }); }',
+      "export const LocalRoute = createFileRoute('/local')({ component: () => <span /> });",
+    ].join('\n'));
+    const report = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
+    assert.equal(report.graph.entities.filter((entity) => entity.kind === 'route').length, 1);
+    assert.equal(report.diagnostics.some((diagnostic) => diagnostic.code.startsWith('unsupported_route_')), false);
+  } finally {
+    rmSync(copied, { recursive: true, force: true });
+  }
+});
+
 test('includes local files reached through imports when tsconfig lists only the route', () => {
   const copied = mkdtempSync(join(tmpdir(), 'statecraft-scanner-imports-'));
   try {
@@ -172,6 +209,23 @@ test('includes local files reached through imports when tsconfig lists only the 
     });
     assert.equal(report.graph.entities.length, 10);
     assert.equal(report.graph.relations.length, 9);
+  } finally {
+    rmSync(copied, { recursive: true, force: true });
+  }
+});
+
+test('excludes generated TypeScript sources selected by the project', () => {
+  const copied = mkdtempSync(join(tmpdir(), 'statecraft-scanner-generated-'));
+  try {
+    cpSync(fixture, copied, { recursive: true });
+    mkdirSync(join(copied, 'src/generated'));
+    writeFileSync(join(copied, 'src/generated/Ghost.tsx'),
+      'export function GeneratedGhost() { return <div />; }\n');
+    writeFileSync(join(copied, 'src/routes/routeTree.gen.tsx'),
+      'export function GeneratedTree() { return <div />; }\n');
+    const report = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
+    assert.equal(report.graph.entities.some((entity) => entity.name.startsWith('Generated')), false);
+    assert.equal(report.graph.entities.length, 10);
   } finally {
     rmSync(copied, { recursive: true, force: true });
   }
@@ -270,7 +324,7 @@ test('resolves an aliased query function to its local declaration', () => {
       entities.get(relation.sourceEntityId)?.kind === 'query' &&
       entities.get(relation.targetEntityId)?.name === 'getCart',
     ));
-    assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.code), ['partial_coverage']);
+    assert.deepEqual(report.diagnostics, []);
   } finally {
     rmSync(copied, { recursive: true, force: true });
   }
@@ -291,7 +345,6 @@ test('reports unsupported query options without inventing a query', () => {
     assert.equal(report.graph.entities.some((entity) => entity.name === 'getCart'), false);
     assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.code), [
       'unsupported_query_options',
-      'partial_coverage',
     ]);
 
     writeFileSync(hookPath, source.replace(
@@ -355,7 +408,6 @@ test('reports dynamic HTTP targets and Axios instances without invented endpoint
     assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.code), [
       'dynamic_http_url',
       'unsupported_axios_call',
-      'partial_coverage',
     ]);
 
     const originalCart = readFileSync(join(fixture, 'src/services/cart.ts'), 'utf8');
@@ -366,6 +418,35 @@ test('reports dynamic HTTP targets and Axios instances without invented endpoint
     const dynamicMethod = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
     assert.equal(dynamicMethod.graph.entities.some((entity) => entity.name === 'GET /api/cart'), false);
     assert.ok(dynamicMethod.diagnostics.some((diagnostic) => diagnostic.code === 'unsupported_fetch_options'));
+  } finally {
+    rmSync(copied, { recursive: true, force: true });
+  }
+});
+
+test('reports a module-level Axios instance when its method is reached', () => {
+  const copied = mkdtempSync(join(tmpdir(), 'statecraft-scanner-axios-instance-'));
+  try {
+    cpSync(fixture, copied, { recursive: true });
+    const ordersPath = join(copied, 'src/services/orders.ts');
+    writeFileSync(ordersPath, readFileSync(ordersPath, 'utf8')
+      .replace("import axios from 'axios';", "import axios from 'axios';\nconst client = axios.create();")
+      .replace('axios.post(', 'client.post('));
+    const report = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
+    assert.equal(report.graph.entities.some((entity) => entity.name === 'POST /api/orders'), false);
+    assert.ok(report.diagnostics.some((diagnostic) =>
+      diagnostic.code === 'unsupported_axios_instance' &&
+      diagnostic.filePath === 'src/services/orders.ts',
+    ));
+
+    mkdirSync(join(copied, 'src/lib'));
+    writeFileSync(join(copied, 'src/lib/client.ts'),
+      "import axios from 'axios';\nexport const client = axios.create();\n");
+    writeFileSync(ordersPath, readFileSync(join(fixture, 'src/services/orders.ts'), 'utf8')
+      .replace("import axios from 'axios';", "import { client } from '../lib/client';")
+      .replace('axios.post(', 'client.post('));
+    const imported = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
+    assert.equal(imported.graph.entities.some((entity) => entity.name === 'POST /api/orders'), false);
+    assert.ok(imported.diagnostics.some((diagnostic) => diagnostic.code === 'unsupported_axios_instance'));
   } finally {
     rmSync(copied, { recursive: true, force: true });
   }

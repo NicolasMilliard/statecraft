@@ -1,6 +1,6 @@
 # M2 — Local scanner contract
 
-Status: implementation target. M2 starts with one bounded React/TypeScript
+Status: implementation complete. M2 starts with one bounded React/TypeScript
 project and the Checkout fixture in examples/storefront. Changes to this
 contract should be explicit because entity identities and analysis profiles
 affect later code mapping and snapshot comparison.
@@ -25,10 +25,9 @@ for that handoff. The opening and confirmation behavior is specified in
 The repository currently pins TypeScript 7.0.2. Its package root exports
 version information rather than the old compiler API. Use the locally
 available typescript/unstable/sync project API and typescript/unstable/ast
-helpers behind a scanner-owned boundary. Keep that TypeScript version pinned
-until this integration has tests: these exports are explicitly unstable. A
-small local check already loaded this fixture as one project and reported six
-source files with zero syntactic diagnostics.
+helpers behind a scanner-owned boundary. Keep that TypeScript version pinned:
+these exports are explicitly unstable, and the scanner tests cover this
+integration.
 
 ## Input and output
 
@@ -141,8 +140,8 @@ The nine required relations are:
     getCart calls GET /api/cart
     createOrder function calls POST /api/orders
 
-The fake fetch call written in a comment and a string in cart.ts creates no
-endpoint. The aliases for CheckoutPage, useCheckout, and useQuery still resolve
+The fake fetch call written in a string in cart.ts creates no endpoint. The
+aliases for CheckoutPage, useCheckout, and useQuery still resolve
 to their original declarations. A scan repeated on the same tree produces
 byte-identical JSON. Reformatting and comments leave IDs and structural hashes
 unchanged. Changing the createOrder body preserves its ID and changes its
@@ -158,3 +157,16 @@ hash. Every required relation has endpoints in the validated graph.
   output. The repository typecheck, tests, and build pass.
 - A scan of one real React/TypeScript project records observed coverage and
   performance. The README documents the command and its supported syntax.
+
+## Validation record
+
+On 2026-10-08, the `react-ts-v1` scanner produced the ten Checkout entities
+and nine relations above with no diagnostics. Repeated CLI scans produced
+byte-identical JSON. The repository typecheck, tests, and build passed.
+
+As a second project, the scanner analyzed Statecraft's own React/TypeScript
+web app with `--tsconfig apps/web/tsconfig.app.json`: 50 entities (23
+components, 24 functions, three hooks), 72 relations (35 renders, 34 calls,
+three uses), and no diagnostics. One local CLI run took 0.11 seconds of wall
+time. This app does not use TanStack Router, TanStack Query, or HTTP calls, so
+the Checkout fixture remains the acceptance case for those detectors.

@@ -27,6 +27,16 @@ test('writes a machine-readable report to stdout', () => {
   assert.equal(report.formatVersion, 1);
   assert.equal(report.graph.entities.length, 10);
   assert.equal(report.graph.relations.length, 9);
+
+  const repeated = spawnSync(process.execPath, [
+    cli,
+    'scan',
+    fixture,
+    '--repository-id',
+    'storefront',
+  ], { encoding: 'utf8' });
+  assert.equal(repeated.status, 0, repeated.stderr);
+  assert.equal(repeated.stdout, result.stdout);
 });
 
 test('writes to a file when requested', () => {

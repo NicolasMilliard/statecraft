@@ -55,7 +55,7 @@ export interface ScanDiagnostic {
 
 export interface ScanReport {
   readonly formatVersion: 1;
-  readonly analysisProfileId: 'react-ts-v0.3';
+  readonly analysisProfileId: 'react-ts-v1';
   readonly graph: CodeGraph;
   readonly diagnostics: readonly ScanDiagnostic[];
 }
@@ -75,10 +75,9 @@ type HttpCallResult =
   | { readonly kind: 'unsupported'; readonly code: string; readonly message: string; readonly countsAsEndpoint: boolean };
 
 /**
- * Preview profile: finds named JSX components, direct TanStack file routes,
+ * React/TypeScript profile: finds named JSX components, direct TanStack file routes,
  * reachable local hooks/functions, direct TanStack Query calls, and static
  * fetch/Axios requests.
- * The diagnostic makes the still-missing M2 detectors visible to callers.
  */
 export function scanRepository(options: ScanOptions): ScanReport {
   const repositoryId = options.repositoryId.trim();
@@ -128,22 +127,14 @@ export function scanRepository(options: ScanOptions): ScanReport {
 
       return {
         formatVersion: 1,
-        analysisProfileId: 'react-ts-v0.3',
+        analysisProfileId: 'react-ts-v1',
         graph,
-        diagnostics: [
-          ...diagnostics.sort((left, right) =>
-            compareIds(
-              JSON.stringify([left.filePath, left.code, left.message]),
-              JSON.stringify([right.filePath, right.code, right.message]),
-            ),
+        diagnostics: diagnostics.sort((left, right) =>
+          compareIds(
+            JSON.stringify([left.filePath, left.code, left.message]),
+            JSON.stringify([right.filePath, right.code, right.message]),
           ),
-          {
-            code: 'partial_coverage',
-            filePath: null,
-            message:
-              'This preview detects direct routes, components, local calls, TanStack Query, and static fetch/Axios requests. Dynamic framework patterns are not yet covered.',
-          },
-        ],
+        ),
       };
     } finally {
       snapshot.dispose();
@@ -169,6 +160,7 @@ function buildGraph(
   const queryImports = new Map<string, ReadonlySet<number>>();
   const mutationImports = new Map<string, ReadonlySet<number>>();
   const axiosImports = new Map<string, ReadonlySet<number>>();
+  const routeImports = new Map<string, ReadonlySet<number>>();
   for (const sourceFile of sourceFiles) {
     const filePath = normalizePath(repositoryRoot, sourceFile.fileName);
     queryImports.set(
@@ -183,6 +175,33 @@ function buildGraph(
       filePath,
       importedDefaultSymbolIds(sourceFile, 'axios', project.checker),
     );
+    routeImports.set(
+      filePath,
+      importedSymbolIds(sourceFile, '@tanstack/react-router', 'createFileRoute', project.checker),
+    );
+  }
+
+  const axiosInstanceSymbols = new Set<number>();
+  for (const sourceFile of sourceFiles) {
+    const imports = axiosImports.get(normalizePath(repositoryRoot, sourceFile.fileName));
+    for (const statement of sourceFile.statements) {
+      if (!isVariableStatement(statement)) continue;
+      for (const declaration of statement.declarationList.declarations) {
+        const initializer = declaration.initializer;
+        if (
+          !isIdentifier(declaration.name) ||
+          !initializer ||
+          !isCallExpression(initializer) ||
+          !isPropertyAccessExpression(initializer.expression) ||
+          initializer.expression.name.text !== 'create' ||
+          !isIdentifier(initializer.expression.expression)
+        ) continue;
+        const axiosSymbol = project.checker.getSymbolAtLocation(initializer.expression.expression);
+        if (!axiosSymbol || !imports?.has(axiosSymbol.id)) continue;
+        const instanceSymbol = project.checker.getSymbolAtLocation(declaration.name);
+        if (instanceSymbol) axiosInstanceSymbols.add(instanceSymbol.id);
+      }
+    }
   }
 
   for (const sourceFile of sourceFiles) {
@@ -328,6 +347,7 @@ function buildGraph(
         node,
         project.checker,
         axiosImports.get(caller.filePath),
+        axiosInstanceSymbols,
       );
       if (httpCall) {
         if (httpCall.kind === 'unsupported') {
@@ -437,12 +457,9 @@ function buildGraph(
   }
 
   for (const sourceFile of sourceFiles) {
-    const routeNames = importedNames(
-      sourceFile,
-      '@tanstack/react-router',
-      'createFileRoute',
-    );
-    if (routeNames.size === 0) continue;
+    const filePath = normalizePath(repositoryRoot, sourceFile.fileName);
+    const routeSymbols = routeImports.get(filePath);
+    if (!routeSymbols || routeSymbols.size === 0) continue;
     for (const statement of sourceFile.statements) {
       if (!isVariableStatement(statement)) continue;
       for (const declaration of statement.declarationList.declarations) {
@@ -450,28 +467,70 @@ function buildGraph(
         if (
           !isIdentifier(declaration.name) ||
           !initializer ||
-          !isCallExpression(initializer) ||
-          !isCallExpression(initializer.expression)
+          !isCallExpression(initializer)
         )
           continue;
 
-        const factoryCall = initializer.expression;
+        const factoryCall = isCallExpression(initializer.expression)
+          ? initializer.expression
+          : initializer;
         if (
           !isIdentifier(factoryCall.expression) ||
-          !routeNames.has(factoryCall.expression.text)
+          !routeSymbols.has(project.checker.getSymbolAtLocation(factoryCall.expression)?.id ?? -1)
         )
           continue;
         const path = factoryCall.arguments[0];
-        const options = initializer.arguments[0];
-        if (
-          !path ||
-          !isStringLiteral(path) ||
-          !options ||
-          !isObjectLiteralExpression(options)
-        )
+        if (!path || !isStringLiteral(path)) {
+          diagnostics.push({
+            code: 'unsupported_route_path',
+            filePath,
+            message: 'Could not resolve a static path for ' + declaration.name.text + '.',
+          });
           continue;
+        }
 
-        const filePath = normalizePath(repositoryRoot, sourceFile.fileName);
+        const options = isCallExpression(initializer.expression)
+          ? initializer.arguments[0]
+          : undefined;
+        if (
+          !options ||
+          !isObjectLiteralExpression(options) ||
+          !options.properties.every((property) =>
+            isPropertyAssignment(property) && isIdentifier(property.name),
+          )
+        ) {
+          diagnostics.push({
+            code: 'unsupported_route_options',
+            filePath,
+            message: 'Could not resolve direct route options for ' + declaration.name.text + '.',
+          });
+          continue;
+        }
+
+        const componentProperties = options.properties.filter((property) =>
+          isPropertyAssignment(property) &&
+          isIdentifier(property.name) &&
+          property.name.text === 'component',
+        );
+        const componentProperty = componentProperties.length === 1
+          ? componentProperties[0]
+          : undefined;
+        const component = componentProperty && isPropertyAssignment(componentProperty)
+          ? resolveComponent(
+              componentProperty.initializer,
+              project.checker,
+              componentsBySymbol,
+            )
+          : undefined;
+        if (!component) {
+          diagnostics.push({
+            code: 'unsupported_route_component',
+            filePath,
+            message: 'Could not resolve a local component for ' + declaration.name.text + '.',
+          });
+          continue;
+        }
+
         const route: CodeEntity = {
           id: entityId('route', filePath, declaration.name.text),
           kind: 'route',
@@ -481,21 +540,7 @@ function buildGraph(
           structuralHash: structuralHash(initializer),
         };
         entities.push(route);
-
-        for (const property of options.properties) {
-          if (
-            !isPropertyAssignment(property) ||
-            !isIdentifier(property.name) ||
-            property.name.text !== 'component'
-          )
-            continue;
-          const target = resolveComponent(
-            property.initializer,
-            project.checker,
-            componentsBySymbol,
-          );
-          if (target) addRelation('renders', route, target);
-        }
+        addRelation('renders', route, component);
       }
     }
   }
@@ -523,30 +568,6 @@ function resolveSymbolId(node: Node, checker: Checker): number | undefined {
       ? checker.getAliasedSymbol(symbol)
       : symbol;
   return checker.isUnknownSymbol(resolved) ? undefined : resolved.id;
-}
-
-function importedNames(
-  sourceFile: SourceFile,
-  moduleName: string,
-  importedName: string,
-): ReadonlySet<string> {
-  const names = new Set<string>();
-  for (const statement of sourceFile.statements) {
-    if (
-      !isImportDeclaration(statement) ||
-      !isStringLiteral(statement.moduleSpecifier) ||
-      statement.moduleSpecifier.text !== moduleName
-    )
-      continue;
-    const bindings = statement.importClause?.namedBindings;
-    if (!bindings || !isNamedImports(bindings)) continue;
-    for (const element of bindings.elements) {
-      if ((element.propertyName?.text ?? element.name.text) === importedName) {
-        names.add(element.name.text);
-      }
-    }
-  }
-  return names;
 }
 
 function importedSymbolIds(
@@ -599,6 +620,7 @@ function inspectHttpCall(
   call: CallExpression,
   checker: Checker,
   axiosSymbols: ReadonlySet<number> | undefined,
+  axiosInstanceSymbols: ReadonlySet<number>,
 ): HttpCallResult | undefined {
   const expression = call.expression;
   const isGlobalFetch = isGlobalIdentifier(expression, 'fetch', checker) ||
@@ -620,6 +642,15 @@ function inspectHttpCall(
 
   if (isPropertyAccessExpression(expression) && isIdentifier(expression.expression)) {
     const symbolId = checker.getSymbolAtLocation(expression.expression)?.id;
+    const resolvedId = resolveSymbolId(expression.expression, checker);
+    if (resolvedId !== undefined && axiosInstanceSymbols.has(resolvedId)) {
+      return {
+        kind: 'unsupported',
+        code: 'unsupported_axios_instance',
+        message: 'Axios instance calls are not supported',
+        countsAsEndpoint: false,
+      };
+    }
     if (symbolId === undefined || !axiosSymbols?.has(symbolId)) return undefined;
     const method = expression.name.text.toUpperCase();
     if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'].includes(method)) {
@@ -797,13 +828,20 @@ function isWithin(repositoryRoot: string, fileName: string): boolean {
 function isScannable(repositoryRoot: string, fileName: string): boolean {
   if (!isWithin(repositoryRoot, fileName)) return false;
   const filePath = normalizePath(repositoryRoot, fileName);
-  if (!/\.(ts|tsx)$/.test(filePath) || filePath.endsWith('.d.ts')) return false;
+  if (
+    !/\.(ts|tsx)$/.test(filePath) ||
+    filePath.endsWith('.d.ts') ||
+    /\.(gen|generated)\.(ts|tsx)$/.test(filePath)
+  ) return false;
   const segments = filePath.split('/');
   return !segments.some(
     (segment) =>
       segment === 'node_modules' ||
       segment === 'dist' ||
       segment === 'build' ||
-      segment === 'coverage',
+      segment === 'coverage' ||
+      segment === 'generated' ||
+      segment === '__generated__' ||
+      segment === '.next',
   );
 }
