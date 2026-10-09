@@ -65,7 +65,7 @@ export type { FlowReview, FlowReviewAssessment } from './flow-review.js';
 
 export { recordFlowReview } from './record-flow-review.js';
 
-export { SERVICE_OUTCOME_KINDS } from './scenario.js';
+export { DEFAULT_SERVICE_OUTCOME, SERVICE_OUTCOME_KINDS } from './scenario.js';
 
 export type {
   Scenario,
@@ -77,3 +77,12 @@ export type {
 export { validateScenario } from './validate-scenario.js';
 
 export type { ScenarioValidationIssue } from './validate-scenario.js';
+
+export { runScenario } from './run-scenario.js';
+
+export type {
+  ScenarioRunResult,
+  ScenarioRunServiceOutcome,
+  ScenarioRunStopReason,
+  ScenarioRunTrace,
+} from './run-scenario.js';

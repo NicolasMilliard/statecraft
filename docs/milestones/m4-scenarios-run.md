@@ -1,6 +1,6 @@
 # M4 — Scenarios and Run
 
-Status: contract defined; implementation pending.
+Status: contract defined and core runner implemented; editor integration pending.
 
 M4 lets a person save alternative outcomes for a Flow and replay the resulting
 path on the canvas. The run simulates the functional Flow model. It does not

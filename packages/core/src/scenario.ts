@@ -8,6 +8,12 @@ export interface ServiceOutcome {
   readonly httpStatus: number | null;
 }
 
+export const DEFAULT_SERVICE_OUTCOME: ServiceOutcome = Object.freeze({
+  kind: 'success',
+  code: null,
+  httpStatus: null,
+});
+
 export interface ScenarioOverride {
   readonly flowNodeId: string;
   readonly outcome: ServiceOutcome;
