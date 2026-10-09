@@ -4,12 +4,20 @@ import { InspectorPanel } from '../inspector/InspectorPanel';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import { TextInput } from '../ui/TextInput';
+import { ScenarioRunPanel } from './ScenarioRunPanel';
 import { ScenarioServiceEditor } from './ScenarioServiceEditor';
+import type { ScenarioPlayback } from './use-scenario-playback';
 
 interface ScenarioPanelProps {
   readonly flow: Flow;
   readonly scenarios: readonly Scenario[];
   readonly selectedScenario: Scenario | null;
+  readonly playback: ScenarioPlayback | null;
+  readonly onRun: () => void;
+  readonly onPause: () => void;
+  readonly onResume: () => void;
+  readonly onNextStep: () => void;
+  readonly onRestart: () => void;
   readonly focusNameScenarioId: string | null;
   readonly onNameFocusHandled: () => void;
   readonly onSelect: (scenarioId: string) => void;
@@ -103,6 +111,12 @@ export function ScenarioPanel({
   flow,
   scenarios,
   selectedScenario,
+  playback,
+  onRun,
+  onPause,
+  onResume,
+  onNextStep,
+  onRestart,
   focusNameScenarioId,
   onNameFocusHandled,
   onSelect,
@@ -154,6 +168,16 @@ export function ScenarioPanel({
               Duplicate
             </Button>
           </div>
+
+          <ScenarioRunPanel
+            flow={flow}
+            playback={playback}
+            onRun={onRun}
+            onPause={onPause}
+            onResume={onResume}
+            onNextStep={onNextStep}
+            onRestart={onRestart}
+          />
 
           <div className="mt-6 border-t border-border pt-5">
             <ScenarioNameEditor

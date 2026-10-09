@@ -1,5 +1,5 @@
 import type { FlowNodeKind, ScanReport } from '@statecraft/core';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { CanvasSelection } from './canvas/canvas-selection';
 import type { FlowNodePosition } from './canvas/flow-layout';
@@ -25,6 +25,7 @@ import { EdgeInspector } from './inspector/EdgeInspector';
 import { NodeInspector } from './inspector/NodeInspector';
 import { SelectionInspector } from './inspector/SelectionInspector';
 import { ScenarioPanel } from './scenarios/ScenarioPanel';
+import { useScenarioPlayback } from './scenarios/use-scenario-playback';
 
 interface PendingOpen {
   readonly fileName: string;
@@ -81,6 +82,15 @@ export default function App() {
   const selectedScenario = editor.scenarios.find(
     (scenario) => scenario.id === selectedScenarioId,
   ) ?? editor.scenarios[0] ?? null;
+  const run = useScenarioPlayback(flow, selectedScenario);
+  const runTrace = run.playback?.result.trace ?? null;
+  const runStep = run.playback?.stepIndex ?? -1;
+  const canvasPlayback = useMemo(() => runTrace === null ? null : {
+    currentNodeId: runTrace.nodeIds[runStep] ?? null,
+    visitedNodeIds: runTrace.nodeIds.slice(0, runStep + 1),
+    currentEdgeId: runStep > 0 ? runTrace.edgeIds[runStep - 1] ?? null : null,
+    visitedEdgeIds: runTrace.edgeIds.slice(0, runStep),
+  }, [runTrace, runStep]);
 
   useLayoutEffect(() => {
     if (focusCanvasAfterUpdate.current) {
@@ -317,6 +327,7 @@ export default function App() {
             platform={platform}
             flow={flow}
             layout={layout}
+            playback={canvasPlayback}
             onLayoutChange={editor.updateLayout}
             onSelectionChange={setSelection}
             onNodeAdd={handleNodeAdd}
@@ -351,6 +362,12 @@ export default function App() {
                 flow={flow}
                 scenarios={editor.scenarios}
                 selectedScenario={selectedScenario}
+                playback={run.playback}
+                onRun={run.start}
+                onPause={run.pause}
+                onResume={run.resume}
+                onNextStep={run.nextStep}
+                onRestart={run.restart}
                 focusNameScenarioId={pendingScenarioNameFocusId}
                 onNameFocusHandled={() => setPendingScenarioNameFocusId(null)}
                 onSelect={(scenarioId) => {

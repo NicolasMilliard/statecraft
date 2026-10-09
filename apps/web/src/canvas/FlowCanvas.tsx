@@ -56,12 +56,20 @@ export interface FlowCanvasHandle {
   focus: () => void;
 }
 
+export interface CanvasPlayback {
+  readonly currentNodeId: string | null;
+  readonly visitedNodeIds: readonly string[];
+  readonly currentEdgeId: string | null;
+  readonly visitedEdgeIds: readonly string[];
+}
+
 interface FlowCanvasProps {
   readonly ref?: Ref<FlowCanvasHandle>;
   readonly commands: CommandRegistry;
   readonly platform: ShortcutPlatform;
   readonly flow: Flow;
   readonly layout: FlowLayout;
+  readonly playback: CanvasPlayback | null;
   readonly onLayoutChange: (layout: FlowLayout) => void;
   readonly onSelectionChange: (selection: CanvasSelection) => void;
   readonly onNodeAdd: (kind: FlowNodeKind, position: FlowNodePosition, focusTarget: 'canvas' | 'label') => string;
@@ -93,6 +101,7 @@ function FlowCanvasContent({
   platform,
   flow,
   layout,
+  playback,
   onLayoutChange,
   onSelectionChange,
   onNodeAdd,
@@ -105,7 +114,26 @@ function FlowCanvasContent({
   const addedNodeId = useRef<string | null>(null);
   const [fitViewOnMount] = useState(() => flow.nodes.length > 0);
 
-  const graph = useMemo(() => toReactFlowGraph(flow, layout), [flow, layout]);
+  const graph = useMemo<{ nodes: CanvasNode[]; edges: CanvasEdge[] }>(() => {
+    const base = toReactFlowGraph(flow, layout);
+    const visitedNodes = new Set(playback?.visitedNodeIds ?? []);
+    const visitedEdges = new Set(playback?.visitedEdgeIds ?? []);
+
+    return {
+      nodes: base.nodes.map((node) => ({
+        ...node,
+        className: node.id === playback?.currentNodeId
+          ? 'run-current'
+          : visitedNodes.has(node.id) ? 'run-visited' : '',
+      })),
+      edges: base.edges.map((edge) => ({
+        ...edge,
+        className: edge.id === playback?.currentEdgeId
+          ? 'run-current'
+          : visitedEdges.has(edge.id) ? 'run-visited' : '',
+      })),
+    };
+  }, [flow, layout, playback]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(
     graph.nodes,
