@@ -1,4 +1,6 @@
 import type {
+  CodeGraph,
+  CodeReferenceRole,
   Flow,
   FlowEdge,
   FlowEdgeKind,
@@ -9,6 +11,7 @@ import { useCallback, useState } from 'react';
 import type { FlowLayout, FlowNodePosition } from '../canvas/flow-layout';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
 import { canAddFlowEdge } from './can-add-flow-edge';
+import { attachCodeEntity, removeCodeReference, setCodeReferenceRole } from './code-mapping';
 import { deleteFlowElements } from './delete-flow-elements';
 import { serializeFlowDocument } from './flow-document';
 import type { FlowEditorState } from './flow-editor-state';
@@ -265,6 +268,41 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     });
   }
 
+  function attachEntity(
+    graph: CodeGraph,
+    nodeId: string,
+    entityId: string,
+    role: CodeReferenceRole,
+  ) {
+    const referenceId = crypto.randomUUID();
+
+    setEditor((current) => {
+      const flow = attachCodeEntity(
+        current.flow,
+        graph,
+        nodeId,
+        entityId,
+        role,
+        referenceId,
+      );
+      return flow === current.flow ? current : { ...current, flow };
+    });
+  }
+
+  function changeReferenceRole(referenceId: string, role: CodeReferenceRole) {
+    setEditor((current) => {
+      const flow = setCodeReferenceRole(current.flow, referenceId, role);
+      return flow === current.flow ? current : { ...current, flow };
+    });
+  }
+
+  function detachReference(referenceId: string) {
+    setEditor((current) => {
+      const flow = removeCodeReference(current.flow, referenceId);
+      return flow === current.flow ? current : { ...current, flow };
+    });
+  }
+
   function deleteElements(
     nodeIds: readonly string[],
     edgeIds: readonly string[],
@@ -345,6 +383,9 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     renameNode,
     setEntryNode,
     setEdgeKind,
+    attachEntity,
+    changeReferenceRole,
+    detachReference,
     deleteNode,
     deleteEdge,
     deleteElements,

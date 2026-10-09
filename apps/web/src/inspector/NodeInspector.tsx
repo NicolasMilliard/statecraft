@@ -1,28 +1,48 @@
-import type { FlowNode } from '@statecraft/core';
+import type {
+  CodeReferenceRole,
+  Flow,
+  FlowNode,
+  ScanReport,
+} from '@statecraft/core';
 import type { Ref } from 'react';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
 import { Button } from '../ui/Button';
+import { CodeMappingInspector } from './CodeMappingInspector';
 import { InspectorPanel } from './InspectorPanel';
 import { NodeLabelEditor } from './NodeLabelEditor';
 
 interface NodeInspectorProps {
   readonly labelInputRef?: Ref<HTMLInputElement>;
   readonly node: FlowNode | null;
+  readonly flow: Flow;
+  readonly scanReport: ScanReport | null;
   readonly isFlowEmpty: boolean;
   readonly isEntry: boolean;
   readonly onNodeRename: (nodeId: string, label: string) => void;
   readonly onEntryNodeChange: (nodeId: string | null) => void;
   readonly onNodeDelete: (nodeId: string) => void;
+  readonly onCodeAttach: (
+    nodeId: string,
+    entityId: string,
+    role: CodeReferenceRole,
+  ) => void;
+  readonly onCodeRoleChange: (referenceId: string, role: CodeReferenceRole) => void;
+  readonly onCodeDetach: (referenceId: string) => void;
 }
 
 export function NodeInspector({
   labelInputRef = null,
   node,
+  flow,
+  scanReport,
   isFlowEmpty,
   isEntry,
   onNodeRename,
   onEntryNodeChange,
   onNodeDelete,
+  onCodeAttach,
+  onCodeRoleChange,
+  onCodeDetach,
 }: NodeInspectorProps) {
   return (
     <InspectorPanel context={node === null ? 'No selection' : 'Node'}>
@@ -43,7 +63,7 @@ export function NodeInspector({
           )}
         </div>
       ) : (
-        <div>
+        <div key={node.id}>
           <div className="mb-6">
             <h3 className="text-sm font-medium wrap-anywhere">
               {node.label}
@@ -53,7 +73,7 @@ export function NodeInspector({
             </p>
           </div>
 
-          <NodeLabelEditor ref={labelInputRef} key={node.id} node={node} onRename={onNodeRename} />
+          <NodeLabelEditor ref={labelInputRef} node={node} onRename={onNodeRename} />
 
           <dl className="mt-6 space-y-5 text-ui">
             <div className="flex items-center justify-between gap-3">
@@ -76,6 +96,15 @@ export function NodeInspector({
           >
             {isEntry ? 'Clear entry point' : 'Set as entry point'}
           </Button>
+
+          <CodeMappingInspector
+            flow={flow}
+            node={node}
+            report={scanReport}
+            onAttach={onCodeAttach}
+            onRoleChange={onCodeRoleChange}
+            onDetach={onCodeDetach}
+          />
 
           <div className="mt-6 border-t border-border pt-4">
             <p className="mb-3 text-xs text-muted">

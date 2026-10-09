@@ -60,4 +60,7 @@ of guessed graph links. Save the report with `--output` to open it in the web
 application. Open JSON accepts both Statecraft flow exports and M2 scan reports.
 You can also drop either JSON file onto the application; a confirmation shows
 what it will replace. The loaded scan report is currently kept until the page
-is reloaded. Searching and mapping entities is the next M3 step.
+is reloaded. Select a Flow node to search the report in its inspector, link an
+entity as a primary implementation or dependency, and see whether existing
+references still resolve. References are saved with the Flow; reopen the scan
+report after reloading the page to resolve them again.

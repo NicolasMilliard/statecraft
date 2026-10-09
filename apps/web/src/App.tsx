@@ -336,11 +336,20 @@ export default function App() {
           <NodeInspector
             labelInputRef={nodeLabelInputRef}
             node={selectedNode}
+            flow={flow}
+            scanReport={scanReport}
             isFlowEmpty={flow.nodes.length === 0}
             isEntry={selectedNode?.id === flow.entryNodeId}
             onNodeRename={editor.renameNode}
             onEntryNodeChange={editor.setEntryNode}
             onNodeDelete={handleNodeDelete}
+            onCodeAttach={(nodeId, entityId, role) => {
+              if (scanReport !== null) {
+                editor.attachEntity(scanReport.graph, nodeId, entityId, role);
+              }
+            }}
+            onCodeRoleChange={editor.changeReferenceRole}
+            onCodeDetach={editor.detachReference}
           />
         )}
       </div>

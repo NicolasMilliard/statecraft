@@ -1,4 +1,28 @@
-# Dense canvas check
+# Editor fixtures
+
+## M3 code mapping walkthrough
+
+Open `checkout-mapping-demo.statecraft.json` with **Open JSON**, then drag
+`storefront.scan-report.json` into the app and confirm. The report supplies ten
+code entities; the Checkout Flow remains on the canvas.
+
+1. Select **Checkout**. Its `/checkout` route reference should resolve as
+   Primary. Select **Payment form** to see its `CheckoutForm` reference.
+2. Select **Order error**. Its deliberately missing `LegacyError` reference
+   should say “Missing from this scan” and remain visible.
+3. Select **POST /orders**, search for `POST /api/orders`, choose a role, and
+   link the endpoint. The result should change from Unmapped to Linked here.
+4. Change a role, unlink a reference, then use Undo and Redo. Save or export
+   the Flow to check that its references persist. After reloading the page,
+   reopen the scan report to resolve them again.
+
+The report can be regenerated from the repository root after `pnpm build`:
+
+```bash
+node packages/cli/dist/index.js scan examples/storefront --repository-id storefront --output apps/web/test/fixtures/storefront.scan-report.json
+```
+
+## Dense canvas check
 
 For the smaller product walkthrough, use
 [`checkout.statecraft.json`](checkout.statecraft.json).

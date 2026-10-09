@@ -1,10 +1,11 @@
 # M3 — Code mapping and local handoff
 
-Status: in progress. Report validation, file opening, and drag-and-drop
-confirmation are implemented; entity mapping and CLI handoff remain.
+Status: in progress. Report validation, file opening, drag-and-drop
+confirmation, and node-level entity mapping are implemented. CLI handoff
+remains.
 
 M3 lets the application open a local scan report, search detected code entities,
-and attach explicit CodeReferences to Flow elements. The code graph and the
+and attach explicit CodeReferences to Flow nodes. The code graph and the
 functional Flow remain separate models.
 
 ## Opening a scan report
@@ -28,9 +29,13 @@ functional Flow remain separate models.
 
 - Show detected entities with their kind, name, source path, and mapping
   status. Search and select an entity before attaching a CodeReference to a
-  Flow element.
+  Flow node.
 - Preserve explicit references across reopens. An unresolved reference stays
   visible with a clear status; do not guess a replacement from a similar name.
+
+The selected node's inspector provides report search, mapping status, role
+selection, and unlinking. References persist in Flow saves and JSON exports;
+the scan report is session data and must be reopened after a page reload.
 
 M2 owns the local scan and stable JSON report. The CLI handoff can be added
 once M3 has a receiver; M3 owns opening the report in the app and the

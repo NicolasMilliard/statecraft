@@ -50,6 +50,9 @@ export function NodeLabelEditor({ ref, node, onRename }: NodeLabelEditorProps) {
       >
         Label
       </label>
+      <p id={`${inputId}-hint`} className="mt-1 text-xs text-muted">
+        Names this step on the canvas and in its connections.
+      </p>
 
       <TextInput
         ref={ref}
@@ -59,7 +62,7 @@ export function NodeLabelEditor({ ref, node, onRename }: NodeLabelEditorProps) {
         value={draftLabel}
         onChange={(event) => setDraftLabel(event.target.value)}
         aria-invalid={!isValid}
-        aria-describedby={!isValid ? `${inputId}-error` : undefined}
+        aria-describedby={`${inputId}-hint${!isValid ? ` ${inputId}-error` : ''}`}
         className="mt-2"
       />
 
