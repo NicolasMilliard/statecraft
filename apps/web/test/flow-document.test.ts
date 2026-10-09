@@ -17,14 +17,36 @@ const editor: FlowEditorState = {
     },
   },
   initialLayout: checkoutLayout,
+  scenarios: [
+    { id: 'happy-path', flowId: 'checkout', name: 'Happy path', overrides: [] },
+    {
+      id: 'order-error',
+      flowId: 'checkout',
+      name: 'Order error',
+      overrides: [{
+        flowNodeId: 'create-order',
+        outcome: { kind: 'failure', code: 'DECLINED', httpStatus: 402 },
+      }],
+    },
+  ],
 };
 
-function encode(value: unknown, version = 1): string {
+function encode(value: unknown, version = 2): string {
   return JSON.stringify({ version, editor: value });
 }
 
-test('preserves the flow, current positions and reset positions', () => {
+test('preserves the flow, layouts and scenarios in version 2', () => {
+  assert.equal(JSON.parse(serializeFlowDocument(editor)).version, 2);
   assert.deepEqual(parseFlowDocument(serializeFlowDocument(editor)), editor);
+});
+
+test('opens a version 1 document with no scenarios', () => {
+  const { scenarios: _scenarios, ...legacyEditor } = editor;
+
+  assert.deepEqual(parseFlowDocument(encode(legacyEditor, 1)), {
+    ...legacyEditor,
+    scenarios: [],
+  });
 });
 
 test('supports an empty flow', () => {
@@ -43,6 +65,7 @@ test('supports an empty flow', () => {
     },
     layout,
     initialLayout: layout,
+    scenarios: [],
   };
 
   assert.deepEqual(parseFlowDocument(serializeFlowDocument(empty)), empty);
@@ -50,7 +73,48 @@ test('supports an empty flow', () => {
 
 test('rejects malformed JSON and unsupported versions', () => {
   assert.throws(() => parseFlowDocument('{'));
-  assert.throws(() => parseFlowDocument(encode(editor, 2)));
+  assert.throws(() => parseFlowDocument(encode(editor, 3)));
+});
+
+test('rejects duplicate scenario IDs and invalid scenario references', () => {
+  const first = editor.scenarios[0]!;
+  const second = editor.scenarios[1]!;
+
+  assert.throws(() => parseFlowDocument(encode({
+    ...editor,
+    scenarios: [first, { ...second, id: first.id }],
+  })));
+  assert.throws(() => parseFlowDocument(encode({
+    ...editor,
+    scenarios: [{ ...first, flowId: 'another-flow' }],
+  })));
+  assert.throws(() => parseFlowDocument(encode({
+    ...editor,
+    scenarios: [{ ...first, overrides: [{
+      flowNodeId: 'payment-form',
+      outcome: { kind: 'failure', code: null, httpStatus: null },
+    }] }],
+  })));
+  assert.throws(() => parseFlowDocument(encode({
+    ...editor,
+    scenarios: [{ ...second, overrides: [...second.overrides, ...second.overrides] }],
+  })));
+});
+
+test('rejects malformed scenario outcome fields', () => {
+  const scenario = editor.scenarios[1]!;
+  const override = scenario.overrides[0]!;
+
+  for (const outcome of [
+    { ...override.outcome, kind: 'timeout' },
+    { ...override.outcome, code: '' },
+    { ...override.outcome, httpStatus: 700 },
+  ]) {
+    assert.throws(() => parseFlowDocument(encode({
+      ...editor,
+      scenarios: [{ ...scenario, overrides: [{ ...override, outcome }] }],
+    })));
+  }
 });
 
 test('rejects unknown node kinds', () => {

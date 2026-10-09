@@ -33,6 +33,21 @@ export function deleteFlowElements(
     delete initialPositions[nodeId];
   }
 
+  const hasDeletedOverride = editor.scenarios.some((scenario) =>
+    scenario.overrides.some((override) => deletedNodeIds.has(override.flowNodeId)),
+  );
+
+  const scenarios = hasDeletedOverride
+    ? editor.scenarios.map((scenario) => {
+        const overrides = scenario.overrides.filter(
+          (override) => !deletedNodeIds.has(override.flowNodeId),
+        );
+        return overrides.length === scenario.overrides.length
+          ? scenario
+          : { ...scenario, overrides };
+      })
+    : editor.scenarios;
+
   return {
     ...editor,
     flow: {
@@ -55,5 +70,6 @@ export function deleteFlowElements(
       ...initialLayout,
       positions: initialPositions,
     },
+    scenarios,
   };
 }

@@ -36,6 +36,15 @@ const editor: FlowEditorState = {
     },
   },
   initialLayout: checkoutLayout,
+  scenarios: [{
+    id: 'order-error',
+    flowId: 'checkout',
+    name: 'Order error',
+    overrides: [{
+      flowNodeId: 'create-order',
+      outcome: { kind: 'failure', code: 'DECLINED', httpStatus: 402 },
+    }],
+  }],
 };
 
 test('deletes a mixed selection while preserving a valid document and the previous state', () => {
@@ -88,8 +97,21 @@ test('deleting connections preserves nodes, references and layouts', () => {
   assert.deepEqual(next.flow.nodes, editor.flow.nodes);
   assert.equal(next.flow.entryNodeId, editor.flow.entryNodeId);
   assert.deepEqual(next.flow.codeReferences, editor.flow.codeReferences);
+  assert.deepEqual(next.scenarios, editor.scenarios);
+  assert.equal(next.scenarios, editor.scenarios);
   assert.deepEqual(next.layout, editor.layout);
   assert.deepEqual(next.initialLayout, editor.initialLayout);
+});
+
+test('deleting a Service removes its overrides in the same editor update', () => {
+  const next = deleteFlowElements(editor, ['create-order'], []);
+
+  assert.deepEqual(next.scenarios, [{
+    ...editor.scenarios[0],
+    overrides: [],
+  }]);
+  assert.deepEqual(parseFlowDocument(serializeFlowDocument(next)), next);
+  assert.equal(editor.scenarios[0]?.overrides.length, 1);
 });
 
 test('empty or unknown selections leave the editor unchanged', () => {

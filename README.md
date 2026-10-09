@@ -19,7 +19,8 @@ M1 — Canvas: functional scope implemented.
 M1.5 — Branding & UI/UX craft: completed.
 M2 — Local React/TypeScript scanner and CLI: implementation complete.
 M3 — Code mapping and local handoff: completed.
-M4 — Scenarios and Run: core runner implemented; editor integration pending.
+M4 — Scenarios and Run: core runner and document persistence implemented;
+scenario editing and playback pending.
 
 The [M2 scanner contract](docs/milestones/m2-scanner-contract.md) records the
 supported patterns and Checkout acceptance fixture.

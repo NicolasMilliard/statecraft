@@ -47,6 +47,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
             flow: initialFlow,
             layout: initialLayout,
             initialLayout,
+            scenarios: [],
           };
 
     const issue: StorageIssue | null = result.status === 'invalid'
@@ -98,6 +99,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
         flowId,
         positions: {},
       },
+      scenarios: [],
     };
 
     setEditor(() => next);
@@ -376,6 +378,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
   return {
     flow: editor.flow,
     layout: editor.layout,
+    scenarios: editor.scenarios,
     createFlow,
     addNode,
     connectNodes,

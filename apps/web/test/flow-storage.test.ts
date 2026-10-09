@@ -32,6 +32,12 @@ function createEditor(flowId: string): FlowEditorState {
       ...checkoutLayout,
       flowId,
     },
+    scenarios: [{
+      id: 'default',
+      flowId,
+      name: 'Default',
+      overrides: [],
+    }],
   };
 }
 
@@ -55,13 +61,14 @@ test('reloads the saved flow even when its ID differs from the fallback', () => 
 test('reads the legacy draft and preserves it when saving an active flow', () => {
   const storage = createStorage();
   const legacyEditor = createEditor('checkout');
-  const legacyDocument = serializeFlowDocument(legacyEditor);
+  const { scenarios: _scenarios, ...legacyState } = legacyEditor;
+  const legacyDocument = JSON.stringify({ version: 1, editor: legacyState });
 
   storage.setItem('statecraft:flow:checkout', legacyDocument);
 
   assert.deepEqual(loadFlowDraft('checkout', storage), {
     status: 'loaded',
-    editor: legacyEditor,
+    editor: { ...legacyState, scenarios: [] },
   });
 
   const activeEditor = createEditor('new-flow');
