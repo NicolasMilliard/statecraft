@@ -54,7 +54,12 @@ function main(args: readonly string[]): number {
   if (outputPath === '-') {
     process.stdout.write(json);
   } else {
-    writeFileSync(resolve(outputPath), json, 'utf8');
+    const reportPath = resolve(outputPath);
+    writeFileSync(reportPath, json, 'utf8');
+    process.stderr.write(
+      `Scan report saved to ${reportPath}\n` +
+      'Open it in Statecraft with Open JSON or drag it onto the app.\n',
+    );
   }
   return 0;
 }

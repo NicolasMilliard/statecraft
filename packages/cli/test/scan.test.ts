@@ -55,7 +55,9 @@ test('writes to a file when requested', () => {
 
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout, '');
-    assert.equal(result.stderr, '');
+    assert.match(result.stderr, /Scan report saved to /);
+    assert.ok(result.stderr.includes(output));
+    assert.match(result.stderr, /Open JSON or drag it onto the app/);
     assert.equal(JSON.parse(readFileSync(output, 'utf8')).formatVersion, 1);
   } finally {
     rmSync(directory, { recursive: true, force: true });

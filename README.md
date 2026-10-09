@@ -18,7 +18,7 @@ implements them.
 M1 — Canvas: functional scope implemented.
 M1.5 — Branding & UI/UX craft: completed.
 M2 — Local React/TypeScript scanner and CLI: implementation complete.
-M3 — Code mapping and local handoff: in progress.
+M3 — Code mapping and local handoff: completed.
 
 The [M2 scanner contract](docs/milestones/m2-scanner-contract.md) records the
 supported patterns and Checkout acceptance fixture.
@@ -48,7 +48,7 @@ pnpm build
 After building, scan the Checkout fixture:
 
 ```bash
-node packages/cli/dist/index.js scan examples/storefront --repository-id storefront
+node packages/cli/dist/index.js scan examples/storefront --repository-id storefront --output storefront.scan-report.json
 ```
 
 The `react-ts-v1` profile detects direct TanStack file routes, named JSX
@@ -56,8 +56,9 @@ components, reachable local hooks/functions, direct TanStack Query queries and
 mutations, and static global `fetch` or Axios HTTP calls. The CLI accepts
 `--tsconfig` for a selected TypeScript project and `--output` to save JSON.
 Unsupported dynamic paths, options, or requests produce diagnostics instead
-of guessed graph links. Save the report with `--output` to open it in the web
-application. Open JSON accepts both Statecraft flow exports and M2 scan reports.
+of guessed graph links. With `--output`, the CLI prints the saved file path and
+how to open it in the app. Open JSON accepts both Statecraft flow exports and
+M2 scan reports.
 You can also drop either JSON file onto the application; a confirmation shows
 what it will replace. The loaded scan report is currently kept until the page
 is reloaded. Select a Flow node to search the report in its inspector, link an
