@@ -6,6 +6,7 @@ import type {
   FlowEdgeKind,
   FlowNode,
   FlowNodeKind,
+  ServiceOutcome,
 } from '@statecraft/core';
 import { useCallback, useState } from 'react';
 import type { FlowLayout, FlowNodePosition } from '../canvas/flow-layout';
@@ -16,6 +17,13 @@ import { deleteFlowElements } from './delete-flow-elements';
 import { serializeFlowDocument } from './flow-document';
 import type { FlowEditorState } from './flow-editor-state';
 import { loadFlowDraft, saveFlowDraft } from './flow-storage';
+import {
+  addScenario,
+  duplicateScenario,
+  removeScenario,
+  renameScenario,
+  setScenarioOverride,
+} from './scenario-editing';
 import { useHistoryState } from './use-history-state';
 import type { StorageIssue } from './storage-feedback';
 
@@ -320,6 +328,40 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     deleteElements([nodeId], []);
   }
 
+  function createScenario(): string {
+    const scenarioId = crypto.randomUUID();
+    setEditor((current) => addScenario(current, scenarioId));
+    return scenarioId;
+  }
+
+  function copyScenario(sourceScenarioId: string): string | null {
+    if (!editor.scenarios.some((scenario) => scenario.id === sourceScenarioId)) {
+      return null;
+    }
+
+    const scenarioId = crypto.randomUUID();
+    setEditor((current) => duplicateScenario(current, sourceScenarioId, scenarioId));
+    return scenarioId;
+  }
+
+  function changeScenarioName(scenarioId: string, name: string) {
+    setEditor((current) => renameScenario(current, scenarioId, name));
+  }
+
+  function deleteScenario(scenarioId: string) {
+    setEditor((current) => removeScenario(current, scenarioId));
+  }
+
+  function changeScenarioOverride(
+    scenarioId: string,
+    flowNodeId: string,
+    outcome: ServiceOutcome | null,
+  ) {
+    setEditor((current) =>
+      setScenarioOverride(current, scenarioId, flowNodeId, outcome),
+    );
+  }
+
   function save() {
     if (!saveFlowDraft(editor)) {
       setStorageIssue('save-failed');
@@ -392,6 +434,11 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     deleteNode,
     deleteEdge,
     deleteElements,
+    createScenario,
+    copyScenario,
+    changeScenarioName,
+    deleteScenario,
+    changeScenarioOverride,
     undo,
     redo,
     canUndo,

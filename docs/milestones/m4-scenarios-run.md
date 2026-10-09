@@ -1,7 +1,7 @@
 # M4 — Scenarios and Run
 
-Status: contract, core runner, and versioned Scenario persistence implemented;
-scenario editing and playback pending.
+Status: contract, core runner, versioned Scenario persistence, and scenario
+editing implemented; playback pending.
 
 M4 lets a person save alternative outcomes for a Flow and replay the resulting
 path on the canvas. The run simulates the functional Flow model. It does not

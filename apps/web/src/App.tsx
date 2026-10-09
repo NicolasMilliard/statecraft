@@ -24,6 +24,7 @@ import { checkoutFlow, checkoutLayout } from './examples/checkout';
 import { EdgeInspector } from './inspector/EdgeInspector';
 import { NodeInspector } from './inspector/NodeInspector';
 import { SelectionInspector } from './inspector/SelectionInspector';
+import { ScenarioPanel } from './scenarios/ScenarioPanel';
 
 interface PendingOpen {
   readonly fileName: string;
@@ -44,6 +45,9 @@ export default function App() {
   const [pendingOpen, setPendingOpen] = useState<PendingOpen | null>(null);
   const [fileDragActive, setFileDragActive] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [panelMode, setPanelMode] = useState<'inspector' | 'scenarios'>('inspector');
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
+  const [pendingScenarioNameFocusId, setPendingScenarioNameFocusId] = useState<string | null>(null);
   const [renamingFlowId, setRenamingFlowId] = useState<string | null>(null);
   const [platform] = useState(() => getShortcutPlatform(navigator.platform));
   const workspaceRef = useRef<HTMLElement>(null);
@@ -74,6 +78,9 @@ export default function App() {
   const selectedNode = selectedCount === 1 ? (selectedNodes[0] ?? null) : null;
 
   const selectedEdge = selectedCount === 1 ? (selectedEdges[0] ?? null) : null;
+  const selectedScenario = editor.scenarios.find(
+    (scenario) => scenario.id === selectedScenarioId,
+  ) ?? editor.scenarios[0] ?? null;
 
   useLayoutEffect(() => {
     if (focusCanvasAfterUpdate.current) {
@@ -97,6 +104,7 @@ export default function App() {
   ) {
     const nodeId = editor.addNode(kind, position);
     pendingLabelFocusId.current = focusTarget === 'label' ? nodeId : null;
+    if (focusTarget === 'label') setPanelMode('inspector');
     return nodeId;
   }
 
@@ -126,12 +134,16 @@ export default function App() {
     focusCanvasAfterUpdate.current = true;
     editor.createFlow();
     setSelection({ nodeIds: [], edgeIds: [] });
+    setSelectedScenarioId(null);
+    setPendingScenarioNameFocusId(null);
   }
 
   function applyOpenDocument(fileName: string, document: OpenDocument) {
     if (document.kind === 'flow') {
       editor.restoreEditor(document.editor);
       setSelection({ nodeIds: [], edgeIds: [] });
+      setSelectedScenarioId(null);
+      setPendingScenarioNameFocusId(null);
       setCanvasRevision((current) => current + 1);
       focusCanvasAfterUpdate.current = true;
     } else {
@@ -176,11 +188,11 @@ export default function App() {
       'open-json': () => filesRef.current?.open(),
       'export-json': () => filesRef.current?.export(),
       undo: () => {
-        focusCanvasAfterUpdate.current = true;
+        focusCanvasAfterUpdate.current = panelMode === 'inspector';
         editor.undo();
       },
       redo: () => {
-        focusCanvasAfterUpdate.current = true;
+        focusCanvasAfterUpdate.current = panelMode === 'inspector';
         editor.redo();
       },
       'reset-layout': editor.resetLayout,
@@ -319,39 +331,87 @@ export default function App() {
             platform={platform}
           />
         </div>
-        {selectedCount > 1 ? (
-          <SelectionInspector
-            nodeCount={selectedNodes.length}
-            edgeCount={selectedEdges.length}
-            onSelectionDelete={handleSelectionDelete}
-          />
-        ) : selectedEdge !== null ? (
-          <EdgeInspector
-            flow={flow}
-            edge={selectedEdge}
-            onEdgeKindChange={editor.setEdgeKind}
-            onEdgeDelete={handleEdgeDelete}
-          />
-        ) : (
-          <NodeInspector
-            labelInputRef={nodeLabelInputRef}
-            node={selectedNode}
-            flow={flow}
-            scanReport={scanReport}
-            isFlowEmpty={flow.nodes.length === 0}
-            isEntry={selectedNode?.id === flow.entryNodeId}
-            onNodeRename={editor.renameNode}
-            onEntryNodeChange={editor.setEntryNode}
-            onNodeDelete={handleNodeDelete}
-            onCodeAttach={(nodeId, entityId, role) => {
-              if (scanReport !== null) {
-                editor.attachEntity(scanReport.graph, nodeId, entityId, role);
-              }
-            }}
-            onCodeRoleChange={editor.changeReferenceRole}
-            onCodeDetach={editor.detachReference}
-          />
-        )}
+        <aside className="grid h-80 min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] border-t border-border bg-chrome md:h-auto md:border-t-0 md:border-l">
+          <div role="group" aria-label="Workspace panel" className="flex gap-1 border-b border-border px-3 py-2">
+            {(['inspector', 'scenarios'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={panelMode === mode}
+                onClick={() => setPanelMode(mode)}
+                className={`rounded-control px-3 py-1.5 text-ui font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${panelMode === mode ? 'bg-brand-soft text-brand' : 'text-muted hover:bg-surface-hover'}`}
+              >
+                {mode === 'inspector' ? 'Inspector' : `Scenarios (${editor.scenarios.length})`}
+              </button>
+            ))}
+          </div>
+          <div className="min-h-0">
+            {panelMode === 'scenarios' ? (
+              <ScenarioPanel
+                flow={flow}
+                scenarios={editor.scenarios}
+                selectedScenario={selectedScenario}
+                focusNameScenarioId={pendingScenarioNameFocusId}
+                onNameFocusHandled={() => setPendingScenarioNameFocusId(null)}
+                onSelect={(scenarioId) => {
+                  setSelectedScenarioId(scenarioId);
+                  setPendingScenarioNameFocusId(null);
+                }}
+                onCreate={() => {
+                  const scenarioId = editor.createScenario();
+                  setSelectedScenarioId(scenarioId);
+                  setPendingScenarioNameFocusId(scenarioId);
+                }}
+                onDuplicate={(scenarioId) => {
+                  const duplicateId = editor.copyScenario(scenarioId);
+                  if (duplicateId !== null) {
+                    setSelectedScenarioId(duplicateId);
+                    setPendingScenarioNameFocusId(duplicateId);
+                  }
+                }}
+                onRename={editor.changeScenarioName}
+                onDelete={(scenarioId) => {
+                  editor.deleteScenario(scenarioId);
+                  setSelectedScenarioId(null);
+                  setPendingScenarioNameFocusId(null);
+                }}
+                onOverrideChange={editor.changeScenarioOverride}
+              />
+            ) : selectedCount > 1 ? (
+              <SelectionInspector
+                nodeCount={selectedNodes.length}
+                edgeCount={selectedEdges.length}
+                onSelectionDelete={handleSelectionDelete}
+              />
+            ) : selectedEdge !== null ? (
+              <EdgeInspector
+                flow={flow}
+                edge={selectedEdge}
+                onEdgeKindChange={editor.setEdgeKind}
+                onEdgeDelete={handleEdgeDelete}
+              />
+            ) : (
+              <NodeInspector
+                labelInputRef={nodeLabelInputRef}
+                node={selectedNode}
+                flow={flow}
+                scanReport={scanReport}
+                isFlowEmpty={flow.nodes.length === 0}
+                isEntry={selectedNode?.id === flow.entryNodeId}
+                onNodeRename={editor.renameNode}
+                onEntryNodeChange={editor.setEntryNode}
+                onNodeDelete={handleNodeDelete}
+                onCodeAttach={(nodeId, entityId, role) => {
+                  if (scanReport !== null) {
+                    editor.attachEntity(scanReport.graph, nodeId, entityId, role);
+                  }
+                }}
+                onCodeRoleChange={editor.changeReferenceRole}
+                onCodeDetach={editor.detachReference}
+              />
+            )}
+          </div>
+        </aside>
       </div>
       {paletteOpen && (
         <CommandPalette

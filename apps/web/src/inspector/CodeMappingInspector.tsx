@@ -7,6 +7,7 @@ import {
 } from '@statecraft/core';
 import { useId, useState } from 'react';
 import { Button } from '../ui/Button';
+import { Select } from '../ui/Select';
 import { TextInput } from '../ui/TextInput';
 
 interface CodeMappingInspectorProps {
@@ -23,23 +24,6 @@ interface CodeMappingInspectorProps {
 }
 
 const RESULT_LIMIT = 20;
-
-function SelectChevron() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      aria-hidden="true"
-      className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-foreground"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m3.5 6 4.5 4.5L12.5 6" />
-    </svg>
-  );
-}
 
 export function CodeMappingInspector({
   flow,
@@ -102,20 +86,17 @@ export function CodeMappingInspector({
                   </p>
                 )}
                 <div className="mt-3 flex items-center gap-2">
-                  <div className="relative min-w-0 flex-1">
-                    <select
-                      aria-label={`Role for ${entity?.name ?? reference.codeEntityId}`}
-                      value={reference.role}
-                      onChange={(event) =>
-                        onRoleChange(reference.id, event.target.value as CodeReferenceRole)
-                      }
-                      className="min-h-9 w-full appearance-none rounded-control border border-border-strong bg-surface py-1.5 pl-2 pr-9 text-ui focus-visible:outline-2 focus-visible:outline-brand"
-                    >
-                      <option value="primary">Primary</option>
-                      <option value="dependency">Dependency</option>
-                    </select>
-                    <SelectChevron />
-                  </div>
+                  <Select
+                    aria-label={`Role for ${entity?.name ?? reference.codeEntityId}`}
+                    value={reference.role}
+                    onChange={(event) =>
+                      onRoleChange(reference.id, event.target.value as CodeReferenceRole)
+                    }
+                    containerClassName="flex-1"
+                  >
+                    <option value="primary">Primary</option>
+                    <option value="dependency">Dependency</option>
+                  </Select>
                   <Button
                     variant="secondary"
                     aria-label={`Unlink ${entity?.name ?? reference.codeEntityId}`}
@@ -152,18 +133,15 @@ export function CodeMappingInspector({
           <label htmlFor={roleId} className="mt-3 block text-ui text-muted">
             Link as
           </label>
-          <div className="relative mt-2">
-            <select
-              id={roleId}
-              value={newRole}
-              onChange={(event) => setNewRole(event.target.value as CodeReferenceRole)}
-              className="min-h-9 w-full appearance-none rounded-control border border-border-strong bg-surface py-1.5 pl-3 pr-9 text-ui focus-visible:outline-2 focus-visible:outline-brand"
-            >
-              <option value="primary">Primary implementation</option>
-              <option value="dependency">Dependency</option>
-            </select>
-            <SelectChevron />
-          </div>
+          <Select
+            id={roleId}
+            value={newRole}
+            onChange={(event) => setNewRole(event.target.value as CodeReferenceRole)}
+            containerClassName="mt-2"
+          >
+            <option value="primary">Primary implementation</option>
+            <option value="dependency">Dependency</option>
+          </Select>
           <p className="mt-3 text-xs text-muted" role="status">
             {matches.length === 0
               ? 'No matching entities'
