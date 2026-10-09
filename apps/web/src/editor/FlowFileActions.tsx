@@ -2,10 +2,14 @@ import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
 import { toast } from 'sonner';
 import { CommandButton } from './CommandButton';
 import type { EditorCommand, ShortcutPlatform } from './commands';
+import { parseOpenDocument, type OpenDocument } from './open-document';
 import { toastMessage } from './toast-message';
+
+export type FileOpenSource = 'picker' | 'drop';
 
 export interface FlowFileActionsHandle {
   open: () => void;
+  openFile: (file: File, source: FileOpenSource) => Promise<void>;
   export: () => void;
 }
 
@@ -19,7 +23,7 @@ interface FlowFileActionsProps {
   readonly platform: ShortcutPlatform;
   readonly flowName: string;
   readonly onExport: () => string;
-  readonly onRestore: (serialized: string) => boolean;
+  readonly onDocumentReady: (fileName: string, document: OpenDocument, source: FileOpenSource) => void;
   readonly isRestoring: boolean;
   readonly onRestoringChange: (isRestoring: boolean) => void;
 }
@@ -31,12 +35,13 @@ export function FlowFileActions({
   platform,
   flowName,
   onExport,
-  onRestore,
+  onDocumentReady,
   isRestoring,
   onRestoringChange,
 }: FlowFileActionsProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const exportButtonRef = useRef<HTMLButtonElement>(null);
+  const openingRef = useRef(false);
 
   useEffect(() => () => { toast.dismiss(FILE_ERROR_TOAST); }, []);
 
@@ -94,34 +99,48 @@ export function FlowFileActions({
     }
   }
 
-  useImperativeHandle(ref, () => ({
-    open: () => inputRef.current?.click(),
-    export: handleExport,
-  }));
-
-  async function handleRestore(file: File) {
+  async function handleOpen(file: File, source: FileOpenSource) {
+    if (openingRef.current) return;
+    openingRef.current = true;
     onRestoringChange(true);
 
     try {
-      const serialized = await file.text();
-
-      if (!onRestore(serialized)) {
-        showError('open', `Could not open “${file.name}”`, 'Choose a supported JSON file exported from Statecraft. Your current flow is unchanged.');
-      } else {
-        toast.dismiss(FILE_ERROR_TOAST);
-        toast.success(toastMessage(FILE_SUCCESS_TOAST, 'Flow opened'), { id: FILE_SUCCESS_TOAST, description: file.name });
+      let serialized: string;
+      try {
+        serialized = await file.text();
+      } catch {
+        showError('open', `Could not read “${file.name}”`, 'Check that the file is available, then choose it again. Your current work is unchanged.');
+        return;
       }
+
+      let document: OpenDocument;
+      try {
+        document = parseOpenDocument(serialized);
+      } catch {
+        showError('open', `Could not open “${file.name}”`, 'Choose a supported Statecraft flow export or M2 scan report. Your current work is unchanged.');
+        return;
+      }
+
+      toast.dismiss(FILE_ERROR_TOAST);
+      onDocumentReady(file.name, document, source);
     } catch {
-      showError('open', `Could not read “${file.name}”`, 'Check that the file is available, then choose it again. Your current flow is unchanged.');
+      showError('open', `Could not open “${file.name}”`, 'Try opening the file again.');
     } finally {
+      openingRef.current = false;
       onRestoringChange(false);
     }
   }
 
+  useImperativeHandle(ref, () => ({
+    open: () => inputRef.current?.click(),
+    openFile: handleOpen,
+    export: handleExport,
+  }));
+
   return (
     <div
       role="group"
-      aria-label="Flow files"
+      aria-label="Flow and scan files"
       className="flex flex-wrap items-center gap-2"
     >
       <input
@@ -137,7 +156,7 @@ export function FlowFileActions({
           event.currentTarget.value = '';
 
           if (file !== undefined) {
-            void handleRestore(file);
+            void handleOpen(file, 'picker');
           }
         }}
       />

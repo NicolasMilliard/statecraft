@@ -1,5 +1,6 @@
-import type { FlowNodeKind } from '@statecraft/core';
+import type { FlowNodeKind, ScanReport } from '@statecraft/core';
 import { useLayoutEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import type { CanvasSelection } from './canvas/canvas-selection';
 import type { FlowNodePosition } from './canvas/flow-layout';
 import { FlowCanvas, type FlowCanvasHandle } from './canvas/FlowCanvas';
@@ -9,16 +10,25 @@ import { EditorHeader } from './editor/EditorHeader';
 import { EditorStatusBar } from './editor/EditorStatusBar';
 import {
   FlowFileActions,
+  type FileOpenSource,
   type FlowFileActionsHandle,
 } from './editor/FlowFileActions';
 import { FlowNameEditor } from './editor/FlowNameEditor';
+import { OpenFileConfirmation } from './editor/OpenFileConfirmation';
+import type { OpenDocument } from './editor/open-document';
 import { notifySaveResult } from './editor/save-feedback';
+import { toastMessage } from './editor/toast-message';
 import { useEditorShortcuts } from './editor/use-editor-shortcuts';
 import { useFlowEditor } from './editor/use-flow-editor';
 import { checkoutFlow, checkoutLayout } from './examples/checkout';
 import { EdgeInspector } from './inspector/EdgeInspector';
 import { NodeInspector } from './inspector/NodeInspector';
 import { SelectionInspector } from './inspector/SelectionInspector';
+
+interface PendingOpen {
+  readonly fileName: string;
+  readonly document: OpenDocument;
+}
 
 export default function App() {
   const editor = useFlowEditor(checkoutFlow, checkoutLayout);
@@ -30,6 +40,9 @@ export default function App() {
   });
   const [canvasRevision, setCanvasRevision] = useState(0);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [scanReport, setScanReport] = useState<ScanReport | null>(null);
+  const [pendingOpen, setPendingOpen] = useState<PendingOpen | null>(null);
+  const [fileDragActive, setFileDragActive] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [renamingFlowId, setRenamingFlowId] = useState<string | null>(null);
   const [platform] = useState(() => getShortcutPlatform(navigator.platform));
@@ -42,6 +55,7 @@ export default function App() {
   const paletteReturnFocus = useRef<HTMLElement | SVGElement | null>(null);
   const focusCanvasAfterUpdate = useRef(false);
   const pendingLabelFocusId = useRef<string | null>(null);
+  const fileDragDepth = useRef(0);
 
   if (renamingFlowId !== null && renamingFlowId !== flow.id) {
     setRenamingFlowId(null);
@@ -114,17 +128,31 @@ export default function App() {
     setSelection({ nodeIds: [], edgeIds: [] });
   }
 
-  function handleDocumentRestore(serialized: string): boolean {
-    if (!editor.restoreDocument(serialized)) {
-      return false;
+  function applyOpenDocument(fileName: string, document: OpenDocument) {
+    if (document.kind === 'flow') {
+      editor.restoreEditor(document.editor);
+      setSelection({ nodeIds: [], edgeIds: [] });
+      setCanvasRevision((current) => current + 1);
+      focusCanvasAfterUpdate.current = true;
+    } else {
+      setScanReport(document.report);
     }
 
-    setSelection({ nodeIds: [], edgeIds: [] });
-    setCanvasRevision((current) => current + 1);
-    focusCanvasAfterUpdate.current = true;
-
-    return true;
+    toast.success(toastMessage('flow-file-success', document.kind === 'flow' ? 'Flow opened' : 'Scan report opened'), {
+      id: 'flow-file-success',
+      description: fileName,
+    });
   }
+
+  function handleDocumentReady(fileName: string, document: OpenDocument, source: FileOpenSource) {
+    if (source === 'picker') {
+      applyOpenDocument(fileName, document);
+    } else {
+      setPendingOpen({ fileName, document });
+    }
+  }
+
+  const isOpeningBlocked = isRestoring || pendingOpen !== null;
 
   // The factory stores these handlers; it never calls them during render.
   // eslint-disable-next-line react/refs
@@ -167,24 +195,24 @@ export default function App() {
       'add-state': () => canvasRef.current?.addNode('state'),
     },
     {
-      'new-flow': !isRestoring,
-      'rename-flow': !isRestoring,
+      'new-flow': !isOpeningBlocked,
+      'rename-flow': !isOpeningBlocked,
       save:
-        !isRestoring &&
+        !isOpeningBlocked &&
         (editor.hasUnsavedChanges || editor.storageIssue !== null),
-      'open-json': !isRestoring,
-      'export-json': !isRestoring,
-      undo: editor.canUndo && !isRestoring,
-      redo: editor.canRedo && !isRestoring,
-      'reset-layout': !isRestoring && flow.nodes.length > 0,
+      'open-json': !isOpeningBlocked,
+      'export-json': !isOpeningBlocked,
+      undo: editor.canUndo && !isOpeningBlocked,
+      redo: editor.canRedo && !isOpeningBlocked,
+      'reset-layout': !isOpeningBlocked && flow.nodes.length > 0,
       'fit-view': flow.nodes.length > 0,
       'select-all': selectedCount < flow.nodes.length + flow.edges.length,
-      'delete-selection': selectedCount > 0 && !isRestoring,
-      'add-screen': !isRestoring,
-      'add-ui': !isRestoring,
-      'add-action': !isRestoring,
-      'add-service': !isRestoring,
-      'add-state': !isRestoring,
+      'delete-selection': selectedCount > 0 && !isOpeningBlocked,
+      'add-screen': !isOpeningBlocked,
+      'add-ui': !isOpeningBlocked,
+      'add-action': !isOpeningBlocked,
+      'add-service': !isOpeningBlocked,
+      'add-state': !isOpeningBlocked,
     },
   );
 
@@ -198,7 +226,38 @@ export default function App() {
   return (
     <main
       ref={workspaceRef}
-      className="grid min-h-dvh w-full grid-rows-[auto_minmax(0,1fr)] md:h-dvh md:min-h-min md:grid-rows-[auto_minmax(32rem,1fr)]"
+      className="relative grid min-h-dvh w-full grid-rows-[auto_minmax(0,1fr)] md:h-dvh md:min-h-min md:grid-rows-[auto_minmax(32rem,1fr)]"
+      onDragEnter={(event) => {
+        if (!Array.from(event.dataTransfer.types).includes('Files')) return;
+        event.preventDefault();
+        if (isOpeningBlocked) return;
+        fileDragDepth.current += 1;
+        setFileDragActive(true);
+      }}
+      onDragOver={(event) => {
+        if (!Array.from(event.dataTransfer.types).includes('Files')) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+      }}
+      onDragLeave={() => {
+        if (fileDragDepth.current === 0) return;
+        fileDragDepth.current = Math.max(0, fileDragDepth.current - 1);
+        if (fileDragDepth.current === 0) setFileDragActive(false);
+      }}
+      onDrop={(event) => {
+        if (!Array.from(event.dataTransfer.types).includes('Files')) return;
+        event.preventDefault();
+        fileDragDepth.current = 0;
+        setFileDragActive(false);
+        if (isOpeningBlocked) return;
+        const files = Array.from(event.dataTransfer.files);
+        const file = files[0];
+        if (files.length !== 1 || file === undefined) {
+          toast.error('Drop one JSON file at a time.');
+          return;
+        }
+        void filesRef.current?.openFile(file, 'drop');
+      }}
     >
       <EditorHeader
         commands={commands}
@@ -230,7 +289,7 @@ export default function App() {
             platform={platform}
             flowName={flow.name}
             onExport={editor.exportDocument}
-            onRestore={handleDocumentRestore}
+            onDocumentReady={handleDocumentReady}
             isRestoring={isRestoring}
             onRestoringChange={setIsRestoring}
           />
@@ -255,6 +314,7 @@ export default function App() {
           <EditorStatusBar
             nodeCount={flow.nodes.length}
             edgeCount={flow.edges.length}
+            scanReport={scanReport}
             commands={commands}
             platform={platform}
           />
@@ -302,6 +362,27 @@ export default function App() {
             }
           }}
         />
+      )}
+      {pendingOpen !== null && (
+        <OpenFileConfirmation
+          fileName={pendingOpen.fileName}
+          document={pendingOpen.document}
+          currentFlowName={flow.name}
+          hasUnsavedChanges={editor.hasUnsavedChanges}
+          currentReport={scanReport}
+          onConfirm={() => {
+            setPendingOpen(null);
+            applyOpenDocument(pendingOpen.fileName, pendingOpen.document);
+          }}
+          onCancel={() => setPendingOpen(null)}
+        />
+      )}
+      {fileDragActive && (
+        <div role="status" className="pointer-events-none absolute inset-2 z-50 flex items-center justify-center rounded-lg border-2 border-dashed border-brand-border bg-brand-soft/85">
+          <p className="rounded-control border border-brand-border bg-surface px-5 py-3 text-sm font-medium text-brand shadow-node">
+            Drop one JSON file to open it
+          </p>
+        </div>
       )}
     </main>
   );

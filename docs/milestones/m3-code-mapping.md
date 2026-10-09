@@ -1,6 +1,7 @@
 # M3 — Code mapping and local handoff
 
-Status: planned after M2.
+Status: in progress. Report validation, file opening, and drag-and-drop
+confirmation are implemented; entity mapping and CLI handoff remain.
 
 M3 lets the application open a local scan report, search detected code entities,
 and attach explicit CodeReferences to Flow elements. The code graph and the

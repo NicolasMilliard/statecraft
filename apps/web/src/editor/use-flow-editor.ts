@@ -10,7 +10,7 @@ import type { FlowLayout, FlowNodePosition } from '../canvas/flow-layout';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
 import { canAddFlowEdge } from './can-add-flow-edge';
 import { deleteFlowElements } from './delete-flow-elements';
-import { parseFlowDocument, serializeFlowDocument } from './flow-document';
+import { serializeFlowDocument } from './flow-document';
 import type { FlowEditorState } from './flow-editor-state';
 import { loadFlowDraft, saveFlowDraft } from './flow-storage';
 import { useHistoryState } from './use-history-state';
@@ -295,22 +295,12 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     return serializeFlowDocument(editor);
   }
 
-  function restoreDocument(serialized: string): boolean {
-    let restored: FlowEditorState;
-
-    try {
-      restored = parseFlowDocument(serialized);
-    } catch {
-      return false;
-    }
-
+  function restoreEditor(restored: FlowEditorState): void {
     const restoredDocument = serializeFlowDocument(restored);
 
     setEditor((current) =>
       serializeFlowDocument(current) === restoredDocument ? current : restored,
     );
-
-    return true;
   }
 
   const updateLayout = useCallback(
@@ -364,7 +354,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     canRedo,
     save,
     exportDocument,
-    restoreDocument,
+    restoreEditor,
     storageIssue,
     hasUnsavedChanges: editor !== savedEditor,
     willReplaceInvalidDraft:
