@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { scanRepository } from '@statecraft/scanner';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { captureSnapshot } from './capture-snapshot.js';
 
 const usage = 'Usage: statecraft scan <repository-path> --repository-id <id> [--tsconfig <path>] [--output <path|->]';
 
@@ -44,20 +44,20 @@ function main(args: readonly string[]): number {
     throw new Error('Repository path and --repository-id are required. ' + usage);
   }
 
-  const report = scanRepository({
+  const reportPath = outputPath === '-' ? undefined : resolve(outputPath);
+  const document = captureSnapshot({
     repositoryPath: resolve(repositoryPath),
     repositoryId,
     ...(tsconfigPath === undefined ? {} : { tsconfigPath }),
-  });
-  const json = JSON.stringify(report, null, 2) + '\n';
+  }, reportPath);
+  const json = JSON.stringify(document, null, 2) + '\n';
 
   if (outputPath === '-') {
     process.stdout.write(json);
   } else {
-    const reportPath = resolve(outputPath);
-    writeFileSync(reportPath, json, 'utf8');
+    writeFileSync(reportPath!, json, 'utf8');
     process.stderr.write(
-      `Scan report saved to ${reportPath}\n` +
+      `Repository snapshot saved to ${reportPath}\n` +
       'Open it in Statecraft with Open JSON or drag it onto the app.\n',
     );
   }

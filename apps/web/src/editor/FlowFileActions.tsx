@@ -117,7 +117,7 @@ export function FlowFileActions({
       try {
         document = parseOpenDocument(serialized);
       } catch {
-        showError('open', `Could not open “${file.name}”`, 'Choose a supported Statecraft flow export or M2 scan report. Your current work is unchanged.');
+        showError('open', `Could not open “${file.name}”`, 'Choose a Statecraft flow export or repository snapshot. Your current work is unchanged.');
         return;
       }
 
@@ -140,7 +140,7 @@ export function FlowFileActions({
   return (
     <div
       role="group"
-      aria-label="Flow and scan files"
+      aria-label="Flow and snapshot files"
       className="flex flex-wrap items-center gap-2"
     >
       <input

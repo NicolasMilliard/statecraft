@@ -4,6 +4,10 @@ Status: completed. Report validation, file opening, drag-and-drop
 confirmation, node-level entity mapping, and the local file handoff are
 implemented.
 
+M5 replaced the report import with a Git-backed snapshot document and retains
+the imported code graph across reloads. This file records the M3 handoff and
+mapping contract.
+
 M3 lets the application open a local scan report, search detected code entities,
 and attach explicit CodeReferences to Flow nodes. The code graph and the
 functional Flow remain separate models.

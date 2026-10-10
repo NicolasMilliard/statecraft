@@ -2,7 +2,7 @@ import type {
   CodeReferenceRole,
   Flow,
   FlowNode,
-  ScanReport,
+  SyncSnapshot,
 } from '@statecraft/core';
 import type { Ref } from 'react';
 import { NODE_KIND_LABELS } from '../node-kind-labels';
@@ -15,7 +15,7 @@ interface NodeInspectorProps {
   readonly labelInputRef?: Ref<HTMLInputElement>;
   readonly node: FlowNode | null;
   readonly flow: Flow;
-  readonly scanReport: ScanReport | null;
+  readonly snapshot: SyncSnapshot | null;
   readonly isFlowEmpty: boolean;
   readonly isEntry: boolean;
   readonly onNodeRename: (nodeId: string, label: string) => void;
@@ -34,7 +34,7 @@ export function NodeInspector({
   labelInputRef = null,
   node,
   flow,
-  scanReport,
+  snapshot,
   isFlowEmpty,
   isEntry,
   onNodeRename,
@@ -100,7 +100,7 @@ export function NodeInspector({
           <CodeMappingInspector
             flow={flow}
             node={node}
-            report={scanReport}
+            snapshot={snapshot}
             onAttach={onCodeAttach}
             onRoleChange={onCodeRoleChange}
             onDetach={onCodeDetach}

@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { ScanReport } from '@statecraft/core';
+import type { SnapshotDocument } from '@statecraft/core';
 import { checkoutFlow, checkoutLayout } from '../src/examples/checkout.ts';
 import { describeFileOpening } from '../src/editor/describe-file-opening.ts';
 
-const report: ScanReport = {
+const document: SnapshotDocument = {
   formatVersion: 1,
-  analysisProfileId: 'react-ts-v1',
-  graph: { repositoryId: 'storefront', entities: [], relations: [] },
+  snapshot: {
+    id: 'a'.repeat(64),
+    capturedAt: '2026-10-10T10:00:00.000Z',
+    git: { commitSha: 'b'.repeat(40), isDirty: false },
+    analysisProfileId: 'react-ts-v1',
+    graph: { repositoryId: 'storefront', entities: [], relations: [] },
+  },
   diagnostics: [],
 };
 
@@ -32,18 +37,18 @@ test('drop confirmation names the Flow that would be replaced and its unsaved wo
   assert.match(description.detail, /Unsaved changes will be lost/);
 });
 
-test('drop confirmation names the report being replaced without claiming the Flow changes', () => {
+test('drop confirmation names the snapshot to save without claiming the Flow changes', () => {
   const description = describeFileOpening(
-    { kind: 'scan-report', report },
+    { kind: 'snapshot', document },
     'Current checkout',
     true,
     {
-      ...report,
-      graph: { ...report.graph, repositoryId: 'previous-repository' },
+      ...document,
+      snapshot: { ...document.snapshot, graph: { ...document.snapshot.graph, repositoryId: 'previous-repository' } },
     },
   );
 
   assert.match(description.title, /storefront/);
-  assert.match(description.detail, /replace the loaded report for “previous-repository”/);
+  assert.match(description.detail, /current snapshot instead of “previous-repository”/);
   assert.match(description.detail, /flow “Current checkout” will stay open/);
 });

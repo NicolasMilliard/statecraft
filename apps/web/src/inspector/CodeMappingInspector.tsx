@@ -3,7 +3,7 @@ import {
   type CodeReferenceRole,
   type Flow,
   type FlowNode,
-  type ScanReport,
+  type SyncSnapshot,
 } from '@statecraft/core';
 import { useId, useState } from 'react';
 import { Button } from '../ui/Button';
@@ -13,7 +13,7 @@ import { TextInput } from '../ui/TextInput';
 interface CodeMappingInspectorProps {
   readonly flow: Flow;
   readonly node: FlowNode;
-  readonly report: ScanReport | null;
+  readonly snapshot: SyncSnapshot | null;
   readonly onAttach: (
     nodeId: string,
     entityId: string,
@@ -28,7 +28,7 @@ const RESULT_LIMIT = 20;
 export function CodeMappingInspector({
   flow,
   node,
-  report,
+  snapshot,
   onAttach,
   onRoleChange,
   onDetach,
@@ -40,7 +40,7 @@ export function CodeMappingInspector({
   const references = flow.codeReferences.filter(
     (reference) => reference.flowNodeId === node.id,
   );
-  const graph = report?.graph ?? null;
+  const graph = snapshot?.graph ?? null;
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const matches = graph?.entities.filter((entity) =>
     [entity.name, entity.kind, entity.filePath, entity.symbol ?? ''].some(
@@ -111,9 +111,9 @@ export function CodeMappingInspector({
         </ul>
       )}
 
-      {report === null ? (
+      {snapshot === null ? (
         <p className="mt-3 text-ui text-muted">
-          Open a scan report with Open JSON to find code to link to this node.
+          Open a repository snapshot with Open JSON to find code to link to this node.
         </p>
       ) : (
         <div className="mt-5">

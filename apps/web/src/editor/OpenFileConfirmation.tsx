@@ -1,4 +1,4 @@
-import type { ScanReport } from '@statecraft/core';
+import type { SnapshotDocument } from '@statecraft/core';
 import { useEffect, useId, useRef } from 'react';
 import { Button } from '../ui/Button';
 import { describeFileOpening } from './describe-file-opening';
@@ -9,7 +9,7 @@ interface OpenFileConfirmationProps {
   readonly document: OpenDocument;
   readonly currentFlowName: string;
   readonly hasUnsavedChanges: boolean;
-  readonly currentReport: ScanReport | null;
+  readonly currentSnapshot: SnapshotDocument | null;
   readonly onConfirm: () => void;
   readonly onCancel: () => void;
 }
@@ -19,7 +19,7 @@ export function OpenFileConfirmation({
   document,
   currentFlowName,
   hasUnsavedChanges,
-  currentReport,
+  currentSnapshot,
   onConfirm,
   onCancel,
 }: OpenFileConfirmationProps) {
@@ -30,7 +30,7 @@ export function OpenFileConfirmation({
     document,
     currentFlowName,
     hasUnsavedChanges,
-    currentReport,
+    currentSnapshot,
   );
 
   useEffect(() => {

@@ -33,7 +33,8 @@ export { resolveCodeReference } from './resolve-code-reference.js';
 
 export type { CodeReferenceResolution } from './resolve-code-reference.js';
 
-export type { SnapshotGitState, SyncSnapshot } from './snapshot.js';
+export type { SnapshotDocument, SnapshotGitState, SyncSnapshot } from './snapshot.js';
+export { snapshotIdentityInput } from './snapshot-identity.js';
 
 export { diffSnapshotEntities } from './diff-snapshot-entities.js';
 

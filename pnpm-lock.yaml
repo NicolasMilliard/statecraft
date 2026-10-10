@@ -227,6 +227,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@statecraft/core':
+        specifier: workspace:*
+        version: link:../core
       '@statecraft/scanner':
         specifier: workspace:*
         version: link:../scanner

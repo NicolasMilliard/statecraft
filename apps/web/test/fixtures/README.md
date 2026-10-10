@@ -3,7 +3,7 @@
 ## M3 code mapping walkthrough
 
 Open `checkout-mapping-demo.statecraft.json` with **Open JSON**, then drag
-`storefront.scan-report.json` into the app and confirm. The report supplies ten
+`storefront.snapshot.json` into the app and confirm. The snapshot supplies ten
 code entities; the Checkout Flow remains on the canvas.
 
 1. Select **Checkout**. Its `/checkout` route reference should resolve as
@@ -14,12 +14,12 @@ code entities; the Checkout Flow remains on the canvas.
    link the endpoint. The result should change from Unmapped to Linked here.
 4. Change a role, unlink a reference, then use Undo and Redo. Save or export
    the Flow to check that its references persist. After reloading the page,
-   reopen the scan report to resolve them again.
+   select the saved snapshot to resolve them again.
 
-The report can be regenerated from the repository root after `pnpm build`:
+The snapshot can be regenerated from the repository root after `pnpm build`:
 
 ```bash
-node packages/cli/dist/index.js scan examples/storefront --repository-id storefront --output apps/web/test/fixtures/storefront.scan-report.json
+node packages/cli/dist/index.js scan examples/storefront --repository-id storefront --output apps/web/test/fixtures/storefront.snapshot.json
 ```
 
 ## Dense canvas check

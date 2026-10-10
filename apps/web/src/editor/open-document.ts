@@ -2,7 +2,7 @@ import {
   CODE_ENTITY_KINDS,
   CODE_RELATION_KINDS,
   validateCodeGraph,
-  type ScanReport,
+  type SnapshotDocument,
 } from '@statecraft/core';
 import { z } from 'zod';
 import type { FlowEditorState } from './flow-editor-state';
@@ -10,30 +10,42 @@ import { parseFlowDocument } from './flow-document.ts';
 
 const nonEmptyString = z.string().min(1);
 
-const scanReportSchema: z.ZodType<ScanReport> = z
+const graphSchema = z.strictObject({
+  repositoryId: nonEmptyString,
+  entities: z.array(
+    z.strictObject({
+      id: nonEmptyString,
+      kind: z.enum(CODE_ENTITY_KINDS),
+      name: nonEmptyString,
+      filePath: nonEmptyString,
+      symbol: z.string().nullable(),
+      structuralHash: z.string().regex(/^[a-f0-9]{64}$/),
+    }),
+  ),
+  relations: z.array(
+    z.strictObject({
+      id: nonEmptyString,
+      kind: z.enum(CODE_RELATION_KINDS),
+      sourceEntityId: nonEmptyString,
+      targetEntityId: nonEmptyString,
+    }),
+  ),
+}).refine((graph) => validateCodeGraph(graph).length === 0, {
+  message: 'Invalid code graph.',
+});
+
+const snapshotDocumentSchema: z.ZodType<SnapshotDocument> = z
   .strictObject({
     formatVersion: z.literal(1),
-    analysisProfileId: z.literal('react-ts-v1'),
-    graph: z.strictObject({
-      repositoryId: nonEmptyString,
-      entities: z.array(
-        z.strictObject({
-          id: nonEmptyString,
-          kind: z.enum(CODE_ENTITY_KINDS),
-          name: nonEmptyString,
-          filePath: nonEmptyString,
-          symbol: z.string().nullable(),
-          structuralHash: z.string().regex(/^[a-f0-9]{64}$/),
-        }),
-      ),
-      relations: z.array(
-        z.strictObject({
-          id: nonEmptyString,
-          kind: z.enum(CODE_RELATION_KINDS),
-          sourceEntityId: nonEmptyString,
-          targetEntityId: nonEmptyString,
-        }),
-      ),
+    snapshot: z.strictObject({
+      id: z.string().regex(/^[a-f0-9]{64}$/),
+      capturedAt: z.iso.datetime({ offset: true }),
+      git: z.strictObject({
+        commitSha: z.string().regex(/^[a-f0-9]{40,64}$/),
+        isDirty: z.boolean(),
+      }),
+      analysisProfileId: nonEmptyString,
+      graph: graphSchema,
     }),
     diagnostics: z.array(
       z.strictObject({
@@ -42,15 +54,15 @@ const scanReportSchema: z.ZodType<ScanReport> = z
         message: nonEmptyString,
       }),
     ),
-  })
-  .refine((report) => validateCodeGraph(report.graph).length === 0, {
-    message: 'Invalid code graph.',
-    path: ['graph'],
   });
 
 export type OpenDocument =
   | { readonly kind: 'flow'; readonly editor: FlowEditorState }
-  | { readonly kind: 'scan-report'; readonly report: ScanReport };
+  | { readonly kind: 'snapshot'; readonly document: SnapshotDocument };
+
+export function parseSnapshotDocument(value: unknown): SnapshotDocument {
+  return snapshotDocumentSchema.parse(value);
+}
 
 export function parseOpenDocument(serialized: string): OpenDocument {
   const value: unknown = JSON.parse(serialized);
@@ -60,13 +72,13 @@ export function parseOpenDocument(serialized: string): OpenDocument {
   }
 
   const hasFlowVersion = Object.hasOwn(value, 'version');
-  const hasScanVersion = Object.hasOwn(value, 'formatVersion');
+  const hasSnapshotVersion = Object.hasOwn(value, 'formatVersion');
 
-  if (hasFlowVersion === hasScanVersion) {
+  if (hasFlowVersion === hasSnapshotVersion) {
     throw new Error('Unsupported JSON document.');
   }
 
   return hasFlowVersion
     ? { kind: 'flow', editor: parseFlowDocument(serialized) }
-    : { kind: 'scan-report', report: scanReportSchema.parse(value) };
+    : { kind: 'snapshot', document: parseSnapshotDocument(value) };
 }

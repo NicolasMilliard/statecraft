@@ -12,6 +12,7 @@
     "test": "pnpm run build && node --test \"test/**/*.test.ts\""
   },
   "dependencies": {
+    "@statecraft/core": "workspace:*",
     "@statecraft/scanner": "workspace:*"
   },
   "devDependencies": {

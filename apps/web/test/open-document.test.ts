@@ -1,14 +1,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { ScanReport } from '@statecraft/core';
+import type { SnapshotDocument } from '@statecraft/core';
 import { checkoutFlow, checkoutLayout } from '../src/examples/checkout.ts';
 import { serializeFlowDocument } from '../src/editor/flow-document.ts';
 import { parseOpenDocument } from '../src/editor/open-document.ts';
 
-const report: ScanReport = {
+const document: SnapshotDocument = {
   formatVersion: 1,
-  analysisProfileId: 'react-ts-v1',
-  graph: {
+  snapshot: {
+    id: 'c'.repeat(64),
+    capturedAt: '2026-10-10T10:00:00.000Z',
+    git: { commitSha: 'd'.repeat(40), isDirty: false },
+    analysisProfileId: 'react-ts-v1',
+    graph: {
     repositoryId: 'storefront',
     entities: [
       {
@@ -36,6 +40,7 @@ const report: ScanReport = {
         targetEntityId: 'component:src/pages/CheckoutPage.tsx#CheckoutPage',
       },
     ],
+    },
   },
   diagnostics: [
     {
@@ -60,40 +65,41 @@ test('identifies and validates a Flow export', () => {
   });
 });
 
-test('identifies and validates a scanner report', () => {
-  assert.deepEqual(parseOpenDocument(JSON.stringify(report)), {
-    kind: 'scan-report',
-    report,
+test('identifies and validates a repository snapshot', () => {
+  assert.deepEqual(parseOpenDocument(JSON.stringify(document)), {
+    kind: 'snapshot',
+    document,
   });
 });
 
 test('rejects malformed, unknown and ambiguous documents', () => {
   assert.throws(() => parseOpenDocument('{'));
-  assert.throws(() => parseOpenDocument(JSON.stringify({ graph: report.graph })));
-  assert.throws(() => parseOpenDocument(JSON.stringify({ ...report, version: 1 })));
-  assert.throws(() => parseOpenDocument(JSON.stringify({ ...report, formatVersion: 2 })));
-  assert.throws(() => parseOpenDocument(JSON.stringify({ ...report, analysisProfileId: 'other' })));
+  assert.throws(() => parseOpenDocument(JSON.stringify({ graph: document.snapshot.graph })));
+  assert.throws(() => parseOpenDocument(JSON.stringify({ ...document, version: 1 })));
+  assert.throws(() => parseOpenDocument(JSON.stringify({ ...document, formatVersion: 2 })));
+  assert.throws(() => parseOpenDocument(JSON.stringify({ ...document, snapshot: { ...document.snapshot, git: { commitSha: 'invalid', isDirty: false } } })));
 });
 
-test('rejects invalid report fields and code graphs', () => {
+test('rejects invalid snapshot fields and code graphs', () => {
   assert.throws(() => parseOpenDocument(JSON.stringify({
-    ...report,
-    graph: { ...report.graph, entities: [report.graph.entities[0], report.graph.entities[0]] },
+    ...document,
+    snapshot: { ...document.snapshot, graph: { ...document.snapshot.graph, entities: [document.snapshot.graph.entities[0], document.snapshot.graph.entities[0]] } },
   })));
 
   assert.throws(() => parseOpenDocument(JSON.stringify({
-    ...report,
-    graph: {
-      ...report.graph,
-      relations: [{ ...report.graph.relations[0], targetEntityId: 'missing' }],
+    ...document,
+    snapshot: { ...document.snapshot, graph: {
+      ...document.snapshot.graph,
+      relations: [{ ...document.snapshot.graph.relations[0], targetEntityId: 'missing' }],
+    } },
+  })));
+
+  assert.throws(() => parseOpenDocument(JSON.stringify({
+    ...document,
+    snapshot: { ...document.snapshot, graph: {
+      ...document.snapshot.graph,
+      entities: [{ ...document.snapshot.graph.entities[0], structuralHash: 'not-a-hash' }],
     },
-  })));
-
-  assert.throws(() => parseOpenDocument(JSON.stringify({
-    ...report,
-    graph: {
-      ...report.graph,
-      entities: [{ ...report.graph.entities[0], structuralHash: 'not-a-hash' }],
     },
   })));
 });

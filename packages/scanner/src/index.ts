@@ -16,13 +16,11 @@ import {
   isFunctionDeclaration,
   isFunctionExpression,
   isIdentifier,
-  isImportDeclaration,
   isJsxElement,
   isJsxFragment,
   isJsxOpeningElement,
   isJsxSelfClosingElement,
   isJsxText,
-  isNamedImports,
   isNoSubstitutionTemplateLiteral,
   isNumericLiteral,
   isObjectLiteralExpression,
@@ -32,16 +30,20 @@ import {
   isReturnStatement,
   isStringLiteral,
   isVariableStatement,
-  type CallExpression,
   type Node,
   type SourceFile,
 } from 'typescript/unstable/ast';
 import {
   API,
-  SymbolFlags,
   type Checker,
   type Project,
 } from 'typescript/unstable/sync';
+import { inspectHttpCall } from './http-calls.js';
+import {
+  importedDefaultSymbolIds,
+  importedSymbolIds,
+  resolveSymbolId,
+} from './symbols.js';
 
 export interface ScanOptions {
   readonly repositoryPath: string;
@@ -60,10 +62,6 @@ interface CallableRecord {
   readonly entity: CodeEntity;
   readonly declaration: Node;
 }
-
-type HttpCallResult =
-  | { readonly kind: 'endpoint'; readonly method: string; readonly url: string }
-  | { readonly kind: 'unsupported'; readonly code: string; readonly message: string; readonly countsAsEndpoint: boolean };
 
 /**
  * React/TypeScript profile: finds named JSX components, direct TanStack file routes,
@@ -549,191 +547,6 @@ function resolveComponent(
   if (!isIdentifier(node)) return undefined;
   const symbolId = resolveSymbolId(node, checker);
   return symbolId === undefined ? undefined : componentsBySymbol.get(symbolId);
-}
-
-function resolveSymbolId(node: Node, checker: Checker): number | undefined {
-  const symbol = checker.getSymbolAtLocation(node);
-  if (!symbol) return undefined;
-  const resolved =
-    symbol.flags & SymbolFlags.Alias
-      ? checker.getAliasedSymbol(symbol)
-      : symbol;
-  return checker.isUnknownSymbol(resolved) ? undefined : resolved.id;
-}
-
-function importedSymbolIds(
-  sourceFile: SourceFile,
-  moduleName: string,
-  importedName: string,
-  checker: Checker,
-): ReadonlySet<number> {
-  const ids = new Set<number>();
-  for (const statement of sourceFile.statements) {
-    if (
-      !isImportDeclaration(statement) ||
-      !isStringLiteral(statement.moduleSpecifier) ||
-      statement.moduleSpecifier.text !== moduleName
-    )
-      continue;
-    const bindings = statement.importClause?.namedBindings;
-    if (!bindings || !isNamedImports(bindings)) continue;
-    for (const element of bindings.elements) {
-      if ((element.propertyName?.text ?? element.name.text) !== importedName) continue;
-      const symbol = checker.getSymbolAtLocation(element.name);
-      if (symbol) ids.add(symbol.id);
-    }
-  }
-  return ids;
-}
-
-function importedDefaultSymbolIds(
-  sourceFile: SourceFile,
-  moduleName: string,
-  checker: Checker,
-): ReadonlySet<number> {
-  const ids = new Set(importedSymbolIds(sourceFile, moduleName, 'default', checker));
-  for (const statement of sourceFile.statements) {
-    if (
-      !isImportDeclaration(statement) ||
-      !isStringLiteral(statement.moduleSpecifier) ||
-      statement.moduleSpecifier.text !== moduleName
-    )
-      continue;
-    const name = statement.importClause?.name;
-    if (!name) continue;
-    const symbol = checker.getSymbolAtLocation(name);
-    if (symbol) ids.add(symbol.id);
-  }
-  return ids;
-}
-
-function inspectHttpCall(
-  call: CallExpression,
-  checker: Checker,
-  axiosSymbols: ReadonlySet<number> | undefined,
-  axiosInstanceSymbols: ReadonlySet<number>,
-): HttpCallResult | undefined {
-  const expression = call.expression;
-  const isGlobalFetch = isGlobalIdentifier(expression, 'fetch', checker) ||
-    (isPropertyAccessExpression(expression) &&
-      expression.name.text === 'fetch' &&
-      isGlobalIdentifier(expression.expression, 'globalThis', checker));
-  if (isGlobalFetch) return inspectFetchCall(call);
-  if (isIdentifier(expression)) {
-    const symbolId = checker.getSymbolAtLocation(expression)?.id;
-    if (symbolId !== undefined && axiosSymbols?.has(symbolId)) {
-      return {
-        kind: 'unsupported',
-        code: 'unsupported_axios_call',
-        message: 'Direct axios invocation is not supported',
-        countsAsEndpoint: false,
-      };
-    }
-  }
-
-  if (isPropertyAccessExpression(expression) && isIdentifier(expression.expression)) {
-    const symbolId = checker.getSymbolAtLocation(expression.expression)?.id;
-    const resolvedId = resolveSymbolId(expression.expression, checker);
-    if (resolvedId !== undefined && axiosInstanceSymbols.has(resolvedId)) {
-      return {
-        kind: 'unsupported',
-        code: 'unsupported_axios_instance',
-        message: 'Axios instance calls are not supported',
-        countsAsEndpoint: false,
-      };
-    }
-    if (symbolId === undefined || !axiosSymbols?.has(symbolId)) return undefined;
-    const method = expression.name.text.toUpperCase();
-    if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'].includes(method)) {
-      return {
-        kind: 'unsupported',
-        code: 'unsupported_axios_call',
-        message: 'Only direct Axios HTTP methods are supported',
-        countsAsEndpoint: false,
-      };
-    }
-    const url = staticText(call.arguments[0]);
-    return url
-      ? { kind: 'endpoint', method, url }
-      : {
-          kind: 'unsupported',
-          code: 'dynamic_http_url',
-          message: 'Could not resolve a static Axios URL',
-          countsAsEndpoint: true,
-        };
-  }
-  return undefined;
-}
-
-function inspectFetchCall(call: CallExpression): HttpCallResult {
-  const url = staticText(call.arguments[0]);
-  if (!url) {
-    return {
-      kind: 'unsupported',
-      code: 'dynamic_http_url',
-      message: 'Could not resolve a static fetch URL',
-      countsAsEndpoint: true,
-    };
-  }
-  const options = call.arguments[1];
-  let method = 'GET';
-  if (options) {
-    if (
-      !isObjectLiteralExpression(options) ||
-      !options.properties.every((property) =>
-        isPropertyAssignment(property) && isIdentifier(property.name),
-      )
-    ) {
-      return {
-        kind: 'unsupported',
-        code: 'unsupported_fetch_options',
-        message: 'Could not resolve direct fetch options',
-        countsAsEndpoint: true,
-      };
-    }
-    const methodProperties = options.properties.filter((property) =>
-      isPropertyAssignment(property) &&
-      isIdentifier(property.name) &&
-      property.name.text === 'method',
-    );
-    if (methodProperties.length > 1) {
-      return {
-        kind: 'unsupported',
-        code: 'unsupported_fetch_options',
-        message: 'Could not resolve a unique fetch method',
-        countsAsEndpoint: true,
-      };
-    }
-    if (methodProperties.length === 1) {
-      const property = methodProperties[0];
-      const staticMethod = property && isPropertyAssignment(property)
-        ? staticText(property.initializer)
-        : undefined;
-      if (!staticMethod || !/^[A-Za-z]+$/.test(staticMethod)) {
-        return {
-          kind: 'unsupported',
-          code: 'unsupported_fetch_options',
-          message: 'Could not resolve a static fetch method',
-          countsAsEndpoint: true,
-        };
-      }
-      method = staticMethod.toUpperCase();
-    }
-  }
-  return { kind: 'endpoint', method, url };
-}
-
-function isGlobalIdentifier(node: Node, name: string, checker: Checker): boolean {
-  return isIdentifier(node) &&
-    node.text === name &&
-    checker.getSymbolAtLocation(node) !== undefined &&
-    checker.resolveName(name, SymbolFlags.Value, node, true) === undefined;
-}
-
-function staticText(node: Node | undefined): string | undefined {
-  return node && (isStringLiteral(node) || isNoSubstitutionTemplateLiteral(node))
-    ? node.text
-    : undefined;
 }
 
 function returnsJsx(body: Node): boolean {

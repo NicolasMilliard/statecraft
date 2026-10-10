@@ -5,6 +5,9 @@ project and the Checkout fixture in examples/storefront. Changes to this
 contract should be explicit because entity identities and analysis profiles
 affect later code mapping and snapshot comparison.
 
+M5 superseded the CLI's original scan report envelope with a Git-backed
+snapshot document. This file records the M2 scanner and identity contract.
+
 ## Outcome and boundary
 
 The local CLI analyzes source files with an AST and emits a deterministic,
