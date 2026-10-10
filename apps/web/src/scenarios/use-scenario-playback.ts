@@ -19,6 +19,22 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+export function createScenarioPlayback(
+  flow: Flow,
+  scenario: Scenario,
+  reduceMotion: boolean,
+): ScenarioPlayback {
+  const result = runScenario(flow, scenario);
+  const last = result.trace.nodeIds.length - 1;
+  return {
+    flow,
+    scenario,
+    result,
+    stepIndex: reduceMotion ? last : Math.min(0, last),
+    isPlaying: !reduceMotion && last > 0,
+  };
+}
+
 export function useScenarioPlayback(flow: Flow, scenario: Scenario | null) {
   const [playback, setPlayback] = useState<ScenarioPlayback | null>(null);
   const current = playback?.flow === flow && playback.scenario === scenario
@@ -47,16 +63,7 @@ export function useScenarioPlayback(flow: Flow, scenario: Scenario | null) {
 
   function start() {
     if (scenario === null) return;
-    const result = runScenario(flow, scenario);
-    const last = result.trace.nodeIds.length - 1;
-    const reduceMotion = prefersReducedMotion();
-    setPlayback({
-      flow,
-      scenario,
-      result,
-      stepIndex: reduceMotion ? last : Math.min(0, last),
-      isPlaying: !reduceMotion && last > 0,
-    });
+    setPlayback(createScenarioPlayback(flow, scenario, prefersReducedMotion()));
   }
 
   function pause() {

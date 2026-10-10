@@ -62,16 +62,18 @@ export function ScenarioRunPanel({
 
       <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Run controls">
         <Button onClick={onRun}>{playback === null ? 'Run scenario' : 'Run again'}</Button>
-        {playback?.isPlaying && (
-          <Button variant="secondary" onClick={onPause}>Pause</Button>
+        {playback !== null && (
+          <Button
+            variant="secondary"
+            onClick={finished ? onRestart : playback.isPlaying ? onPause : onResume}
+          >
+            {finished ? 'Restart' : playback.isPlaying ? 'Pause' : 'Resume'}
+          </Button>
         )}
         {playback !== null && !playback.isPlaying && !finished && (
-          <>
-            <Button variant="secondary" onClick={onResume}>Resume</Button>
-            <Button variant="secondary" onClick={onNextStep}>Next step</Button>
-          </>
+          <Button variant="secondary" onClick={onNextStep}>Next step</Button>
         )}
-        {playback !== null && (
+        {playback !== null && !finished && (
           <Button variant="secondary" onClick={onRestart}>Restart</Button>
         )}
       </div>

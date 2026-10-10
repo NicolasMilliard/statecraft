@@ -1,7 +1,6 @@
 # M4 — Scenarios and Run
 
-Status: contract, core runner, versioned Scenario persistence, scenario editing,
-and playback implemented; final acceptance checks pending.
+Status: completed.
 
 M4 lets a person save alternative outcomes for a Flow and replay the resulting
 path on the canvas. The run simulates the functional Flow model. It does not
@@ -85,3 +84,22 @@ of the Flow do not block a particular Scenario.
   redo coherently.
 - The Checkout Run journey works with pointer and keyboard controls, at compact
   widths and with reduced motion. Repository typecheck, tests, and build pass.
+
+## Acceptance verification
+
+Verified on 2026-10-09:
+
+- The Checkout browser journey reached Order confirmed with the default
+  outcome and Order error with a failure override. The trace named the
+  simulated outcome and highlighted the corresponding path.
+- Run, Pause, Resume, Next step, and Restart worked with pointer and keyboard
+  input. Keyboard focus stayed on the playback control when its label changed
+  and after the run completed. The controls and trace remained accessible in
+  the scrollable panel at 390 px width.
+- A saved Scenario survived a reload; playback state did not. Changing the
+  selected Scenario or an override cleared the previous playback.
+- Core tests cover deterministic edge order and distinct missing-entry,
+  invalid-scenario, missing-branch, ambiguous-branch, and cycle results. Web
+  tests cover document versions, save and reload, scenario edits, Service
+  deletion, and the immediate complete trace used for reduced motion.
+- `pnpm typecheck`, `pnpm test`, and `pnpm build` passed for the repository.
