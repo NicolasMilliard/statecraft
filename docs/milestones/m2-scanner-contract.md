@@ -7,6 +7,9 @@ affect later code mapping and snapshot comparison.
 
 M5 superseded the CLI's original scan report envelope with a Git-backed
 snapshot document. This file records the M2 scanner and identity contract.
+The current `react-ts-v2` profile also excludes unused nested functions from
+their parent's calls and JSX relations; earlier `react-ts-v1` snapshots are
+therefore not comparable with new scans.
 
 ## Outcome and boundary
 

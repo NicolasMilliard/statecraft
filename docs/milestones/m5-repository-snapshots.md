@@ -26,6 +26,10 @@ part of this milestone.
   to those rules requires a new analysis profile. Snapshot comparison rejects
   different repository IDs or analysis profiles.
 
+After M5, the scanner advanced to `react-ts-v2` to avoid attributing nested
+uncalled functions to their parent. Capture new snapshots with the same
+profile to compare them; the browser intentionally does not compare v1 and v2.
+
 ## Browser workflow
 
 - Open a snapshot JSON through the existing file picker or drop it onto the

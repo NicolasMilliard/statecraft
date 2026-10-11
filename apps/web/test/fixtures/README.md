@@ -9,7 +9,7 @@ code entities; the Checkout Flow remains on the canvas.
 1. Select **Checkout**. Its `/checkout` route reference should resolve as
    Primary. Select **Payment form** to see its `CheckoutForm` reference.
 2. Select **Order error**. Its deliberately missing `LegacyError` reference
-   should say “Missing from this scan” and remain visible.
+   should say “Missing from this snapshot” and remain visible.
 3. Select **POST /orders**, search for `POST /api/orders`, choose a role, and
    link the endpoint. The result should change from Unmapped to Linked here.
 4. Change a role, unlink a reference, then use Undo and Redo. Save or export

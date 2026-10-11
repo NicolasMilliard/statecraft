@@ -132,9 +132,9 @@ export default function App() {
     scenarios.reset();
   }
 
-  // The factory stores these handlers; it never calls them during render.
-  // eslint-disable-next-line react/refs
   const commands = createCommands(
+    // The factory stores these event handlers; no ref is accessed during render.
+    // oxlint-disable-next-line react/refs
     {
       commands: () => {
         const active = document.activeElement;

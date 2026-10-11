@@ -8,7 +8,7 @@ export interface ScanDiagnostic {
 
 export interface ScanReport {
   readonly formatVersion: 1;
-  readonly analysisProfileId: 'react-ts-v1';
+  readonly analysisProfileId: string;
   readonly graph: CodeGraph;
   readonly diagnostics: readonly ScanDiagnostic[];
 }

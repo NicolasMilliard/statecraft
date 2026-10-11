@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { observeGit } from '../dist/git-state.js';
 
 const fixture = fileURLToPath(new URL('../../../examples/storefront/', import.meta.url));
 const cli = fileURLToPath(new URL('../dist/index.js', import.meta.url));
@@ -129,6 +130,47 @@ test('does not count its output file as a repository change', () => {
     assert.equal(first.snapshot.git.isDirty, false);
     assert.equal(second.snapshot.git.isDirty, false);
     assert.equal(second.snapshot.id, first.snapshot.id);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('detects changes to an already-dirty working tree during a scan', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'statecraft-git-state-'));
+  const repository = join(directory, 'storefront');
+  try {
+    cpSync(fixture, repository, { recursive: true });
+    const runGit = (...args: string[]) => spawnSync('git', ['-C', repository, ...args], { encoding: 'utf8' });
+    assert.equal(runGit('init', '-q').status, 0);
+    assert.equal(runGit('add', '.').status, 0);
+    assert.equal(runGit('-c', 'user.name=Statecraft Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'baseline').status, 0);
+
+    const page = join(repository, 'src/pages/CheckoutPage.tsx');
+    const original = readFileSync(page, 'utf8');
+    writeFileSync(page, original.replace('Checkout</h1>', 'First edit</h1>'));
+    const beforeStatus = runGit('status', '--porcelain=v1').stdout;
+    const before = observeGit(repository);
+    writeFileSync(page, original.replace('Checkout</h1>', 'Second edit</h1>'));
+    const after = observeGit(repository);
+    assert.equal(runGit('status', '--porcelain=v1').stdout, beforeStatus);
+    assert.equal(before.state.isDirty, true);
+    assert.notEqual(after.fingerprint, before.fingerprint);
+
+    assert.equal(runGit('add', 'src/pages/CheckoutPage.tsx').status, 0);
+    const stagedStatus = runGit('status', '--porcelain=v1').stdout;
+    const beforeStaged = observeGit(repository);
+    writeFileSync(page, original.replace('Checkout</h1>', 'Third edit</h1>'));
+    assert.equal(runGit('add', 'src/pages/CheckoutPage.tsx').status, 0);
+    const afterStaged = observeGit(repository);
+    assert.equal(runGit('status', '--porcelain=v1').stdout, stagedStatus);
+    assert.notEqual(afterStaged.fingerprint, beforeStaged.fingerprint);
+
+    const untracked = join(repository, 'src/new.ts');
+    writeFileSync(untracked, 'export const value = 1;\n');
+    const beforeUntracked = observeGit(repository);
+    writeFileSync(untracked, 'export const value = 2;\n');
+    const afterUntracked = observeGit(repository);
+    assert.notEqual(afterUntracked.fingerprint, beforeUntracked.fingerprint);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

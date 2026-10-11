@@ -81,8 +81,8 @@ export function CodeMappingInspector({
                 ) : (
                   <p className="mt-1 text-xs text-muted wrap-anywhere">
                     {resolution.status === 'not_found'
-                      ? 'Missing from this scan'
-                      : `No scan loaded for ${reference.repositoryId}`}
+                      ? 'Missing from this snapshot'
+                      : `No snapshot loaded for ${reference.repositoryId}`}
                   </p>
                 )}
                 <div className="mt-3 flex items-center gap-2">
@@ -118,7 +118,7 @@ export function CodeMappingInspector({
       ) : (
         <div className="mt-5">
           <p className="mb-3 text-xs text-muted wrap-anywhere">
-            Scan: {graph?.repositoryId}
+            Snapshot: {graph?.repositoryId}
           </p>
           <label htmlFor={searchId} className="text-ui text-muted">
             Find code entity

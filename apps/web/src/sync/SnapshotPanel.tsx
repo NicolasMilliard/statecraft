@@ -4,6 +4,7 @@ import {
   type CodeEntity,
   type SnapshotDocument,
 } from '@statecraft/core';
+import { useMemo } from 'react';
 import { InspectorPanel } from '../inspector/InspectorPanel';
 import { Select } from '../ui/Select';
 
@@ -43,16 +44,20 @@ export function SnapshotPanel({
   onCurrentChange,
   onBaselineChange,
 }: SnapshotPanelProps) {
-  const entityDiff = current && baseline
-    ? diffSnapshotEntities(baseline.snapshot, current.snapshot)
-    : null;
-  const relationDiff = current && baseline
-    ? diffSnapshotRelations(baseline.snapshot, current.snapshot)
-    : null;
-  const entities = entityDiff?.status === 'compared' ? entityDiff.changes : [];
-  const relations = relationDiff?.status === 'compared' ? relationDiff.changes : [];
-  const currentEntities = new Map(current?.snapshot.graph.entities.map((entity) => [entity.id, entity] as const));
-  const baselineEntities = new Map(baseline?.snapshot.graph.entities.map((entity) => [entity.id, entity] as const));
+  const { entities, relations, currentEntities, baselineEntities } = useMemo(() => {
+    const entityDiff = current && baseline
+      ? diffSnapshotEntities(baseline.snapshot, current.snapshot)
+      : null;
+    const relationDiff = current && baseline
+      ? diffSnapshotRelations(baseline.snapshot, current.snapshot)
+      : null;
+    return {
+      entities: entityDiff?.status === 'compared' ? entityDiff.changes : [],
+      relations: relationDiff?.status === 'compared' ? relationDiff.changes : [],
+      currentEntities: new Map(current?.snapshot.graph.entities.map((entity) => [entity.id, entity] as const)),
+      baselineEntities: new Map(baseline?.snapshot.graph.entities.map((entity) => [entity.id, entity] as const)),
+    };
+  }, [current, baseline]);
 
   return (
     <InspectorPanel title="Sync" context={`${documents.length} saved`}>
@@ -151,7 +156,7 @@ export function SnapshotPanel({
             )}
           </div>
           {current.diagnostics.length > 0 && (
-            <section className="mt-6 border-t border-border pt-5" aria-label="Scan diagnostics">
+            <section className="mt-6 border-t border-border pt-5" aria-label="Scanner diagnostics">
               <h3 className="text-ui font-medium">Diagnostics</h3>
               <ul className="mt-2 space-y-2">
                 {current.diagnostics.map((diagnostic, index) => (

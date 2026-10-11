@@ -58,7 +58,7 @@ After building, scan the Checkout fixture:
 node packages/cli/dist/index.js scan examples/storefront --repository-id storefront --output storefront.snapshot.json
 ```
 
-The `react-ts-v1` profile detects direct TanStack file routes, named JSX
+The `react-ts-v2` profile detects direct TanStack file routes, named JSX
 components, reachable local hooks/functions, direct TanStack Query queries and
 mutations, and static global `fetch` or Axios HTTP calls. The CLI accepts
 `--tsconfig` for a selected TypeScript project and `--output` to save JSON.
@@ -76,3 +76,9 @@ The Sync panel compares snapshots from the same repository and analysis
 profile. Select a Flow node to search the current snapshot in its inspector,
 link an entity as a primary implementation or dependency, and see whether
 existing references still resolve. References are saved with the Flow.
+
+## Manual testing
+
+The [manual testing guide](docs/manual-testing.md) walks through the Checkout
+success and failure paths, code mapping, comparing two snapshots, and scanning
+a separate React/TypeScript Git repository.

@@ -1,13 +1,13 @@
 {
   "formatVersion": 1,
   "snapshot": {
-    "id": "fbe626a4d21c73cc905b5b139ec1fccaf209ad2a854b5c821620d3f16c4c3ee4",
-    "capturedAt": "2026-10-10T08:00:00.000Z",
+    "id": "5c30c7bfcf00fc89be1b7b4c88c5d5dd8ef74ff8be5bdca99e5710b9aa8f6b96",
+    "capturedAt": "2026-10-10T09:59:22.827Z",
     "git": {
-      "commitSha": "ce993418e78537c7dd3078028e5e278f703bb48f",
-      "isDirty": true
+      "commitSha": "38a529becad41af7e2ecd86c4eeb6061c985b20f",
+      "isDirty": false
     },
-    "analysisProfileId": "react-ts-v1",
+    "analysisProfileId": "react-ts-v2",
     "graph": {
       "repositoryId": "storefront",
       "entities": [

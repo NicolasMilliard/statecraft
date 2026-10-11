@@ -16,7 +16,7 @@ test('detects the complete Checkout route-to-HTTP chain', () => {
   });
 
   assert.equal(report.formatVersion, 1);
-  assert.equal(report.analysisProfileId, 'react-ts-v1');
+  assert.equal(report.analysisProfileId, 'react-ts-v2');
   assert.deepEqual(validateCodeGraph(report.graph), []);
   assert.deepEqual(
     report.graph.entities.map(({ kind, name }) => ({ kind, name })),
@@ -129,6 +129,30 @@ test('rejects invalid inputs and syntax errors without returning a graph', () =>
   }
 });
 
+test('explains when a root tsconfig has no app sources', () => {
+  const copied = mkdtempSync(join(tmpdir(), 'statecraft-scanner-project-refs-'));
+  try {
+    cpSync(fixture, copied, { recursive: true });
+    const appConfig = readFileSync(join(copied, 'tsconfig.json'), 'utf8');
+    writeFileSync(join(copied, 'tsconfig.app.json'), appConfig);
+    writeFileSync(join(copied, 'tsconfig.json'), JSON.stringify({ files: [], references: [{ path: './tsconfig.app.json' }] }));
+
+    assert.throws(() => scanRepository({
+      repositoryPath: copied,
+      repositoryId: 'storefront',
+    }), /no scannable TS\/TSX files.*--tsconfig/);
+
+    const report = scanRepository({
+      repositoryPath: copied,
+      repositoryId: 'storefront',
+      tsconfigPath: 'tsconfig.app.json',
+    });
+    assert.equal(report.graph.entities.length, 10);
+  } finally {
+    rmSync(copied, { recursive: true, force: true });
+  }
+});
+
 test('does not classify a function from JSX returned only by a nested callback', () => {
   const copied = mkdtempSync(join(tmpdir(), 'statecraft-scanner-nested-'));
   try {
@@ -142,6 +166,32 @@ test('does not classify a function from JSX returned only by a nested callback',
       repositoryId: 'storefront',
     });
     assert.equal(report.graph.entities.some((entity) => entity.name === 'Nested'), false);
+  } finally {
+    rmSync(copied, { recursive: true, force: true });
+  }
+});
+
+test('does not attribute unused nested functions to their component', () => {
+  const copied = mkdtempSync(join(tmpdir(), 'statecraft-scanner-unused-'));
+  try {
+    cpSync(fixture, copied, { recursive: true });
+    writeFileSync(join(copied, 'src/pages/Unused.tsx'), [
+      'function GhostChild() { return <span />; }',
+      'export function Unused() {',
+      "  function neverCalled() { fetch('/api/ghost'); return <GhostChild />; }",
+      '  void neverCalled;',
+      '  return <div />;',
+      '}',
+    ].join('\n'));
+
+    const report = scanRepository({ repositoryPath: copied, repositoryId: 'storefront' });
+    assert.equal(report.graph.entities.some((entity) => entity.name === 'GET /api/ghost'), false);
+    const unused = report.graph.entities.find((entity) => entity.name === 'Unused');
+    const ghost = report.graph.entities.find((entity) => entity.name === 'GhostChild');
+    assert.ok(unused && ghost);
+    assert.equal(report.graph.relations.some((relation) =>
+      relation.sourceEntityId === unused.id && relation.targetEntityId === ghost.id,
+    ), false);
   } finally {
     rmSync(copied, { recursive: true, force: true });
   }
