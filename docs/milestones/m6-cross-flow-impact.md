@@ -1,6 +1,7 @@
 # M6 — Cross-flow impact and review
 
-Status: contract defined; browser workflow and persistence pending.
+Status: in progress. The local Flow catalog and switching are implemented;
+impact assessment and review persistence remain pending.
 
 M6 connects local repository snapshot changes to explicit CodeReferences in
 saved Flows. It shows which Flows need a person's review and records which

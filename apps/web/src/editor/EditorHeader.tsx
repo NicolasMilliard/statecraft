@@ -51,7 +51,7 @@ export function EditorHeader({
           command={commands['new-flow']}
           platform={platform}
           variant="secondary"
-          title="Create an empty flow. This can be undone."
+          title="Create an empty flow. Save the current flow first to keep it in your workspace."
         >
           New flow
         </CommandButton>

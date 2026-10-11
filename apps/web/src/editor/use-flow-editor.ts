@@ -16,7 +16,7 @@ import { attachCodeEntity, removeCodeReference, setCodeReferenceRole } from './c
 import { deleteFlowElements } from './delete-flow-elements';
 import { serializeFlowDocument } from './flow-document';
 import type { FlowEditorState } from './flow-editor-state';
-import { loadFlowDraft, saveFlowDraft } from './flow-storage';
+import { loadFlowDraft, loadSavedFlows, openSavedFlowDraft, saveFlowDraft } from './flow-storage';
 import {
   addScenario,
   duplicateScenario,
@@ -44,7 +44,14 @@ function areLayoutsEqual(left: FlowLayout, right: FlowLayout): boolean {
   });
 }
 
+function describeCatalogIssue(result: ReturnType<typeof loadSavedFlows>): string | null {
+  if (result.status === 'unavailable') return 'Saved flows could not be listed.';
+  if (result.invalidCount === 0) return null;
+  return `${result.invalidCount} saved ${result.invalidCount === 1 ? 'flow' : 'flows'} could not be opened.`;
+}
+
 export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
+  const [initialCatalog] = useState(() => loadSavedFlows());
   const [initialDocument] = useState(() => {
     const result = loadFlowDraft(initialFlow.id);
 
@@ -73,6 +80,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
   const {
     state: editor,
     setState: setEditor,
+    replaceState: replaceEditor,
     undo,
     redo,
     canUndo,
@@ -86,6 +94,16 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
   const [storageIssue, setStorageIssue] = useState<StorageIssue | null>(
     initialDocument.issue,
   );
+  const [savedFlows, setSavedFlows] = useState<readonly FlowEditorState[]>(initialCatalog.editors);
+  const [catalogIssue, setCatalogIssue] = useState<string | null>(
+    describeCatalogIssue(initialCatalog),
+  );
+
+  function refreshCatalog() {
+    const result = loadSavedFlows();
+    if (result.status === 'loaded') setSavedFlows(result.editors);
+    setCatalogIssue(describeCatalogIssue(result));
+  }
 
   function createFlow() {
     const flowId = crypto.randomUUID();
@@ -110,7 +128,22 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
       scenarios: [],
     };
 
-    setEditor(() => next);
+    replaceEditor(next);
+    setSavedEditor(null);
+  }
+
+  function openSavedFlow(flowId: string): boolean {
+    const result = openSavedFlowDraft(flowId);
+    if (result.status !== 'loaded') {
+      setCatalogIssue('This saved flow could not be opened. Your current flow is unchanged.');
+      return false;
+    }
+
+    replaceEditor(result.editor);
+    setSavedEditor(result.editor);
+    setStorageIssue(null);
+    refreshCatalog();
+    return true;
   }
 
   function addNode(kind: FlowNodeKind, position: FlowNodePosition): string {
@@ -370,6 +403,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
 
     setSavedEditor(editor);
     setStorageIssue(null);
+    refreshCatalog();
     return true;
   }
 
@@ -378,11 +412,15 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
   }
 
   function restoreEditor(restored: FlowEditorState): void {
-    const restoredDocument = serializeFlowDocument(restored);
-
-    setEditor((current) =>
-      serializeFlowDocument(current) === restoredDocument ? current : restored,
-    );
+    if (restored.flow.id === editor.flow.id) {
+      const restoredDocument = serializeFlowDocument(restored);
+      setEditor((current) =>
+        serializeFlowDocument(current) === restoredDocument ? current : restored,
+      );
+    } else {
+      replaceEditor(restored);
+      setSavedEditor(null);
+    }
   }
 
   const updateLayout = useCallback(
@@ -421,7 +459,10 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     flow: editor.flow,
     layout: editor.layout,
     scenarios: editor.scenarios,
+    savedFlows,
+    catalogIssue,
     createFlow,
+    openSavedFlow,
     addNode,
     connectNodes,
     renameFlow,

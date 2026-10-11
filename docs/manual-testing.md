@@ -32,6 +32,20 @@ Flow document.
    Flow and scenario persist. Export the Flow, open that JSON, and check that
    the layout and scenario are preserved.
 
+## Save and reopen several Flows
+
+1. Save the Checkout Flow. Create a new Flow, give it a distinct name, add a
+   node, and save it. The **Flows** panel should list both saved Flows.
+2. Open Checkout from **Flows**, then reload the page. Checkout should still
+   be active, and the other saved Flow should remain in the list. Switching
+   Flows resets Undo/Redo history so edits cannot cross between them.
+3. Edit Checkout without saving and try to open the other Flow. Cancel keeps
+   the edit. **Save and continue** keeps the edited Checkout in the list;
+   **Discard changes** opens the saved Flow without changing Checkout's saved
+   copy. The same choice applies to **New flow**.
+4. Open a different exported Flow JSON. It remains unsaved until **Save** is
+   used, and existing saved Flows remain available in **Flows**.
+
 ## Exercise code mapping and snapshot comparison
 
 Open `apps/web/test/fixtures/checkout-mapping-demo.statecraft.json` with

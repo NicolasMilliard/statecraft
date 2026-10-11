@@ -1,6 +1,7 @@
 import type { FlowEdge, FlowNode } from '@statecraft/core';
 import type { RefObject } from 'react';
 import type { useFlowEditor } from './editor/use-flow-editor';
+import { SavedFlowsPanel } from './editor/SavedFlowsPanel';
 import { EdgeInspector } from './inspector/EdgeInspector';
 import { NodeInspector } from './inspector/NodeInspector';
 import { SelectionInspector } from './inspector/SelectionInspector';
@@ -9,7 +10,7 @@ import type { useScenarioWorkspace } from './scenarios/use-scenario-workspace';
 import { SnapshotPanel } from './sync/SnapshotPanel';
 import type { useSnapshotHistory } from './sync/use-snapshot-history';
 
-export type WorkspacePanelMode = 'inspector' | 'scenarios' | 'sync';
+export type WorkspacePanelMode = 'inspector' | 'flows' | 'scenarios' | 'sync';
 
 interface WorkspaceSidebarProps {
   readonly editor: ReturnType<typeof useFlowEditor>;
@@ -19,6 +20,7 @@ interface WorkspaceSidebarProps {
   readonly selectedEdges: readonly FlowEdge[];
   readonly panelMode: WorkspacePanelMode;
   readonly onPanelModeChange: (mode: WorkspacePanelMode) => void;
+  readonly onFlowOpen: (flowId: string) => void;
   readonly nodeLabelInputRef: RefObject<HTMLInputElement | null>;
   readonly onSelectionDelete: () => void;
   readonly onNodeDelete: (id: string) => void;
@@ -33,6 +35,7 @@ export function WorkspaceSidebar({
   selectedEdges,
   panelMode,
   onPanelModeChange,
+  onFlowOpen,
   nodeLabelInputRef,
   onSelectionDelete,
   onNodeDelete,
@@ -45,21 +48,29 @@ export function WorkspaceSidebar({
 
   return (
     <aside className="grid h-80 min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] border-t border-border bg-chrome md:h-auto md:border-t-0 md:border-l">
-      <div role="group" aria-label="Workspace panel" className="flex gap-1 border-b border-border px-3 py-2">
-        {(['inspector', 'scenarios', 'sync'] as const).map((mode) => (
+      <div role="group" aria-label="Workspace panel" className="flex gap-1 overflow-x-auto border-b border-border px-3 py-2">
+        {(['inspector', 'flows', 'scenarios', 'sync'] as const).map((mode) => (
           <button
             key={mode}
             type="button"
             aria-pressed={panelMode === mode}
             onClick={() => onPanelModeChange(mode)}
-            className={`rounded-control px-3 py-1.5 text-ui font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${panelMode === mode ? 'bg-brand-soft text-brand' : 'text-muted hover:bg-surface-hover'}`}
+            className={`shrink-0 rounded-control px-3 py-1.5 text-ui font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${panelMode === mode ? 'bg-brand-soft text-brand' : 'text-muted hover:bg-surface-hover'}`}
           >
-            {mode === 'inspector' ? 'Inspector' : mode === 'scenarios' ? `Scenarios (${editor.scenarios.length})` : 'Sync'}
+            {mode === 'inspector' ? 'Inspector' : mode === 'flows' ? `Flows (${editor.savedFlows.length})` : mode === 'scenarios' ? `Scenarios (${editor.scenarios.length})` : 'Sync'}
           </button>
         ))}
       </div>
       <div className="min-h-0">
-        {panelMode === 'sync' ? (
+        {panelMode === 'flows' ? (
+          <SavedFlowsPanel
+            flows={editor.savedFlows}
+            currentFlowId={flow.id}
+            hasUnsavedChanges={editor.hasUnsavedChanges}
+            issue={editor.catalogIssue}
+            onOpen={onFlowOpen}
+          />
+        ) : panelMode === 'sync' ? (
           <SnapshotPanel
             documents={snapshots.documents}
             current={snapshots.current}

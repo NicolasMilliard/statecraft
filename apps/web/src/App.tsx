@@ -6,6 +6,7 @@ import { FlowCanvas, type FlowCanvasHandle } from './canvas/FlowCanvas';
 import { CommandPalette } from './editor/CommandPalette';
 import { createCommands, getShortcutPlatform } from './editor/commands';
 import { EditorStatusBar } from './editor/EditorStatusBar';
+import { FlowSwitchConfirmation } from './editor/FlowSwitchConfirmation';
 import type { FlowFileActionsHandle } from './editor/FlowFileActions';
 import { OpenFileConfirmation } from './editor/OpenFileConfirmation';
 import { notifySaveResult } from './editor/save-feedback';
@@ -18,6 +19,10 @@ import { checkoutFlow, checkoutLayout } from './examples/checkout';
 import { useScenarioWorkspace } from './scenarios/use-scenario-workspace';
 import { useSnapshotHistory } from './sync/use-snapshot-history';
 import { WorkspaceSidebar, type WorkspacePanelMode } from './WorkspaceSidebar';
+
+type PendingFlowChange =
+  | { readonly kind: 'new' }
+  | { readonly kind: 'saved'; readonly flowId: string; readonly name: string };
 
 export default function App() {
   const editor = useFlowEditor(checkoutFlow, checkoutLayout);
@@ -32,6 +37,7 @@ export default function App() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [panelMode, setPanelMode] = useState<WorkspacePanelMode>('inspector');
+  const [pendingFlowChange, setPendingFlowChange] = useState<PendingFlowChange | null>(null);
   const [renamingFlowId, setRenamingFlowId] = useState<string | null>(null);
   const [platform] = useState(() => getShortcutPlatform(navigator.platform));
   const workspaceRef = useRef<HTMLElement>(null);
@@ -72,7 +78,7 @@ export default function App() {
     importSnapshot: snapshots.importDocument,
     onSnapshotSaved: () => setPanelMode('sync'),
   });
-  const isOpeningBlocked = isRestoring || opening.isSavingSnapshot || opening.pendingOpen !== null;
+  const isOpeningBlocked = isRestoring || opening.isSavingSnapshot || opening.pendingOpen !== null || pendingFlowChange !== null;
   const fileDrop = useFileDrop(isOpeningBlocked, (file) => {
     void filesRef.current?.openFile(file, 'drop');
   });
@@ -125,11 +131,47 @@ export default function App() {
     setSelection({ nodeIds: [], edgeIds: [] });
   }
 
-  function handleNewFlow() {
+  function performFlowChange(change: PendingFlowChange) {
+    if (change.kind === 'saved' && !editor.openSavedFlow(change.flowId)) return;
+    if (change.kind === 'new') editor.createFlow();
     focusCanvasAfterUpdate.current = true;
-    editor.createFlow();
     setSelection({ nodeIds: [], edgeIds: [] });
     scenarios.reset();
+    setCanvasRevision((current) => current + 1);
+  }
+
+  function handleNewFlow() {
+    if (isOpeningBlocked) return;
+    if (editor.hasUnsavedChanges) {
+      setPendingFlowChange({ kind: 'new' });
+    } else {
+      performFlowChange({ kind: 'new' });
+    }
+  }
+
+  function handleFlowOpen(flowId: string) {
+    if (isOpeningBlocked || (flowId === flow.id && !editor.hasUnsavedChanges)) return;
+    const saved = editor.savedFlows.find((item) => item.flow.id === flowId);
+    if (saved === undefined) return;
+
+    const change: PendingFlowChange = { kind: 'saved', flowId, name: saved.flow.name };
+    if (editor.hasUnsavedChanges) {
+      setPendingFlowChange(change);
+    } else {
+      performFlowChange(change);
+    }
+  }
+
+  function saveAndChangeFlow() {
+    if (pendingFlowChange === null) return;
+    if (!editor.save()) {
+      notifySaveResult(false, () => filesRef.current?.export());
+      return;
+    }
+
+    const change = pendingFlowChange;
+    setPendingFlowChange(null);
+    performFlowChange(change);
   }
 
   const commands = createCommands(
@@ -254,6 +296,7 @@ export default function App() {
           selectedEdges={selectedEdges}
           panelMode={panelMode}
           onPanelModeChange={setPanelMode}
+          onFlowOpen={handleFlowOpen}
           nodeLabelInputRef={nodeLabelInputRef}
           onSelectionDelete={handleSelectionDelete}
           onNodeDelete={handleNodeDelete}
@@ -288,6 +331,19 @@ export default function App() {
           currentSnapshot={snapshots.current}
           onConfirm={opening.confirmPendingOpen}
           onCancel={opening.cancelPendingOpen}
+        />
+      )}
+      {pendingFlowChange !== null && (
+        <FlowSwitchConfirmation
+          currentFlowName={flow.name}
+          title={pendingFlowChange.kind === 'new' ? 'Create a new flow?' : `Open “${pendingFlowChange.name}”?`}
+          onCancel={() => setPendingFlowChange(null)}
+          onDiscard={() => {
+            const change = pendingFlowChange;
+            setPendingFlowChange(null);
+            performFlowChange(change);
+          }}
+          onSaveAndContinue={saveAndChangeFlow}
         />
       )}
       {fileDrop.active && (
