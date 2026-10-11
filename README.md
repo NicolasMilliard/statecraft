@@ -21,6 +21,7 @@ M2 — Local React/TypeScript scanner and CLI: implementation complete.
 M3 — Code mapping and local handoff: completed.
 M4 — Scenarios and Run: completed.
 M5 — Repository snapshots and local sync: completed.
+M6 — Cross-flow impact and review: contract defined; browser workflow pending.
 
 The [M2 scanner contract](docs/milestones/m2-scanner-contract.md) records the
 supported patterns and Checkout acceptance fixture.
@@ -29,6 +30,8 @@ scenario traversal and acceptance criteria. In the Scenarios panel, create a
 scenario, choose simulated Service outcomes, and run or step through its path.
 The [M5 contract](docs/milestones/m5-repository-snapshots.md) defines Git-backed
 metadata snapshots and local comparison.
+The [M6 contract](docs/milestones/m6-cross-flow-impact.md) defines how snapshot
+changes affect saved Flows and how explicit reviews establish checkpoints.
 
 ## Development
 
