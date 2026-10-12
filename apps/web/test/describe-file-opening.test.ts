@@ -25,6 +25,7 @@ test('drop confirmation names the Flow that would be replaced and its unsaved wo
         layout: checkoutLayout,
         initialLayout: checkoutLayout,
         scenarios: [],
+        reviews: [],
       },
     },
     'Current checkout',

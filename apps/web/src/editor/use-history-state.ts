@@ -35,6 +35,14 @@ export function useHistoryState<T extends object>(createInitialState: () => T) {
     setHistory({ past: [], present: next, future: [] });
   }, []);
 
+  const commitState = useCallback((next: T, carryForward: (state: T) => T) => {
+    setHistory((current) => ({
+      past: current.past.map(carryForward),
+      present: next,
+      future: current.future.map(carryForward),
+    }));
+  }, []);
+
   const undo = useCallback(() => {
     setHistory((current) => {
       const previous = current.past.at(-1);
@@ -71,6 +79,7 @@ export function useHistoryState<T extends object>(createInitialState: () => T) {
     state: history.present,
     setState,
     replaceState,
+    commitState,
     undo,
     redo,
     canUndo: history.past.length > 0,

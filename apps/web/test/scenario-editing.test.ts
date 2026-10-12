@@ -20,6 +20,7 @@ function createEditor(): FlowEditorState {
     layout: checkoutLayout,
     initialLayout: checkoutLayout,
     scenarios: [],
+    reviews: [],
   };
 }
 

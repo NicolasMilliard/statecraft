@@ -1,4 +1,4 @@
-import type { Flow, Scenario } from '@statecraft/core';
+import type { Flow, FlowReview, Scenario } from '@statecraft/core';
 import type { FlowLayout } from '../canvas/flow-layout';
 
 export interface FlowEditorState {
@@ -6,4 +6,5 @@ export interface FlowEditorState {
   readonly layout: FlowLayout;
   readonly initialLayout: FlowLayout;
   readonly scenarios: readonly Scenario[];
+  readonly reviews: readonly FlowReview[];
 }

@@ -1,12 +1,14 @@
-import type {
-  CodeGraph,
-  CodeReferenceRole,
-  Flow,
-  FlowEdge,
-  FlowEdgeKind,
-  FlowNode,
-  FlowNodeKind,
-  ServiceOutcome,
+import {
+  recordFlowReview,
+  type CodeGraph,
+  type CodeReferenceRole,
+  type Flow,
+  type FlowEdge,
+  type FlowEdgeKind,
+  type FlowNode,
+  type FlowNodeKind,
+  type ServiceOutcome,
+  type SyncSnapshot,
 } from '@statecraft/core';
 import { useCallback, useState } from 'react';
 import type { FlowLayout, FlowNodePosition } from '../canvas/flow-layout';
@@ -16,7 +18,7 @@ import { attachCodeEntity, removeCodeReference, setCodeReferenceRole } from './c
 import { deleteFlowElements } from './delete-flow-elements';
 import { serializeFlowDocument } from './flow-document';
 import type { FlowEditorState } from './flow-editor-state';
-import { loadFlowDraft, loadSavedFlows, openSavedFlowDraft, saveFlowDraft } from './flow-storage';
+import { loadFlowDraft, loadSavedFlows, openSavedFlowDraft, saveFlowDraft, saveFlowReviewCheckpoint } from './flow-storage';
 import {
   addScenario,
   duplicateScenario,
@@ -63,6 +65,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
             layout: initialLayout,
             initialLayout,
             scenarios: [],
+            reviews: [],
           };
 
     const issue: StorageIssue | null = result.status === 'invalid'
@@ -81,6 +84,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     state: editor,
     setState: setEditor,
     replaceState: replaceEditor,
+    commitState: commitEditor,
     undo,
     redo,
     canUndo,
@@ -94,6 +98,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
   const [storageIssue, setStorageIssue] = useState<StorageIssue | null>(
     initialDocument.issue,
   );
+  const [reviewSaveFailed, setReviewSaveFailed] = useState(false);
   const [savedFlows, setSavedFlows] = useState<readonly FlowEditorState[]>(initialCatalog.editors);
   const [catalogIssue, setCatalogIssue] = useState<string | null>(
     describeCatalogIssue(initialCatalog),
@@ -126,10 +131,12 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
         positions: {},
       },
       scenarios: [],
+      reviews: [],
     };
 
     replaceEditor(next);
     setSavedEditor(null);
+    setReviewSaveFailed(false);
   }
 
   function openSavedFlow(flowId: string): boolean {
@@ -142,6 +149,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     replaceEditor(result.editor);
     setSavedEditor(result.editor);
     setStorageIssue(null);
+    setReviewSaveFailed(false);
     refreshCatalog();
     return true;
   }
@@ -403,6 +411,39 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
 
     setSavedEditor(editor);
     setStorageIssue(null);
+    setReviewSaveFailed(false);
+    refreshCatalog();
+    return true;
+  }
+
+  function markReviewed(snapshot: SyncSnapshot): boolean {
+    if (
+      savedEditor === null ||
+      editor !== savedEditor ||
+      !editor.flow.codeReferences.some((reference) =>
+        reference.repositoryId === snapshot.graph.repositoryId)
+    ) {
+      return false;
+    }
+
+    const reviewed: FlowEditorState = {
+      ...editor,
+      reviews: recordFlowReview(editor.reviews, editor.flow, snapshot),
+    };
+
+    if (!saveFlowReviewCheckpoint(reviewed)) {
+      setReviewSaveFailed(true);
+      return false;
+    }
+
+    // Undo remains available for edits without rolling back the explicit review.
+    commitEditor(reviewed, (historical) => ({
+      ...historical,
+      reviews: reviewed.reviews,
+    }));
+    setSavedEditor(reviewed);
+    setStorageIssue(null);
+    setReviewSaveFailed(false);
     refreshCatalog();
     return true;
   }
@@ -412,6 +453,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
   }
 
   function restoreEditor(restored: FlowEditorState): void {
+    setReviewSaveFailed(false);
     if (restored.flow.id === editor.flow.id) {
       const restoredDocument = serializeFlowDocument(restored);
       setEditor((current) =>
@@ -485,6 +527,9 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     canUndo,
     canRedo,
     save,
+    markReviewed,
+    reviews: editor.reviews,
+    reviewSaveFailed,
     exportDocument,
     restoreEditor,
     storageIssue,

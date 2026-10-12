@@ -49,6 +49,7 @@ test('attaches an explicit reference and preserves it in a Flow export', () => {
     layout: checkoutLayout,
     initialLayout: checkoutLayout,
     scenarios: [],
+    reviews: [],
   }));
 
   assert.deepEqual(restored.flow.codeReferences, linked.codeReferences);

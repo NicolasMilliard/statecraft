@@ -1,4 +1,5 @@
 import { analyzeSnapshotFlowImpacts } from './analyze-snapshot-flow-impacts.js';
+import type { CodeReference } from './code-reference.js';
 import type { FlowImpactAnalysis, FlowImpactReason } from './flow-impact.js';
 import type { Flow } from './flow.js';
 import type { SyncSnapshot } from './snapshot.js';
@@ -7,6 +8,36 @@ export interface FlowReview {
   readonly flowId: string;
   readonly repositoryId: string;
   readonly snapshotId: string;
+  readonly reviewedReferences: readonly ReviewedCodeReference[];
+}
+
+export type ReviewedCodeReference = Pick<
+  CodeReference,
+  'id' | 'flowNodeId' | 'codeEntityId' | 'role'
+>;
+
+export function reviewedCodeReferences(
+  flow: Flow,
+  repositoryId: string,
+): readonly ReviewedCodeReference[] {
+  return flow.codeReferences
+    .filter((reference) => reference.repositoryId === repositoryId)
+    .map(({ id, flowNodeId, codeEntityId, role }) => ({ id, flowNodeId, codeEntityId, role }))
+    .sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function mappingMatchesReview(flow: Flow, review: FlowReview): boolean {
+  const current = reviewedCodeReferences(flow, review.repositoryId);
+  const reviewed = [...review.reviewedReferences].sort((left, right) => left.id.localeCompare(right.id));
+
+  return current.length === reviewed.length && current.every((reference, index) => {
+    const previous = reviewed[index];
+    return previous !== undefined &&
+      reference.id === previous.id &&
+      reference.flowNodeId === previous.flowNodeId &&
+      reference.codeEntityId === previous.codeEntityId &&
+      reference.role === previous.role;
+  });
 }
 
 export type FlowReviewAssessment = {
@@ -16,6 +47,11 @@ export type FlowReviewAssessment = {
 } & (
   | {
       readonly status: 'unreviewed';
+    }
+  | {
+      readonly status: 'unreviewed';
+      readonly reason: 'mapping_changed';
+      readonly reviewedSnapshotId: string;
     }
   | {
       readonly status: 'unchanged';
@@ -80,6 +116,14 @@ export function evaluateFlowReview(
       ...reviewContext,
       status: 'unavailable',
       reason: 'review_repository_mismatch',
+    };
+  }
+
+  if (!mappingMatchesReview(flow, review)) {
+    return {
+      ...reviewContext,
+      status: 'unreviewed',
+      reason: 'mapping_changed',
     };
   }
 

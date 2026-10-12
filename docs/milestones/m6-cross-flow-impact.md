@@ -1,7 +1,8 @@
 # M6 — Cross-flow impact and review
 
-Status: in progress. The local Flow catalog, switching, and cross-flow impact
-preview are implemented. Review checkpoints and status assessment remain pending.
+Status: in progress. The local Flow catalog, switching, cross-flow impact
+preview, and active Flow review checkpoints are implemented. The project-wide
+review list and navigation remain pending.
 
 M6 connects local repository snapshot changes to explicit CodeReferences in
 saved Flows. It shows which Flows need a person's review and records which
@@ -9,11 +10,12 @@ snapshot that person examined. A code change is evidence for review, not proof
 that a user journey is broken. M6 does not infer Flow links from names, run the
 application, upload source files, or add remote sync.
 
-The Sync panel currently shows exploratory impacts for its selected **Compare
-with** pair across saved Flows, using the active Flow's unsaved mapping as a
-labeled preview. This comparison does not establish a review checkpoint or
-assign **Needs review**. The per-Flow checkpoint comparison and review states
-below are the next implementation steps.
+The Sync panel shows exploratory impacts for its selected **Compare with** pair
+across saved Flows, using the active Flow's unsaved mapping as a labeled
+preview. This comparison does not establish a review checkpoint. A separate
+review section assesses the active Flow against its last explicit checkpoint
+and lets the user record the selected current snapshot after saving that Flow.
+The project-wide review view below is the next implementation step.
 
 ## Scope and ownership
 

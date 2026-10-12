@@ -47,7 +47,7 @@ function flow(id: string, codeEntityId: string, repositoryId = 'storefront'): Fl
 
 function saved(flowValue: Flow): FlowEditorState {
   const layout = { flowId: flowValue.id, positions: {} };
-  return { flow: flowValue, layout, initialLayout: layout, scenarios: [] };
+  return { flow: flowValue, layout, initialLayout: layout, scenarios: [], reviews: [] };
 }
 
 test('analyzes every mapped saved flow once and excludes unrelated references', () => {

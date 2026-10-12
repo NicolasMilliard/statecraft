@@ -45,6 +45,7 @@ const editor: FlowEditorState = {
       outcome: { kind: 'failure', code: 'DECLINED', httpStatus: 402 },
     }],
   }],
+  reviews: [],
 };
 
 test('deletes a mixed selection while preserving a valid document and the previous state', () => {

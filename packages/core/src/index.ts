@@ -60,9 +60,9 @@ export type {
   FlowImpactReason,
 } from './flow-impact.js';
 
-export { evaluateFlowReview } from './flow-review.js';
+export { evaluateFlowReview, reviewedCodeReferences } from './flow-review.js';
 
-export type { FlowReview, FlowReviewAssessment } from './flow-review.js';
+export type { FlowReview, FlowReviewAssessment, ReviewedCodeReference } from './flow-review.js';
 
 export { recordFlowReview } from './record-flow-review.js';
 

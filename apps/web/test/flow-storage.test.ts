@@ -7,6 +7,7 @@ import {
   loadSavedFlows,
   openSavedFlowDraft,
   saveFlowDraft,
+  saveFlowReviewCheckpoint,
 } from '../src/editor/flow-storage.ts';
 import { checkoutFlow, checkoutLayout } from '../src/examples/checkout.ts';
 
@@ -49,6 +50,7 @@ function createEditor(flowId: string): FlowEditorState {
       name: 'Default',
       overrides: [],
     }],
+    reviews: [],
   };
 }
 
@@ -88,6 +90,80 @@ test('keeps several saved flows and reopens the selected one after reload', () =
   assert.deepEqual(loadSavedFlows(storage).editors, [checkout, renewal]);
 });
 
+test('persists a review in its saved Flow and preserves the previous checkpoint on failure', () => {
+  const storage = createStorage();
+  const initial = createEditor('checkout');
+  const linked = {
+    ...initial,
+    flow: {
+      ...initial.flow,
+      codeReferences: [{
+        id: 'checkout-ref',
+        flowNodeId: 'checkout-screen',
+        repositoryId: 'storefront',
+        codeEntityId: 'form',
+        role: 'primary' as const,
+      }],
+    },
+  };
+  assert.equal(saveFlowDraft(linked, storage), true);
+
+  const reviewed = {
+    ...linked,
+    reviews: [{
+      flowId: 'checkout',
+      repositoryId: 'storefront',
+      snapshotId: 'snapshot-a',
+      reviewedReferences: [{
+        id: 'checkout-ref',
+        flowNodeId: 'checkout-screen',
+        codeEntityId: 'form',
+        role: 'primary' as const,
+      }],
+    }],
+  };
+  assert.equal(saveFlowReviewCheckpoint(reviewed, storage), true);
+  assert.deepEqual(loadFlowDraft('checkout', storage), { status: 'loaded', editor: reviewed });
+  assert.deepEqual(loadSavedFlows(storage).editors, [reviewed]);
+
+  const nextReview = {
+    ...reviewed,
+    reviews: [{ ...reviewed.reviews[0]!, snapshotId: 'snapshot-b' }],
+  };
+  const failingStorage = {
+    getItem: storage.getItem,
+    setItem(key: string, value: string): void {
+      if (key === 'statecraft:saved-flow:checkout') throw new Error('Storage unavailable');
+      storage.setItem(key, value);
+    },
+  };
+  assert.equal(saveFlowReviewCheckpoint(nextReview, failingStorage), false);
+  assert.deepEqual(loadFlowDraft('checkout', storage), { status: 'loaded', editor: reviewed });
+});
+
+test('does not record a review for a flow without a durable saved copy', () => {
+  const storage = createStorage();
+  assert.equal(saveFlowReviewCheckpoint(createEditor('new-flow'), storage), false);
+  assert.equal(storage.getItem('statecraft:saved-flow:new-flow'), null);
+});
+
+test('records a review when the active saved Flow still uses legacy storage', () => {
+  const storage = createStorage();
+  const legacy = createEditor('legacy');
+  const { reviews: _reviews, ...legacyEditor } = legacy;
+  storage.setItem('statecraft:active-flow', JSON.stringify({ version: 2, editor: legacyEditor }));
+
+  const reviewed = {
+    ...legacy,
+    reviews: [{
+      flowId: 'legacy', repositoryId: 'storefront', snapshotId: 'snapshot-a', reviewedReferences: [],
+    }],
+  };
+
+  assert.equal(saveFlowReviewCheckpoint(reviewed, storage), true);
+  assert.deepEqual(loadFlowDraft('checkout', storage), { status: 'loaded', editor: reviewed });
+});
+
 test('preserves the former active flow when a new flow is saved', () => {
   const storage = createStorage();
   const previous = createEditor('previous');
@@ -122,14 +198,14 @@ test('migrates the latest legacy active copy over a stale saved copy', () => {
 test('reads the legacy draft and preserves it when saving an active flow', () => {
   const storage = createStorage();
   const legacyEditor = createEditor('checkout');
-  const { scenarios: _scenarios, ...legacyState } = legacyEditor;
+  const { scenarios: _scenarios, reviews: _reviews, ...legacyState } = legacyEditor;
   const legacyDocument = JSON.stringify({ version: 1, editor: legacyState });
 
   storage.setItem('statecraft:flow:checkout', legacyDocument);
 
   assert.deepEqual(loadFlowDraft('checkout', storage), {
     status: 'loaded',
-    editor: { ...legacyState, scenarios: [] },
+    editor: { ...legacyState, scenarios: [], reviews: [] },
   });
 
   const activeEditor = createEditor('new-flow');
@@ -141,7 +217,7 @@ test('reads the legacy draft and preserves it when saving an active flow', () =>
   });
   assert.equal(storage.getItem('statecraft:flow:checkout'), legacyDocument);
   assert.deepEqual(loadSavedFlows(storage).editors, [
-    { ...legacyState, scenarios: [] },
+    { ...legacyState, scenarios: [], reviews: [] },
     activeEditor,
   ]);
 });

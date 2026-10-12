@@ -5,6 +5,7 @@ import {
   validateFlow,
   validateScenario,
   type Flow,
+  type FlowReview,
   type Scenario,
 } from '@statecraft/core';
 import { z } from 'zod';
@@ -74,6 +75,20 @@ const scenarioSchema: z.ZodType<Scenario> = z.strictObject({
   ),
 });
 
+const reviewSchema: z.ZodType<FlowReview> = z.strictObject({
+  flowId: nonEmptyString,
+  repositoryId: nonEmptyString,
+  snapshotId: nonEmptyString,
+  reviewedReferences: z.array(z.strictObject({
+    id: nonEmptyString,
+    flowNodeId: nonEmptyString,
+    codeEntityId: nonEmptyString,
+    role: z.enum(['primary', 'dependency']),
+  })).refine((references) =>
+    new Set(references.map((reference) => reference.id)).size === references.length,
+  ),
+});
+
 const editorFields = {
   flow: flowSchema,
   layout: layoutSchema,
@@ -98,21 +113,50 @@ const editorV1Schema = z.strictObject(editorFields).refine(layoutsMatchFlow, {
   message: 'Layouts must contain exactly the flow nodes.',
 });
 
-const editorV2Schema: z.ZodType<FlowEditorState> = z
+function scenariosAreUnique(scenarios: readonly Scenario[]): boolean {
+  return new Set(scenarios.map((scenario) => scenario.id)).size === scenarios.length;
+}
+
+function scenariosMatchFlow(flow: Flow, scenarios: readonly Scenario[]): boolean {
+  return scenarios.every((scenario) => validateScenario(scenario, flow).length === 0);
+}
+
+const editorV2Schema = z
   .strictObject({ ...editorFields, scenarios: z.array(scenarioSchema) })
   .refine(layoutsMatchFlow, {
     message: 'Layouts must contain exactly the flow nodes.',
   })
   .refine(
-    ({ scenarios }) =>
-      new Set(scenarios.map((scenario) => scenario.id)).size ===
-      scenarios.length,
+    ({ scenarios }) => scenariosAreUnique(scenarios),
     { message: 'Scenario IDs must be unique.', path: ['scenarios'] },
   )
   .refine(
-    ({ flow, scenarios }) =>
-      scenarios.every((scenario) => validateScenario(scenario, flow).length === 0),
+    ({ flow, scenarios }) => scenariosMatchFlow(flow, scenarios),
     { message: 'Invalid scenario references.', path: ['scenarios'] },
+  );
+
+const editorV3Schema: z.ZodType<FlowEditorState> = z
+  .strictObject({
+    ...editorFields,
+    scenarios: z.array(scenarioSchema),
+    reviews: z.array(reviewSchema),
+  })
+  .refine(layoutsMatchFlow, {
+    message: 'Layouts must contain exactly the flow nodes.',
+  })
+  .refine(({ scenarios }) => scenariosAreUnique(scenarios), {
+    message: 'Scenario IDs must be unique.', path: ['scenarios'],
+  })
+  .refine(({ flow, scenarios }) => scenariosMatchFlow(flow, scenarios), {
+    message: 'Invalid scenario references.', path: ['scenarios'],
+  })
+  .refine(({ flow, reviews }) => reviews.every((review) => review.flowId === flow.id), {
+    message: 'Review belongs to another flow.', path: ['reviews'],
+  })
+  .refine(
+    ({ reviews }) =>
+      new Set(reviews.map((review) => review.repositoryId)).size === reviews.length,
+    { message: 'Review repositories must be unique.', path: ['reviews'] },
   );
 
 const documentV1Schema = z.strictObject({
@@ -125,9 +169,14 @@ const documentV2Schema = z.strictObject({
   editor: editorV2Schema,
 });
 
+const documentV3Schema = z.strictObject({
+  version: z.literal(3),
+  editor: editorV3Schema,
+});
+
 export function serializeFlowDocument(editor: FlowEditorState): string {
-  const document = documentV2Schema.parse({
-    version: 2,
+  const document = documentV3Schema.parse({
+    version: 3,
     editor,
   });
 
@@ -139,10 +188,10 @@ export function parseFlowDocument(
   expectedFlowId?: string,
 ): FlowEditorState {
   const value: unknown = JSON.parse(serialized);
-  const document = z.union([documentV1Schema, documentV2Schema]).parse(value);
+  const document = z.union([documentV1Schema, documentV2Schema, documentV3Schema]).parse(value);
   const editor: FlowEditorState = document.version === 1
-    ? { ...document.editor, scenarios: [] }
-    : document.editor;
+    ? { ...document.editor, scenarios: [], reviews: [] }
+    : document.version === 2 ? { ...document.editor, reviews: [] } : document.editor;
 
   if (expectedFlowId !== undefined && editor.flow.id !== expectedFlowId) {
     throw new Error('Document belongs to another flow.');

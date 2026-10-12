@@ -57,6 +57,7 @@ test('identifies and validates a Flow export', () => {
     layout: checkoutLayout,
     initialLayout: checkoutLayout,
     scenarios: [],
+    reviews: [],
   };
 
   assert.deepEqual(parseOpenDocument(serializeFlowDocument(editor)), {

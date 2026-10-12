@@ -1,4 +1,4 @@
-import type { FlowReview } from './flow-review.js';
+import { reviewedCodeReferences, type FlowReview } from './flow-review.js';
 import type { Flow } from './flow.js';
 import type { SyncSnapshot } from './snapshot.js';
 
@@ -16,6 +16,7 @@ export function recordFlowReview(
     flowId: flow.id,
     repositoryId: reviewedSnapshot.graph.repositoryId,
     snapshotId: reviewedSnapshot.id,
+    reviewedReferences: reviewedCodeReferences(flow, reviewedSnapshot.graph.repositoryId),
   };
 
   const existingIndex = reviews.findIndex(

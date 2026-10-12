@@ -1,5 +1,5 @@
-import type { CodeEntity, FlowImpactReason, SnapshotDocument } from '@statecraft/core';
-import type { ImpactedWorkspaceFlow, WorkspaceFlowImpactAnalysis } from './workspace-flow-impacts';
+import type { CodeEntity, Flow, FlowImpactReason, SnapshotDocument, SyncSnapshot } from '@statecraft/core';
+import type { WorkspaceFlowImpactAnalysis } from './workspace-flow-impacts';
 
 interface FlowImpactPreviewProps {
   readonly analysis: WorkspaceFlowImpactAnalysis;
@@ -29,15 +29,15 @@ function reasonDescription(
 
 function ImpactReason({
   reason,
-  impacted,
+  flow,
   entities,
 }: {
   readonly reason: FlowImpactReason;
-  readonly impacted: ImpactedWorkspaceFlow;
+  readonly flow: Flow;
   readonly entities: ReadonlyMap<string, CodeEntity>;
 }) {
-  const reference = impacted.flow.codeReferences.find(({ id }) => id === reason.referenceId);
-  const node = impacted.flow.nodes.find(({ id }) => id === reason.nodeId);
+  const reference = flow.codeReferences.find(({ id }) => id === reason.referenceId);
+  const node = flow.nodes.find(({ id }) => id === reason.nodeId);
 
   return (
     <li className="border-t border-border pt-2 first:border-t-0 first:pt-0">
@@ -49,11 +49,36 @@ function ImpactReason({
   );
 }
 
-export function FlowImpactPreview({ analysis, before, after }: FlowImpactPreviewProps) {
+export function FlowImpactReasons({
+  flow,
+  reasons,
+  before,
+  after,
+}: {
+  readonly flow: Flow;
+  readonly reasons: readonly FlowImpactReason[];
+  readonly before: SyncSnapshot;
+  readonly after: SyncSnapshot;
+}) {
   const entities = new Map<string, CodeEntity>();
-  for (const entity of before.snapshot.graph.entities) entities.set(entity.id, entity);
-  for (const entity of after.snapshot.graph.entities) entities.set(entity.id, entity);
+  for (const entity of before.graph.entities) entities.set(entity.id, entity);
+  for (const entity of after.graph.entities) entities.set(entity.id, entity);
 
+  return (
+    <ul className="mt-3 space-y-2">
+      {reasons.map((reason) => (
+        <ImpactReason
+          key={reasonKey(reason)}
+          reason={reason}
+          flow={flow}
+          entities={entities}
+        />
+      ))}
+    </ul>
+  );
+}
+
+export function FlowImpactPreview({ analysis, before, after }: FlowImpactPreviewProps) {
   return (
     <section className="mt-6 border-t border-border pt-5" aria-label="Flow impact preview">
       <h4 className="text-ui font-medium">Flows touched by this comparison</h4>
@@ -88,16 +113,12 @@ export function FlowImpactPreview({ analysis, before, after }: FlowImpactPreview
                   <p className="mt-1 text-xs text-muted">
                     {impacted.isSaved ? 'Saved flow' : 'Active flow'} · {impacted.reasons.length} {impacted.reasons.length === 1 ? 'reason' : 'reasons'}
                   </p>
-                  <ul className="mt-3 space-y-2">
-                    {impacted.reasons.map((reason) => (
-                      <ImpactReason
-                        key={reasonKey(reason)}
-                        reason={reason}
-                        impacted={impacted}
-                        entities={entities}
-                      />
-                    ))}
-                  </ul>
+                  <FlowImpactReasons
+                    flow={impacted.flow}
+                    reasons={impacted.reasons}
+                    before={before.snapshot}
+                    after={after.snapshot}
+                  />
                 </li>
               ))}
             </ul>

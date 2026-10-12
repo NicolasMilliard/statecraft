@@ -148,6 +148,29 @@ export function saveFlowDraft(
   }
 }
 
+/** A review is committed with one document write after the active saved flow is verified. */
+export function saveFlowReviewCheckpoint(
+  editor: FlowEditorState,
+  storage?: FlowDraftStorage,
+): boolean {
+  try {
+    const serialized = serializeFlowDocument(editor);
+    const target = storage ?? window.localStorage;
+    migrateLegacyActive(target);
+    const key = savedFlowKey(editor.flow.id);
+    const previous = target.getItem(key);
+    if (previous === null) return false;
+    parseStoredFlow(previous, editor.flow.id);
+
+    // If this write fails, the previously saved Flow document is still intact.
+    target.setItem(ACTIVE_FLOW_ID_KEY, editor.flow.id);
+    target.setItem(key, serialized);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function openSavedFlowDraft(
   flowId: string,
   storage?: FlowDraftStorage,

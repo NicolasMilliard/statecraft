@@ -3,14 +3,18 @@ import {
   diffSnapshotRelations,
   type CodeEntity,
   type Flow,
+  type FlowReview,
   type SnapshotDocument,
+  type SyncSnapshot,
 } from '@statecraft/core';
 import { useMemo } from 'react';
 import type { FlowEditorState } from '../editor/flow-editor-state';
 import { InspectorPanel } from '../inspector/InspectorPanel';
 import { Select } from '../ui/Select';
+import { ActiveFlowReviewPanel } from './ActiveFlowReviewPanel';
 import { FlowImpactPreview } from './FlowImpactPreview';
 import { analyzeWorkspaceFlowImpacts, collectWorkspaceFlows } from './workspace-flow-impacts';
+import { assessWorkspaceFlowReview } from './workspace-flow-reviews';
 
 interface SnapshotPanelProps {
   readonly documents: readonly SnapshotDocument[];
@@ -19,11 +23,14 @@ interface SnapshotPanelProps {
   readonly compatible: readonly SnapshotDocument[];
   readonly savedFlows: readonly FlowEditorState[];
   readonly activeFlow: Flow;
+  readonly activeReviews: readonly FlowReview[];
   readonly hasUnsavedFlowChanges: boolean;
+  readonly reviewSaveFailed: boolean;
   readonly flowCatalogIssue: string | null;
   readonly storageIssue: string | null;
   readonly onCurrentChange: (id: string) => void;
   readonly onBaselineChange: (id: string) => void;
+  readonly onMarkReviewed: (snapshot: SyncSnapshot) => boolean;
 }
 
 function label(document: SnapshotDocument): string {
@@ -50,11 +57,14 @@ export function SnapshotPanel({
   compatible,
   savedFlows,
   activeFlow,
+  activeReviews,
   hasUnsavedFlowChanges,
+  reviewSaveFailed,
   flowCatalogIssue,
   storageIssue,
   onCurrentChange,
   onBaselineChange,
+  onMarkReviewed,
 }: SnapshotPanelProps) {
   const { entities, relations, currentEntities, baselineEntities } = useMemo(() => {
     const entityDiff = current && baseline
@@ -80,6 +90,10 @@ export function SnapshotPanel({
       ? analyzeWorkspaceFlowImpacts(workspaceFlows, baseline.snapshot, current.snapshot)
       : null,
     [workspaceFlows, baseline, current],
+  );
+  const activeReviewAssessment = useMemo(
+    () => assessWorkspaceFlowReview(activeFlow, activeReviews, documents, current?.snapshot ?? null),
+    [activeFlow, activeReviews, documents, current],
   );
 
   return (
@@ -109,6 +123,16 @@ export function SnapshotPanel({
             <p className="mt-1">{current.snapshot.git.isDirty ? 'Working tree had changes; this graph is not the exact commit state.' : 'Clean Git working tree'} · {current.snapshot.analysisProfileId}</p>
             <p className="mt-1">{current.snapshot.graph.entities.length} entities · {current.snapshot.graph.relations.length} relations · {current.diagnostics.length} diagnostics</p>
           </div>
+
+          <ActiveFlowReviewPanel
+            flow={activeFlow}
+            current={current.snapshot}
+            documents={documents}
+            assessment={activeReviewAssessment}
+            hasUnsavedChanges={hasUnsavedFlowChanges}
+            saveFailed={reviewSaveFailed}
+            onMarkReviewed={onMarkReviewed}
+          />
 
           <div className="mt-6 border-t border-border pt-5">
             <h3 className="text-ui font-medium">Compare with</h3>

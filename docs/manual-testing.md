@@ -84,8 +84,8 @@ Open both JSON files in the app. **Sync** should report one modified entity,
 `CheckoutForm`. The later snapshot is marked dirty because the source changed
 without a new commit. Reload the page: both snapshots should remain available.
 Switch **Current snapshot** to check the graph used by code mapping. The
-comparison reports code changes and directly affected Flows; review status
-requires an explicit review checkpoint, which is not yet available.
+comparison reports code changes and directly affected Flows. The selected
+**Compare with** baseline only controls that exploratory comparison.
 
 To check the cross-Flow preview, save the mapping demo Flow, then create
 and save another Flow with a node linked to `CheckoutForm`. Import both
@@ -95,6 +95,16 @@ Flow with no `CheckoutForm` link should not appear. Edit the active Flow's code
 link without saving: the preview should update and say **Unsaved preview**.
 Changing **Compare with** only changes this exploratory preview; it does not
 mark any Flow reviewed.
+
+To check review checkpoints, select the baseline as **Current snapshot** and
+save the mapped Checkout Flow. In **Sync**, choose **Mark as reviewed** for that
+snapshot. Select the changed snapshot as current: Checkout should say **Needs
+review** and name the changed `CheckoutForm` link. Changing **Compare with**
+must not change this status. Mark the changed snapshot reviewed, then reload:
+Checkout should say **Up to date**. Export and reopen the Flow JSON to check
+that the checkpoint travels with it. Change the role or target of its code link
+and save: its status should become **Unreviewed** until another explicit review.
+An unsaved Flow cannot record a checkpoint; save it first.
 
 ## Scan a separate React/TypeScript project
 

@@ -78,11 +78,14 @@ export function WorkspaceSidebar({
             compatible={snapshots.compatible}
             savedFlows={editor.savedFlows}
             activeFlow={flow}
+            activeReviews={editor.reviews}
             hasUnsavedFlowChanges={editor.hasUnsavedChanges}
+            reviewSaveFailed={editor.reviewSaveFailed}
             flowCatalogIssue={editor.catalogIssue}
             storageIssue={snapshots.storageIssue}
             onCurrentChange={snapshots.selectCurrent}
             onBaselineChange={snapshots.selectBaseline}
+            onMarkReviewed={editor.markReviewed}
           />
         ) : panelMode === 'scenarios' ? (
           <ScenarioPanel

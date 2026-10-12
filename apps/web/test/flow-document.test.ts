@@ -29,24 +29,71 @@ const editor: FlowEditorState = {
       }],
     },
   ],
+  reviews: [],
 };
 
-function encode(value: unknown, version = 2): string {
+function encode(value: unknown, version = 3): string {
   return JSON.stringify({ version, editor: value });
 }
 
-test('preserves the flow, layouts and scenarios in version 2', () => {
-  assert.equal(JSON.parse(serializeFlowDocument(editor)).version, 2);
+test('preserves the flow, layouts, scenarios and reviews in version 3', () => {
+  assert.equal(JSON.parse(serializeFlowDocument(editor)).version, 3);
   assert.deepEqual(parseFlowDocument(serializeFlowDocument(editor)), editor);
 });
 
 test('opens a version 1 document with no scenarios', () => {
-  const { scenarios: _scenarios, ...legacyEditor } = editor;
+  const { scenarios: _scenarios, reviews: _reviews, ...legacyEditor } = editor;
 
   assert.deepEqual(parseFlowDocument(encode(legacyEditor, 1)), {
     ...legacyEditor,
     scenarios: [],
+    reviews: [],
   });
+});
+
+test('opens a version 2 document with no reviews', () => {
+  const { reviews: _reviews, ...legacyEditor } = editor;
+  assert.deepEqual(parseFlowDocument(encode(legacyEditor, 2)), editor);
+});
+
+test('round trips an explicit review with the references examined', () => {
+  const reviewed = {
+    ...editor,
+    flow: {
+      ...editor.flow,
+      codeReferences: [{
+        id: 'checkout-ref',
+        flowNodeId: 'checkout-screen',
+        repositoryId: 'storefront',
+        codeEntityId: 'checkout-component',
+        role: 'primary' as const,
+      }],
+    },
+    reviews: [{
+      flowId: 'checkout',
+      repositoryId: 'storefront',
+      snapshotId: 'snapshot-a',
+      reviewedReferences: [{
+        id: 'checkout-ref',
+        flowNodeId: 'checkout-screen',
+        codeEntityId: 'checkout-component',
+        role: 'primary' as const,
+      }],
+    }],
+  };
+
+  assert.deepEqual(parseFlowDocument(serializeFlowDocument(reviewed)), reviewed);
+
+  for (const reviews of [
+    [{ ...reviewed.reviews[0]!, flowId: 'other-flow' }],
+    [reviewed.reviews[0]!, reviewed.reviews[0]!],
+    [{ ...reviewed.reviews[0]!, reviewedReferences: [
+      reviewed.reviews[0]!.reviewedReferences[0]!,
+      reviewed.reviews[0]!.reviewedReferences[0]!,
+    ] }],
+  ]) {
+    assert.throws(() => parseFlowDocument(encode({ ...reviewed, reviews })));
+  }
 });
 
 test('supports an empty flow', () => {
@@ -66,6 +113,7 @@ test('supports an empty flow', () => {
     layout,
     initialLayout: layout,
     scenarios: [],
+    reviews: [],
   };
 
   assert.deepEqual(parseFlowDocument(serializeFlowDocument(empty)), empty);
@@ -73,7 +121,7 @@ test('supports an empty flow', () => {
 
 test('rejects malformed JSON and unsupported versions', () => {
   assert.throws(() => parseFlowDocument('{'));
-  assert.throws(() => parseFlowDocument(encode(editor, 3)));
+  assert.throws(() => parseFlowDocument(encode(editor, 4)));
 });
 
 test('rejects duplicate scenario IDs and invalid scenario references', () => {

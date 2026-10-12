@@ -35,6 +35,12 @@ function createReview(flowId = 'checkout', snapshotId = 'a'): FlowReview {
     flowId,
     repositoryId: 'storefront',
     snapshotId,
+    reviewedReferences: [{
+      id: `${flowId}-ref`,
+      flowNodeId: 'payment',
+      codeEntityId: 'form',
+      role: 'primary',
+    }],
   };
 }
 
@@ -164,6 +170,38 @@ test('reports a flow without a recorded review as unreviewed', () => {
       currentSnapshotId: 'c',
     },
   );
+});
+
+test('a mapping edit requires another explicit review while leaving the checkpoint intact', () => {
+  const original = createFlow();
+  const reviewed = createSnapshot('a');
+  const review = recordFlowReview([], original, reviewed)[0]!;
+  const changes: Flow[] = [
+    { ...original, codeReferences: [] },
+    { ...original, codeReferences: [{ ...original.codeReferences[0]!, role: 'dependency' }] },
+    { ...original, codeReferences: [{ ...original.codeReferences[0]!, codeEntityId: 'order' }] },
+    { ...original, codeReferences: [...original.codeReferences, {
+      id: 'new-ref',
+      flowNodeId: 'payment',
+      repositoryId: 'storefront',
+      codeEntityId: 'order',
+      role: 'dependency',
+    }] },
+  ];
+
+  for (const changed of changes) {
+    assert.deepEqual(evaluateFlowReview(changed, review, reviewed, reviewed), {
+      flowId: 'checkout',
+      repositoryId: 'storefront',
+      currentSnapshotId: 'a',
+      reviewedSnapshotId: 'a',
+      status: 'unreviewed',
+      reason: 'mapping_changed',
+    });
+  }
+
+  assert.equal(evaluateFlowReview({ ...original, name: 'Renamed' }, review, reviewed, reviewed).status, 'unchanged');
+  assert.equal(review.snapshotId, 'a');
 });
 
 test('reports unavailable comparisons instead of clearing review status', () => {
