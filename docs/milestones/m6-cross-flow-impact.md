@@ -1,8 +1,6 @@
 # M6 — Cross-flow impact and review
 
-Status: in progress. The local Flow catalog, switching, cross-flow impact
-preview, active Flow review checkpoints, and project-wide review list with
-affected-node navigation are implemented. Final acceptance QA remains.
+Status: completed.
 
 M6 connects local repository snapshot changes to explicit CodeReferences in
 saved Flows. It shows which Flows need a person's review and records which
@@ -140,3 +138,25 @@ invalidate a code review.
   cannot leave newly referenced code marked as reviewed.
 - The complete Checkout journey works with keyboard and pointer at compact
   width. Repository typecheck, tests, and build pass.
+
+## Verification
+
+Verified on 2026-10-12:
+
+- The Checkout fixture test covers two saved Flows linked to the changed
+  `CheckoutForm` and a third Flow linked to unchanged code. A later snapshot
+  with the same changed graph leaves both reviews pending. Reviewing one Flow
+  leaves the other pending.
+- The same fixture verifies that removing `CheckoutForm` reports its removed
+  entity and incident relations through the saved reference, while a change
+  to an unrelated relation leaves Checkout up to date. Core and web tests cover
+  checkpoint persistence, mapping changes, missing or incompatible snapshots,
+  and independent Flow/repository reviews.
+- In the browser, the Checkout scenario reached **Order confirmed** with its
+  default outcome and **Order error** with a forced failure. The project view
+  showed both affected saved Flows and selected the named node after switching.
+  At compact width, pointer navigation preserved unsaved edits through the
+  confirmation dialog, and Tab then Enter opened an affected node and its
+  Inspector. A fresh local session imported the Checkout Flow and a repository
+  snapshot.
+- Repository typecheck, tests, web lint, and production build passed.

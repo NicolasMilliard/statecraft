@@ -41,7 +41,7 @@ profile to compare them; the browser intentionally does not compare v1 and v2.
   added, modified, and removed entities and relations. The current snapshot
   supplies the code graph used by the node inspector for mapping.
 - Keep Flow documents, scenarios, CodeReferences, and snapshot history
-  separate. M5 reports code graph changes; M6 will apply those changes to
+  separate. M5 reports code graph changes; M6 applies those changes to
   cross-flow impact and review status.
 
 ## Acceptance
