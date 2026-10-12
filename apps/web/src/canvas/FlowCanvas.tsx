@@ -50,6 +50,7 @@ const edgeTypes = { statecraft: StatecraftEdge };
 
 export interface FlowCanvasHandle {
   addNode: (kind: FlowNodeKind) => void;
+  focusNode: (nodeId: string) => void;
   selectAll: () => void;
   cancel: () => void;
   fitView: () => void;
@@ -70,6 +71,7 @@ interface FlowCanvasProps {
   readonly flow: Flow;
   readonly layout: FlowLayout;
   readonly playback: CanvasPlayback | null;
+  readonly initialFocusNodeId?: string | null;
   readonly onLayoutChange: (layout: FlowLayout) => void;
   readonly onSelectionChange: (selection: CanvasSelection) => void;
   readonly onNodeAdd: (kind: FlowNodeKind, position: FlowNodePosition, focusTarget: 'canvas' | 'label') => string;
@@ -102,6 +104,7 @@ function FlowCanvasContent({
   flow,
   layout,
   playback,
+  initialFocusNodeId,
   onLayoutChange,
   onSelectionChange,
   onNodeAdd,
@@ -140,8 +143,24 @@ function FlowCanvasContent({
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges);
 
+  const focusNode = useCallback((nodeId: string) => {
+    const node = getNodes().find((item) => item.id === nodeId)
+      ?? graph.nodes.find((item) => item.id === nodeId);
+    if (!node) return;
+    setNodes((current) => current.map((item) => ({ ...item, selected: item.id === nodeId })));
+    setEdges((current) => current.map((edge) => ({ ...edge, selected: false })));
+    onSelectionChange({ nodeIds: [nodeId], edgeIds: [] });
+    void setCenter(
+      node.position.x + (node.measured?.width ?? CANVAS_NODE_WIDTH) / 2,
+      node.position.y + (node.measured?.height ?? CANVAS_NODE_MIN_HEIGHT) / 2,
+      { zoom: Math.max(getZoom(), 1) },
+    );
+    sectionRef.current?.focus({ preventScroll: true });
+  }, [getNodes, graph.nodes, getZoom, onSelectionChange, setCenter, setEdges, setNodes]);
+
   useImperativeHandle(ref, () => ({
     focus: () => sectionRef.current?.focus({ preventScroll: true }),
+    focusNode,
     fitView: () => { void fitView({ padding: 0.2 }); },
     selectAll: () => {
       setNodes((current) => current.map((node) => ({ ...node, selected: true })));
@@ -290,6 +309,9 @@ function FlowCanvasContent({
       }}
     >
       <ReactFlow<CanvasNode, CanvasEdge>
+        onInit={() => {
+          if (initialFocusNodeId) focusNode(initialFocusNodeId);
+        }}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}

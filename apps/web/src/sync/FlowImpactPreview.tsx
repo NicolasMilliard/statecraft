@@ -1,4 +1,5 @@
 import type { CodeEntity, Flow, FlowImpactReason, SnapshotDocument, SyncSnapshot } from '@statecraft/core';
+import { Button } from '../ui/Button';
 import type { WorkspaceFlowImpactAnalysis } from './workspace-flow-impacts';
 
 interface FlowImpactPreviewProps {
@@ -27,53 +28,59 @@ function reasonDescription(
   return `${reason.change.kind} ${relation.kind} relation · ${source} → ${target}`;
 }
 
-function ImpactReason({
-  reason,
-  flow,
-  entities,
-}: {
-  readonly reason: FlowImpactReason;
-  readonly flow: Flow;
-  readonly entities: ReadonlyMap<string, CodeEntity>;
-}) {
-  const reference = flow.codeReferences.find(({ id }) => id === reason.referenceId);
-  const node = flow.nodes.find(({ id }) => id === reason.nodeId);
-
-  return (
-    <li className="border-t border-border pt-2 first:border-t-0 first:pt-0">
-      <p className="text-xs wrap-anywhere">{reasonDescription(reason, entities)}</p>
-      <p className="mt-1 text-xs text-muted wrap-anywhere">
-        {node?.label ?? reason.nodeId} · {reference?.role ?? 'code'} link · {reference?.codeEntityId ?? reason.referenceId}
-      </p>
-    </li>
-  );
-}
-
 export function FlowImpactReasons({
   flow,
   reasons,
   before,
   after,
+  onLocateNode,
 }: {
   readonly flow: Flow;
   readonly reasons: readonly FlowImpactReason[];
   readonly before: SyncSnapshot;
   readonly after: SyncSnapshot;
+  readonly onLocateNode?: (nodeId: string) => void;
 }) {
   const entities = new Map<string, CodeEntity>();
   for (const entity of before.graph.entities) entities.set(entity.id, entity);
   for (const entity of after.graph.entities) entities.set(entity.id, entity);
+  const byNode = new Map<string, FlowImpactReason[]>();
+  for (const reason of reasons) {
+    const group = byNode.get(reason.nodeId) ?? [];
+    group.push(reason);
+    byNode.set(reason.nodeId, group);
+  }
 
   return (
-    <ul className="mt-3 space-y-2">
-      {reasons.map((reason) => (
-        <ImpactReason
-          key={reasonKey(reason)}
-          reason={reason}
-          flow={flow}
-          entities={entities}
-        />
-      ))}
+    <ul className="mt-3 space-y-3">
+      {[...byNode].map(([nodeId, nodeReasons]) => {
+        const node = flow.nodes.find(({ id }) => id === nodeId);
+        return (
+          <li key={nodeId} className="border-t border-border pt-3 first:border-t-0 first:pt-0">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-medium wrap-anywhere">{node?.label ?? nodeId}</p>
+              {onLocateNode && node && (
+                <Button variant="secondary" className="text-xs" onClick={() => onLocateNode(nodeId)} aria-label={`View ${node.label} in ${flow.name}`}>
+                  View node
+                </Button>
+              )}
+            </div>
+            <ul className="mt-2 space-y-2">
+              {nodeReasons.map((reason) => {
+                const reference = flow.codeReferences.find(({ id }) => id === reason.referenceId);
+                return (
+                  <li key={reasonKey(reason)}>
+                    <p className="text-xs wrap-anywhere">{reasonDescription(reason, entities)}</p>
+                    <p className="mt-1 text-xs text-muted wrap-anywhere">
+                      {reference?.role ?? 'code'} link · {reference?.codeEntityId ?? reason.referenceId}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </li>
+        );
+      })}
     </ul>
   );
 }

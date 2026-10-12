@@ -22,7 +22,7 @@ import { WorkspaceSidebar, type WorkspacePanelMode } from './WorkspaceSidebar';
 
 type PendingFlowChange =
   | { readonly kind: 'new' }
-  | { readonly kind: 'saved'; readonly flowId: string; readonly name: string };
+  | { readonly kind: 'saved'; readonly flowId: string; readonly name: string; readonly nodeId?: string };
 
 export default function App() {
   const editor = useFlowEditor(checkoutFlow, checkoutLayout);
@@ -34,6 +34,7 @@ export default function App() {
     edgeIds: [],
   });
   const [canvasRevision, setCanvasRevision] = useState(0);
+  const [canvasFocusNodeId, setCanvasFocusNodeId] = useState<string | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [panelMode, setPanelMode] = useState<WorkspacePanelMode>('inspector');
@@ -73,6 +74,7 @@ export default function App() {
       setSelection({ nodeIds: [], edgeIds: [] });
       scenarios.reset();
       setCanvasRevision((current) => current + 1);
+      setCanvasFocusNodeId(null);
       focusCanvasAfterUpdate.current = true;
     },
     importSnapshot: snapshots.importDocument,
@@ -134,7 +136,10 @@ export default function App() {
   function performFlowChange(change: PendingFlowChange) {
     if (change.kind === 'saved' && !editor.openSavedFlow(change.flowId)) return;
     if (change.kind === 'new') editor.createFlow();
-    focusCanvasAfterUpdate.current = true;
+    const nodeId = change.kind === 'saved' ? change.nodeId ?? null : null;
+    setCanvasFocusNodeId(nodeId);
+    focusCanvasAfterUpdate.current = nodeId === null;
+    if (nodeId !== null) setPanelMode('inspector');
     setSelection({ nodeIds: [], edgeIds: [] });
     scenarios.reset();
     setCanvasRevision((current) => current + 1);
@@ -149,12 +154,27 @@ export default function App() {
     }
   }
 
-  function handleFlowOpen(flowId: string) {
-    if (isOpeningBlocked || (flowId === flow.id && !editor.hasUnsavedChanges)) return;
+  function locateActiveNode(nodeId: string) {
+    if (isOpeningBlocked || !flow.nodes.some((node) => node.id === nodeId)) return;
+    setPanelMode('inspector');
+    canvasRef.current?.focusNode(nodeId);
+  }
+
+  function handleFlowOpen(flowId: string, nodeId?: string) {
+    if (isOpeningBlocked) return;
+    if (flowId === flow.id && !editor.hasUnsavedChanges) {
+      if (nodeId !== undefined) locateActiveNode(nodeId);
+      return;
+    }
     const saved = editor.savedFlows.find((item) => item.flow.id === flowId);
     if (saved === undefined) return;
 
-    const change: PendingFlowChange = { kind: 'saved', flowId, name: saved.flow.name };
+    const change: PendingFlowChange = {
+      kind: 'saved',
+      flowId,
+      name: saved.flow.name,
+      ...(nodeId === undefined ? {} : { nodeId }),
+    };
     if (editor.hasUnsavedChanges) {
       setPendingFlowChange(change);
     } else {
@@ -274,6 +294,7 @@ export default function App() {
             flow={flow}
             layout={layout}
             playback={scenarios.canvasPlayback}
+            initialFocusNodeId={canvasFocusNodeId}
             onLayoutChange={editor.updateLayout}
             onSelectionChange={setSelection}
             onNodeAdd={handleNodeAdd}
@@ -297,6 +318,7 @@ export default function App() {
           panelMode={panelMode}
           onPanelModeChange={setPanelMode}
           onFlowOpen={handleFlowOpen}
+          onLocateActiveNode={locateActiveNode}
           nodeLabelInputRef={nodeLabelInputRef}
           onSelectionDelete={handleSelectionDelete}
           onNodeDelete={handleNodeDelete}

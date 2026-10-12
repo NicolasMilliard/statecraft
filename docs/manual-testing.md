@@ -106,6 +106,21 @@ that the checkpoint travels with it. Change the role or target of its code link
 and save: its status should become **Unreviewed** until another explicit review.
 An unsaved Flow cannot record a checkpoint; save it first.
 
+To check the project review view, save two Flows linked to `CheckoutForm` and
+mark each reviewed while the baseline is the **Current snapshot**. Select the
+changed snapshot as current, then open **Flows**. The summary should count two
+saved Flows needing review, each with its own reason. **View node** should open
+the chosen Flow, center its affected node, and show it in **Inspector**. Mark
+one Flow reviewed; the other must remain pending. A third Flow linked only to
+an unchanged entity should say **Up to date** and not raise the count. Check
+that **Unreviewed**, **Unavailable**, and **Unmapped** appear distinctly.
+
+While one Flow has an unsaved edit, use **View node** for another saved Flow.
+**Cancel** must keep the edit; **Save and continue** and **Discard changes**
+must open the requested Flow and select the node. The Flows panel should show
+the saved copy's status and a separate **Unsaved preview** for the active edit.
+Repeat at compact width with pointer and keyboard.
+
 ## Scan a separate React/TypeScript project
 
 The CLI can scan another local repository now. The target must have a Git HEAD

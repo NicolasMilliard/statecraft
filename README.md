@@ -21,7 +21,7 @@ M2 — Local React/TypeScript scanner and CLI: implementation complete.
 M3 — Code mapping and local handoff: completed.
 M4 — Scenarios and Run: completed.
 M5 — Repository snapshots and local sync: completed.
-M6 — Cross-flow impact and review: in progress; local Flow catalog, impact preview and explicit review checkpoints implemented.
+M6 — Cross-flow impact and review: in progress; project review list and affected-node navigation implemented, final acceptance QA pending.
 
 The [M2 scanner contract](docs/milestones/m2-scanner-contract.md) records the
 supported patterns and Checkout acceptance fixture.

@@ -20,7 +20,8 @@ interface WorkspaceSidebarProps {
   readonly selectedEdges: readonly FlowEdge[];
   readonly panelMode: WorkspacePanelMode;
   readonly onPanelModeChange: (mode: WorkspacePanelMode) => void;
-  readonly onFlowOpen: (flowId: string) => void;
+  readonly onFlowOpen: (flowId: string, nodeId?: string) => void;
+  readonly onLocateActiveNode: (nodeId: string) => void;
   readonly nodeLabelInputRef: RefObject<HTMLInputElement | null>;
   readonly onSelectionDelete: () => void;
   readonly onNodeDelete: (id: string) => void;
@@ -36,6 +37,7 @@ export function WorkspaceSidebar({
   panelMode,
   onPanelModeChange,
   onFlowOpen,
+  onLocateActiveNode,
   nodeLabelInputRef,
   onSelectionDelete,
   onNodeDelete,
@@ -65,10 +67,14 @@ export function WorkspaceSidebar({
         {panelMode === 'flows' ? (
           <SavedFlowsPanel
             flows={editor.savedFlows}
-            currentFlowId={flow.id}
+            activeFlow={flow}
+            activeReviews={editor.reviews}
             hasUnsavedChanges={editor.hasUnsavedChanges}
+            documents={snapshots.documents}
+            current={snapshots.current}
             issue={editor.catalogIssue}
             onOpen={onFlowOpen}
+            onLocateActiveNode={onLocateActiveNode}
           />
         ) : panelMode === 'sync' ? (
           <SnapshotPanel
