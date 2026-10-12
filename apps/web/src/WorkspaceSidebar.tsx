@@ -76,6 +76,10 @@ export function WorkspaceSidebar({
             current={snapshots.current}
             baseline={snapshots.baseline}
             compatible={snapshots.compatible}
+            savedFlows={editor.savedFlows}
+            activeFlow={flow}
+            hasUnsavedFlowChanges={editor.hasUnsavedChanges}
+            flowCatalogIssue={editor.catalogIssue}
             storageIssue={snapshots.storageIssue}
             onCurrentChange={snapshots.selectCurrent}
             onBaselineChange={snapshots.selectBaseline}

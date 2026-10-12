@@ -21,7 +21,7 @@ M2 — Local React/TypeScript scanner and CLI: implementation complete.
 M3 — Code mapping and local handoff: completed.
 M4 — Scenarios and Run: completed.
 M5 — Repository snapshots and local sync: completed.
-M6 — Cross-flow impact and review: in progress; local Flow catalog implemented.
+M6 — Cross-flow impact and review: in progress; local Flow catalog and impact preview implemented.
 
 The [M2 scanner contract](docs/milestones/m2-scanner-contract.md) records the
 supported patterns and Checkout acceptance fixture.
@@ -33,7 +33,8 @@ metadata snapshots and local comparison.
 The [M6 contract](docs/milestones/m6-cross-flow-impact.md) defines how snapshot
 changes affect saved Flows and how explicit reviews establish checkpoints.
 Saved Flows can be reopened from the Flows panel; switching prompts when the
-current Flow has unsaved changes.
+current Flow has unsaved changes. Sync previews direct impacts across those
+Flows for the selected snapshot comparison.
 
 ## Development
 

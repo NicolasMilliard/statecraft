@@ -71,20 +71,30 @@ git -C "$SC_TEST_REPO" init -q
 git -C "$SC_TEST_REPO" add .
 git -C "$SC_TEST_REPO" -c user.name='Statecraft Test' -c user.email='test@example.invalid' commit -qm baseline
 node packages/cli/dist/index.js scan "$SC_TEST_REPO" --repository-id storefront --output "$SC_TEST_DIR/before.snapshot.json"
-python3 - "$SC_TEST_REPO/src/pages/CheckoutPage.tsx" <<'PY'
+python3 - "$SC_TEST_REPO/src/components/CheckoutForm.tsx" <<'PY'
 from pathlib import Path
 import sys
 path = Path(sys.argv[1])
-path.write_text(path.read_text().replace('<h1>Checkout</h1>', '<h1>Review order</h1>'))
+path.write_text(path.read_text().replace('Place order', 'Confirm order'))
 PY
 node packages/cli/dist/index.js scan "$SC_TEST_REPO" --repository-id storefront --output "$SC_TEST_DIR/after.snapshot.json"
 ```
 
 Open both JSON files in the app. **Sync** should report one modified entity,
-`CheckoutPage`. The later snapshot is marked dirty because the source changed
+`CheckoutForm`. The later snapshot is marked dirty because the source changed
 without a new commit. Reload the page: both snapshots should remain available.
 Switch **Current snapshot** to check the graph used by code mapping. The
-comparison reports code changes; automatic Flow review status belongs to M6.
+comparison reports code changes and directly affected Flows; review status
+requires an explicit review checkpoint, which is not yet available.
+
+To check the cross-Flow preview, save the mapping demo Flow, then create
+and save another Flow with a node linked to `CheckoutForm`. Import both
+snapshots and open **Sync**. Both saved Flows should appear under **Flows touched
+by this comparison**, with the changed entity and linked node as reasons. A
+Flow with no `CheckoutForm` link should not appear. Edit the active Flow's code
+link without saving: the preview should update and say **Unsaved preview**.
+Changing **Compare with** only changes this exploratory preview; it does not
+mark any Flow reviewed.
 
 ## Scan a separate React/TypeScript project
 

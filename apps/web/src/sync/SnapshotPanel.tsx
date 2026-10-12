@@ -2,17 +2,25 @@ import {
   diffSnapshotEntities,
   diffSnapshotRelations,
   type CodeEntity,
+  type Flow,
   type SnapshotDocument,
 } from '@statecraft/core';
 import { useMemo } from 'react';
+import type { FlowEditorState } from '../editor/flow-editor-state';
 import { InspectorPanel } from '../inspector/InspectorPanel';
 import { Select } from '../ui/Select';
+import { FlowImpactPreview } from './FlowImpactPreview';
+import { analyzeWorkspaceFlowImpacts, collectWorkspaceFlows } from './workspace-flow-impacts';
 
 interface SnapshotPanelProps {
   readonly documents: readonly SnapshotDocument[];
   readonly current: SnapshotDocument | null;
   readonly baseline: SnapshotDocument | null;
   readonly compatible: readonly SnapshotDocument[];
+  readonly savedFlows: readonly FlowEditorState[];
+  readonly activeFlow: Flow;
+  readonly hasUnsavedFlowChanges: boolean;
+  readonly flowCatalogIssue: string | null;
   readonly storageIssue: string | null;
   readonly onCurrentChange: (id: string) => void;
   readonly onBaselineChange: (id: string) => void;
@@ -40,6 +48,10 @@ export function SnapshotPanel({
   current,
   baseline,
   compatible,
+  savedFlows,
+  activeFlow,
+  hasUnsavedFlowChanges,
+  flowCatalogIssue,
   storageIssue,
   onCurrentChange,
   onBaselineChange,
@@ -59,9 +71,21 @@ export function SnapshotPanel({
     };
   }, [current, baseline]);
 
+  const workspaceFlows = useMemo(
+    () => collectWorkspaceFlows(savedFlows, activeFlow, hasUnsavedFlowChanges),
+    [savedFlows, activeFlow, hasUnsavedFlowChanges],
+  );
+  const flowImpactAnalysis = useMemo(
+    () => current && baseline
+      ? analyzeWorkspaceFlowImpacts(workspaceFlows, baseline.snapshot, current.snapshot)
+      : null,
+    [workspaceFlows, baseline, current],
+  );
+
   return (
     <InspectorPanel title="Sync" context={`${documents.length} saved`}>
       {storageIssue && <p role="alert" className="text-ui text-danger">{storageIssue}</p>}
+      {flowCatalogIssue && <p role="alert" className="text-ui text-danger">Flow impact preview may be incomplete: {flowCatalogIssue}</p>}
       {current === null ? (
         <div className="text-ui text-muted">
           <h3 className="font-medium text-foreground">No repository snapshot yet</h3>
@@ -151,6 +175,9 @@ export function SnapshotPanel({
                       })}
                     </ul>
                   </section>
+                )}
+                {baseline && flowImpactAnalysis && (
+                  <FlowImpactPreview analysis={flowImpactAnalysis} before={baseline} after={current} />
                 )}
               </>
             )}
