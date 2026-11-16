@@ -1,8 +1,4 @@
-import type {
-  CodeGraph,
-  CodeReferenceRole,
-  Flow,
-} from '@statecraft/core';
+import type { CodeGraph, CodeReferenceRole, Flow } from "@statecraft/core";
 
 export function attachCodeEntity(
   flow: Flow,
@@ -10,7 +6,7 @@ export function attachCodeEntity(
   nodeId: string,
   entityId: string,
   role: CodeReferenceRole,
-  referenceId: string,
+  referenceId: string
 ): Flow {
   if (
     !flow.nodes.some((node) => node.id === nodeId) ||
@@ -20,7 +16,7 @@ export function attachCodeEntity(
       (reference) =>
         reference.flowNodeId === nodeId &&
         reference.repositoryId === graph.repositoryId &&
-        reference.codeEntityId === entityId,
+        reference.codeEntityId === entityId
     )
   ) {
     return flow;
@@ -44,18 +40,20 @@ export function attachCodeEntity(
 export function setCodeReferenceRole(
   flow: Flow,
   referenceId: string,
-  role: CodeReferenceRole,
+  role: CodeReferenceRole
 ): Flow {
-  if (!flow.codeReferences.some(
-    (reference) => reference.id === referenceId && reference.role !== role,
-  )) {
+  if (
+    !flow.codeReferences.some(
+      (reference) => reference.id === referenceId && reference.role !== role
+    )
+  ) {
     return flow;
   }
 
   return {
     ...flow,
     codeReferences: flow.codeReferences.map((reference) =>
-      reference.id === referenceId ? { ...reference, role } : reference,
+      reference.id === referenceId ? { ...reference, role } : reference
     ),
   };
 }
@@ -68,7 +66,7 @@ export function removeCodeReference(flow: Flow, referenceId: string): Flow {
   return {
     ...flow,
     codeReferences: flow.codeReferences.filter(
-      (reference) => reference.id !== referenceId,
+      (reference) => reference.id !== referenceId
     ),
   };
 }

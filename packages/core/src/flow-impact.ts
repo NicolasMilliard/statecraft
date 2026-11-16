@@ -1,18 +1,18 @@
 import type {
   CodeChange,
   SnapshotEntityDiff,
-} from './diff-snapshot-entities.js';
-import type { CodeRelationChange } from './diff-snapshot-relations.js';
+} from "./diff-snapshot-entities.js";
+import type { CodeRelationChange } from "./diff-snapshot-relations.js";
 
 export type FlowImpactReason =
   | {
-      readonly type: 'entity';
+      readonly type: "entity";
       readonly referenceId: string;
       readonly nodeId: string;
       readonly change: CodeChange;
     }
   | {
-      readonly type: 'relation';
+      readonly type: "relation";
       readonly referenceId: string;
       readonly nodeId: string;
       readonly entityId: string;
@@ -26,10 +26,10 @@ export interface FlowImpact {
 
 export type FlowImpactAnalysis =
   | {
-      readonly status: 'analyzed';
+      readonly status: "analyzed";
       readonly repositoryId: string;
       readonly beforeSnapshotId: string;
       readonly afterSnapshotId: string;
       readonly impacts: readonly FlowImpact[];
     }
-  | Extract<SnapshotEntityDiff, { status: 'incompatible' }>;
+  | Extract<SnapshotEntityDiff, { status: "incompatible" }>;

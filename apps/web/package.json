@@ -1,12 +1,12 @@
 {
   "name": "@statecraft/web",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "pnpm run typecheck && vite build",
-    "lint": "oxlint",
+    "lint": "pnpm --workspace-root run lint apps/web",
     "preview": "vite preview",
     "test": "node --test \"test/**/*.test.ts\"",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p test/tsconfig.json --noEmit"
@@ -27,7 +27,6 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
-    "oxlint": "^1.81.0",
     "tailwindcss": "^4.3.3",
     "typescript": "7.0.2",
     "vite": "^8.3.0"

@@ -1,16 +1,19 @@
-import type { Scenario, ServiceOutcome } from '@statecraft/core';
-import type { FlowEditorState } from './flow-editor-state';
+import type { Scenario, ServiceOutcome } from "@statecraft/core";
+
+import type { FlowEditorState } from "./flow-editor-state";
 
 function updateScenario(
   editor: FlowEditorState,
   scenarioId: string,
-  update: (scenario: Scenario) => Scenario,
+  update: (scenario: Scenario) => Scenario
 ): FlowEditorState {
   const scenarios = editor.scenarios.map((scenario) =>
-    scenario.id === scenarioId ? update(scenario) : scenario,
+    scenario.id === scenarioId ? update(scenario) : scenario
   );
 
-  return scenarios.every((scenario, index) => scenario === editor.scenarios[index])
+  return scenarios.every(
+    (scenario, index) => scenario === editor.scenarios[index]
+  )
     ? editor
     : { ...editor, scenarios };
 }
@@ -18,7 +21,7 @@ function updateScenario(
 export function addScenario(
   editor: FlowEditorState,
   scenarioId: string,
-  name = 'New scenario',
+  name = "New scenario"
 ): FlowEditorState {
   const normalizedName = name.trim();
   if (
@@ -33,7 +36,12 @@ export function addScenario(
     ...editor,
     scenarios: [
       ...editor.scenarios,
-      { id: scenarioId, flowId: editor.flow.id, name: normalizedName, overrides: [] },
+      {
+        id: scenarioId,
+        flowId: editor.flow.id,
+        name: normalizedName,
+        overrides: [],
+      },
     ],
   };
 }
@@ -41,9 +49,11 @@ export function addScenario(
 export function duplicateScenario(
   editor: FlowEditorState,
   sourceScenarioId: string,
-  newScenarioId: string,
+  newScenarioId: string
 ): FlowEditorState {
-  const source = editor.scenarios.find((scenario) => scenario.id === sourceScenarioId);
+  const source = editor.scenarios.find(
+    (scenario) => scenario.id === sourceScenarioId
+  );
   if (
     source === undefined ||
     newScenarioId.length === 0 ||
@@ -72,23 +82,27 @@ export function duplicateScenario(
 export function renameScenario(
   editor: FlowEditorState,
   scenarioId: string,
-  name: string,
+  name: string
 ): FlowEditorState {
   const normalizedName = name.trim();
-  if (normalizedName.length === 0) return editor;
+  if (normalizedName.length === 0) {
+    return editor;
+  }
 
   return updateScenario(editor, scenarioId, (scenario) =>
     scenario.name === normalizedName
       ? scenario
-      : { ...scenario, name: normalizedName },
+      : { ...scenario, name: normalizedName }
   );
 }
 
 export function removeScenario(
   editor: FlowEditorState,
-  scenarioId: string,
+  scenarioId: string
 ): FlowEditorState {
-  const scenarios = editor.scenarios.filter((scenario) => scenario.id !== scenarioId);
+  const scenarios = editor.scenarios.filter(
+    (scenario) => scenario.id !== scenarioId
+  );
   return scenarios.length === editor.scenarios.length
     ? editor
     : { ...editor, scenarios };
@@ -98,32 +112,42 @@ export function setScenarioOverride(
   editor: FlowEditorState,
   scenarioId: string,
   flowNodeId: string,
-  outcome: ServiceOutcome | null,
+  outcome: ServiceOutcome | null
 ): FlowEditorState {
-  if (!editor.flow.nodes.some((node) => node.id === flowNodeId && node.kind === 'service')) {
-    return editor;
-  }
-
   if (
-    outcome !== null &&
-    (
-      !['success', 'failure'].includes(outcome.kind) ||
-      (outcome.httpStatus !== null &&
-        (!Number.isInteger(outcome.httpStatus) ||
-          outcome.httpStatus < 100 ||
-          outcome.httpStatus > 599))
+    !editor.flow.nodes.some(
+      (node) => node.id === flowNodeId && node.kind === "service"
     )
   ) {
     return editor;
   }
 
-  const normalizedOutcome: ServiceOutcome | null = outcome === null
-    ? null
-    : { ...outcome, code: outcome.code?.trim() || null };
+  if (
+    outcome !== null &&
+    (!["success", "failure"].includes(outcome.kind) ||
+      (outcome.httpStatus !== null &&
+        (!Number.isInteger(outcome.httpStatus) ||
+          outcome.httpStatus < 100 ||
+          outcome.httpStatus > 599)))
+  ) {
+    return editor;
+  }
+
+  const normalizedCode = outcome?.code?.trim();
+  const normalizedOutcome: ServiceOutcome | null =
+    outcome === null
+      ? null
+      : {
+          ...outcome,
+          code:
+            normalizedCode === undefined || normalizedCode.length === 0
+              ? null
+              : normalizedCode,
+        };
 
   return updateScenario(editor, scenarioId, (scenario) => {
     const previous = scenario.overrides.find(
-      (override) => override.flowNodeId === flowNodeId,
+      (override) => override.flowNodeId === flowNodeId
     );
 
     if (normalizedOutcome === null) {
@@ -132,7 +156,7 @@ export function setScenarioOverride(
         : {
             ...scenario,
             overrides: scenario.overrides.filter(
-              (override) => override.flowNodeId !== flowNodeId,
+              (override) => override.flowNodeId !== flowNodeId
             ),
           };
     }
@@ -148,11 +172,12 @@ export function setScenarioOverride(
     const override = { flowNodeId, outcome: normalizedOutcome };
     return {
       ...scenario,
-      overrides: previous === undefined
-        ? [...scenario.overrides, override]
-        : scenario.overrides.map((item) =>
-            item.flowNodeId === flowNodeId ? override : item,
-          ),
+      overrides:
+        previous === undefined
+          ? [...scenario.overrides, override]
+          : scenario.overrides.map((item) =>
+              item.flowNodeId === flowNodeId ? override : item
+            ),
     };
   });
 }

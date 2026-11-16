@@ -1,11 +1,12 @@
-import {
-  analyzeSnapshotFlowImpacts,
-  type Flow,
-  type FlowImpactAnalysis,
-  type FlowImpactReason,
-  type SyncSnapshot,
-} from '@statecraft/core';
-import type { FlowEditorState } from '../editor/flow-editor-state';
+import { analyzeSnapshotFlowImpacts } from "@statecraft/core";
+import type {
+  Flow,
+  FlowImpactAnalysis,
+  FlowImpactReason,
+  SyncSnapshot,
+} from "@statecraft/core";
+
+import type { FlowEditorState } from "../editor/flow-editor-state";
 
 export interface WorkspaceFlow {
   readonly flow: Flow;
@@ -18,9 +19,9 @@ export interface ImpactedWorkspaceFlow extends WorkspaceFlow {
 }
 
 export type WorkspaceFlowImpactAnalysis =
-  | Extract<FlowImpactAnalysis, { status: 'incompatible' }>
+  | Extract<FlowImpactAnalysis, { status: "incompatible" }>
   | {
-      readonly status: 'analyzed';
+      readonly status: "analyzed";
       readonly repositoryId: string;
       readonly beforeSnapshotId: string;
       readonly afterSnapshotId: string;
@@ -32,7 +33,7 @@ export type WorkspaceFlowImpactAnalysis =
 export function collectWorkspaceFlows(
   savedFlows: readonly FlowEditorState[],
   activeFlow: Flow,
-  hasUnsavedChanges: boolean,
+  hasUnsavedChanges: boolean
 ): readonly WorkspaceFlow[] {
   const flows = savedFlows.map(({ flow }) => ({
     flow: flow.id === activeFlow.id ? activeFlow : flow,
@@ -50,29 +51,38 @@ export function collectWorkspaceFlows(
 export function analyzeWorkspaceFlowImpacts(
   workspaceFlows: readonly WorkspaceFlow[],
   before: SyncSnapshot,
-  after: SyncSnapshot,
+  after: SyncSnapshot
 ): WorkspaceFlowImpactAnalysis {
   const analysis = analyzeSnapshotFlowImpacts(
     workspaceFlows.map(({ flow }) => flow),
     before,
-    after,
+    after
   );
 
-  if (analysis.status === 'incompatible') return analysis;
+  if (analysis.status === "incompatible") {
+    return analysis;
+  }
 
-  const flowsById = new Map(workspaceFlows.map((flow) => [flow.flow.id, flow] as const));
+  const flowsById = new Map(
+    workspaceFlows.map((flow) => [flow.flow.id, flow] as const)
+  );
 
   return {
-    status: 'analyzed',
+    status: "analyzed",
     repositoryId: analysis.repositoryId,
     beforeSnapshotId: analysis.beforeSnapshotId,
     afterSnapshotId: analysis.afterSnapshotId,
     mappedFlowCount: workspaceFlows.filter(({ flow }) =>
-      flow.codeReferences.some((reference) => reference.repositoryId === analysis.repositoryId),
+      flow.codeReferences.some(
+        (reference) => reference.repositoryId === analysis.repositoryId
+      )
     ).length,
-    impacts: analysis.impacts.map((impact) => ({
-      ...flowsById.get(impact.flowId)!,
-      reasons: impact.reasons,
-    })),
+    impacts: analysis.impacts.map((impact) => {
+      const workspaceFlow = flowsById.get(impact.flowId);
+      if (workspaceFlow === undefined) {
+        throw new Error(`Missing workspace Flow ${impact.flowId}.`);
+      }
+      return { ...workspaceFlow, reasons: impact.reasons };
+    }),
   };
 }

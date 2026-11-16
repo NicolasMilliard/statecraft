@@ -1,18 +1,15 @@
-import {
-  FLOW_EDGE_KINDS,
-  type Flow,
-  type FlowEdge,
-  type FlowEdgeKind,
-} from '@statecraft/core';
-import { useId } from 'react';
-import { canAddFlowEdge } from '../editor/can-add-flow-edge';
-import { Button } from '../ui/Button';
-import { InspectorPanel } from './InspectorPanel';
+import { FLOW_EDGE_KINDS } from "@statecraft/core";
+import type { Flow, FlowEdge, FlowEdgeKind } from "@statecraft/core";
+import { useId } from "react";
+
+import { canAddFlowEdge } from "../editor/can-add-flow-edge";
+import { Button } from "../ui/Button";
+import { InspectorPanel } from "./InspectorPanel";
 
 const EDGE_KIND_LABELS: Record<FlowEdgeKind, string> = {
-  transition: 'Transition',
-  success: 'Success',
-  failure: 'Failure',
+  transition: "Transition",
+  success: "Success",
+  failure: "Failure",
 };
 
 interface EdgeInspectorProps {
@@ -37,7 +34,7 @@ export function EdgeInspector({
     <InspectorPanel context="Connection">
       <div className="mb-6">
         <h3 className="text-sm font-medium">Connection details</h3>
-        <p className="mt-1 font-mono text-xs text-muted wrap-anywhere">
+        <p className="mt-1 font-mono text-xs wrap-anywhere text-muted">
           {edge.id}
         </p>
       </div>
@@ -68,7 +65,7 @@ export function EdgeInspector({
               edge.sourceNodeId,
               edge.targetNodeId,
               kind,
-              edge.id,
+              edge.id
             );
 
             return (
@@ -82,7 +79,9 @@ export function EdgeInspector({
                   value={kind}
                   checked={edge.kind === kind}
                   disabled={!isAvailable}
-                  onChange={() => onEdgeKindChange(edge.id, kind)}
+                  onChange={() => {
+                    onEdgeKindChange(edge.id, kind);
+                  }}
                   className="accent-brand"
                 />
 
@@ -90,7 +89,7 @@ export function EdgeInspector({
                   {EDGE_KIND_LABELS[kind]}
                   {!isAvailable && (
                     <span className="text-xs text-muted">
-                      {' '}
+                      {" "}
                       (already exists)
                     </span>
                   )}
@@ -106,7 +105,12 @@ export function EdgeInspector({
         </p>
       </fieldset>
       <div className="mt-6 border-t border-border pt-4">
-        <Button variant="danger" onClick={() => onEdgeDelete(edge.id)}>
+        <Button
+          variant="danger"
+          onClick={() => {
+            onEdgeDelete(edge.id);
+          }}
+        >
           Delete connection
         </Button>
       </div>

@@ -1,15 +1,26 @@
-import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
-import { toast, Toaster } from 'sonner';
+import type { CSSProperties, KeyboardEvent, MouseEvent } from "react";
+import { toast, Toaster } from "sonner";
 
-function dismissClickedToast(event: MouseEvent<HTMLDivElement> | KeyboardEvent<HTMLDivElement>) {
-  if (!(event.target instanceof Element) || event.defaultPrevented) return;
-  if (event.target.closest('button, a, input, select, textarea, [role="button"]')) return;
+function dismissClickedToast(
+  event: MouseEvent<HTMLDivElement> | KeyboardEvent<HTMLDivElement>
+) {
+  if (!(event.target instanceof Element) || event.defaultPrevented) {
+    return;
+  }
+  if (
+    event.target.closest('button, a, input, select, textarea, [role="button"]')
+  ) {
+    return;
+  }
 
-  const notification = event.target.closest<HTMLElement>('[data-sonner-toast]');
-  if (!notification || notification.dataset.dismissible === 'false') return;
+  const notification = event.target.closest<HTMLElement>("[data-sonner-toast]");
+  if (!notification || notification.dataset.dismissible === "false") {
+    return;
+  }
 
-  const id = notification.querySelector<HTMLElement>('[data-toast-id]')?.dataset.toastId;
-  if (id) {
+  const id =
+    notification.querySelector<HTMLElement>("[data-toast-id]")?.dataset.toastId;
+  if (id !== undefined && id.length > 0) {
     event.preventDefault();
     toast.dismiss(id);
   }
@@ -18,10 +29,15 @@ function dismissClickedToast(event: MouseEvent<HTMLDivElement> | KeyboardEvent<H
 export function EditorToaster() {
   return (
     <div
+      role="presentation"
       data-editor-notifications
       onClick={dismissClickedToast}
       onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Escape') {
+        if (
+          event.key === "Enter" ||
+          event.key === " " ||
+          event.key === "Escape"
+        ) {
           dismissClickedToast(event);
         }
       }}
@@ -33,27 +49,30 @@ export function EditorToaster() {
         mobileOffset={16}
         visibleToasts={3}
         closeButton
-        style={{
-          fontFamily: 'inherit',
-          '--normal-bg': 'var(--color-surface)',
-          '--normal-text': 'var(--color-foreground)',
-          '--normal-border': 'var(--color-border)',
-          '--border-radius': 'var(--radius-control)',
-        } as CSSProperties}
+        style={
+          {
+            fontFamily: "inherit",
+            "--normal-bg": "var(--color-surface)",
+            "--normal-text": "var(--color-foreground)",
+            "--normal-border": "var(--color-border)",
+            "--border-radius": "var(--radius-control)",
+          } as CSSProperties
+        }
         toastOptions={{
           duration: 4000,
-          closeButtonAriaLabel: 'Dismiss notification',
+          closeButtonAriaLabel: "Dismiss notification",
           classNames: {
-            toast: 'cursor-pointer',
-            description: 'text-muted!',
-            closeButton: 'pointer-events-none opacity-0! focus-visible:pointer-events-auto focus-visible:opacity-100! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+            toast: "cursor-pointer",
+            description: "text-muted!",
+            closeButton:
+              "pointer-events-none opacity-0! focus-visible:pointer-events-auto focus-visible:opacity-100! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
           },
           actionButtonStyle: {
             minHeight: 32,
-            background: 'var(--color-surface-hover)',
-            color: 'var(--color-foreground)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-control)',
+            background: "var(--color-surface-hover)",
+            color: "var(--color-foreground)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-control)",
           },
         }}
       />

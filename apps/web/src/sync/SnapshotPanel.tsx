@@ -1,20 +1,23 @@
+import { diffSnapshotEntities, diffSnapshotRelations } from "@statecraft/core";
+import type {
+  CodeEntity,
+  Flow,
+  FlowReview,
+  SnapshotDocument,
+  SyncSnapshot,
+} from "@statecraft/core";
+import { useMemo } from "react";
+
+import type { FlowEditorState } from "../editor/flow-editor-state";
+import { InspectorPanel } from "../inspector/InspectorPanel";
+import { Select } from "../ui/Select";
+import { ActiveFlowReviewPanel } from "./ActiveFlowReviewPanel";
+import { FlowImpactPreview } from "./FlowImpactPreview";
 import {
-  diffSnapshotEntities,
-  diffSnapshotRelations,
-  type CodeEntity,
-  type Flow,
-  type FlowReview,
-  type SnapshotDocument,
-  type SyncSnapshot,
-} from '@statecraft/core';
-import { useMemo } from 'react';
-import type { FlowEditorState } from '../editor/flow-editor-state';
-import { InspectorPanel } from '../inspector/InspectorPanel';
-import { Select } from '../ui/Select';
-import { ActiveFlowReviewPanel } from './ActiveFlowReviewPanel';
-import { FlowImpactPreview } from './FlowImpactPreview';
-import { analyzeWorkspaceFlowImpacts, collectWorkspaceFlows } from './workspace-flow-impacts';
-import { assessWorkspaceFlowReview } from './workspace-flow-reviews';
+  analyzeWorkspaceFlowImpacts,
+  collectWorkspaceFlows,
+} from "./workspace-flow-impacts";
+import { assessWorkspaceFlowReview } from "./workspace-flow-reviews";
 
 interface SnapshotPanelProps {
   readonly documents: readonly SnapshotDocument[];
@@ -35,7 +38,7 @@ interface SnapshotPanelProps {
 
 function label(document: SnapshotDocument): string {
   const { snapshot } = document;
-  return `${snapshot.graph.repositoryId} · ${snapshot.git.commitSha.slice(0, 8)}${snapshot.git.isDirty ? ' · dirty' : ''}`;
+  return `${snapshot.graph.repositoryId} · ${snapshot.git.commitSha.slice(0, 8)}${snapshot.git.isDirty ? " · dirty" : ""}`;
 }
 
 function entityLabel(entity: CodeEntity | undefined, entityId: string): string {
@@ -45,9 +48,11 @@ function entityLabel(entity: CodeEntity | undefined, entityId: string): string {
 function relationEntityLabel(
   entityId: string,
   current: ReadonlyMap<string, CodeEntity>,
-  baseline: ReadonlyMap<string, CodeEntity>,
+  baseline: ReadonlyMap<string, CodeEntity>
 ): string {
-  return current.get(entityId)?.name ?? baseline.get(entityId)?.name ?? entityId;
+  return (
+    current.get(entityId)?.name ?? baseline.get(entityId)?.name ?? entityId
+  );
 }
 
 export function SnapshotPanel({
@@ -66,62 +71,115 @@ export function SnapshotPanel({
   onBaselineChange,
   onMarkReviewed,
 }: SnapshotPanelProps) {
-  const { entities, relations, currentEntities, baselineEntities } = useMemo(() => {
-    const entityDiff = current && baseline
-      ? diffSnapshotEntities(baseline.snapshot, current.snapshot)
-      : null;
-    const relationDiff = current && baseline
-      ? diffSnapshotRelations(baseline.snapshot, current.snapshot)
-      : null;
-    return {
-      entities: entityDiff?.status === 'compared' ? entityDiff.changes : [],
-      relations: relationDiff?.status === 'compared' ? relationDiff.changes : [],
-      currentEntities: new Map(current?.snapshot.graph.entities.map((entity) => [entity.id, entity] as const)),
-      baselineEntities: new Map(baseline?.snapshot.graph.entities.map((entity) => [entity.id, entity] as const)),
-    };
-  }, [current, baseline]);
+  const { entities, relations, currentEntities, baselineEntities } =
+    useMemo(() => {
+      const entityDiff =
+        current && baseline
+          ? diffSnapshotEntities(baseline.snapshot, current.snapshot)
+          : null;
+      const relationDiff =
+        current && baseline
+          ? diffSnapshotRelations(baseline.snapshot, current.snapshot)
+          : null;
+      return {
+        entities: entityDiff?.status === "compared" ? entityDiff.changes : [],
+        relations:
+          relationDiff?.status === "compared" ? relationDiff.changes : [],
+        currentEntities: new Map(
+          current?.snapshot.graph.entities.map(
+            (entity) => [entity.id, entity] as const
+          )
+        ),
+        baselineEntities: new Map(
+          baseline?.snapshot.graph.entities.map(
+            (entity) => [entity.id, entity] as const
+          )
+        ),
+      };
+    }, [current, baseline]);
 
   const workspaceFlows = useMemo(
     () => collectWorkspaceFlows(savedFlows, activeFlow, hasUnsavedFlowChanges),
-    [savedFlows, activeFlow, hasUnsavedFlowChanges],
+    [savedFlows, activeFlow, hasUnsavedFlowChanges]
   );
   const flowImpactAnalysis = useMemo(
-    () => current && baseline
-      ? analyzeWorkspaceFlowImpacts(workspaceFlows, baseline.snapshot, current.snapshot)
-      : null,
-    [workspaceFlows, baseline, current],
+    () =>
+      current && baseline
+        ? analyzeWorkspaceFlowImpacts(
+            workspaceFlows,
+            baseline.snapshot,
+            current.snapshot
+          )
+        : null,
+    [workspaceFlows, baseline, current]
   );
   const activeReviewAssessment = useMemo(
-    () => assessWorkspaceFlowReview(activeFlow, activeReviews, documents, current?.snapshot ?? null),
-    [activeFlow, activeReviews, documents, current],
+    () =>
+      assessWorkspaceFlowReview(
+        activeFlow,
+        activeReviews,
+        documents,
+        current?.snapshot ?? null
+      ),
+    [activeFlow, activeReviews, documents, current]
   );
 
   return (
     <InspectorPanel title="Sync" context={`${documents.length} saved`}>
-      {storageIssue && <p role="alert" className="text-ui text-danger">{storageIssue}</p>}
-      {flowCatalogIssue && <p role="alert" className="text-ui text-danger">Flow impact preview may be incomplete: {flowCatalogIssue}</p>}
+      {storageIssue !== null && (
+        <p role="alert" className="text-ui text-danger">
+          {storageIssue}
+        </p>
+      )}
+      {flowCatalogIssue !== null && (
+        <p role="alert" className="text-ui text-danger">
+          Flow impact preview may be incomplete: {flowCatalogIssue}
+        </p>
+      )}
       {current === null ? (
         <div className="text-ui text-muted">
-          <h3 className="font-medium text-foreground">No repository snapshot yet</h3>
-          <p className="mt-2">Run the Statecraft CLI, then open its JSON file here to track code changes.</p>
+          <h3 className="font-medium text-foreground">
+            No repository snapshot yet
+          </h3>
+          <p className="mt-2">
+            Run the Statecraft CLI, then open its JSON file here to track code
+            changes.
+          </p>
         </div>
       ) : (
         <>
-          <label htmlFor="current-snapshot" className="text-ui text-muted">Current snapshot</label>
+          <label htmlFor="current-snapshot" className="text-ui text-muted">
+            Current snapshot
+          </label>
           <Select
             id="current-snapshot"
             value={current.snapshot.id}
-            onChange={(event) => onCurrentChange(event.target.value)}
+            onChange={(event) => {
+              onCurrentChange(event.target.value);
+            }}
             containerClassName="mt-2"
           >
             {documents.map((document) => (
-              <option key={document.snapshot.id} value={document.snapshot.id}>{label(document)}</option>
+              <option key={document.snapshot.id} value={document.snapshot.id}>
+                {label(document)}
+              </option>
             ))}
           </Select>
           <div className="mt-3 rounded-control border border-border bg-surface p-3 text-xs text-muted">
-            <p className="font-mono wrap-anywhere">{current.snapshot.git.commitSha}</p>
-            <p className="mt-1">{current.snapshot.git.isDirty ? 'Working tree had changes; this graph is not the exact commit state.' : 'Clean Git working tree'} · {current.snapshot.analysisProfileId}</p>
-            <p className="mt-1">{current.snapshot.graph.entities.length} entities · {current.snapshot.graph.relations.length} relations · {current.diagnostics.length} diagnostics</p>
+            <p className="font-mono wrap-anywhere">
+              {current.snapshot.git.commitSha}
+            </p>
+            <p className="mt-1">
+              {current.snapshot.git.isDirty
+                ? "Working tree had changes; this graph is not the exact commit state."
+                : "Clean Git working tree"}{" "}
+              · {current.snapshot.analysisProfileId}
+            </p>
+            <p className="mt-1">
+              {current.snapshot.graph.entities.length} entities ·{" "}
+              {current.snapshot.graph.relations.length} relations ·{" "}
+              {current.diagnostics.length} diagnostics
+            </p>
           </div>
 
           <ActiveFlowReviewPanel
@@ -137,41 +195,66 @@ export function SnapshotPanel({
           <div className="mt-6 border-t border-border pt-5">
             <h3 className="text-ui font-medium">Compare with</h3>
             {compatible.length === 0 ? (
-              <p className="mt-2 text-ui text-muted">Open another snapshot of this repository and analysis profile to see changes.</p>
+              <p className="mt-2 text-ui text-muted">
+                Open another snapshot of this repository and analysis profile to
+                see changes.
+              </p>
             ) : (
               <>
                 <Select
                   aria-label="Baseline snapshot"
-                  value={baseline?.snapshot.id ?? ''}
-                  onChange={(event) => onBaselineChange(event.target.value)}
+                  value={baseline?.snapshot.id ?? ""}
+                  onChange={(event) => {
+                    onBaselineChange(event.target.value);
+                  }}
                   containerClassName="mt-2"
                 >
                   {compatible.map((document) => (
-                    <option key={document.snapshot.id} value={document.snapshot.id}>{label(document)}</option>
+                    <option
+                      key={document.snapshot.id}
+                      value={document.snapshot.id}
+                    >
+                      {label(document)}
+                    </option>
                   ))}
                 </Select>
                 <p className="mt-3 text-xs text-muted">
-                  {entities.length} entity changes · {relations.length} relation changes
+                  {entities.length} entity changes · {relations.length} relation
+                  changes
                 </p>
                 {entities.length === 0 && relations.length === 0 && (
-                  <p className="mt-3 text-ui text-muted">No structural changes detected.</p>
+                  <p className="mt-3 text-ui text-muted">
+                    No structural changes detected.
+                  </p>
                 )}
                 {entities.length > 0 && (
                   <section className="mt-5" aria-label="Entity changes">
                     <h4 className="text-ui font-medium">Entities</h4>
                     <ul className="mt-2 space-y-2">
                       {entities.map((change) => {
-                        const entity = change.kind === 'removed'
-                          ? baselineEntities.get(change.entityId)
-                          : currentEntities.get(change.entityId);
+                        const entity =
+                          change.kind === "removed"
+                            ? baselineEntities.get(change.entityId)
+                            : currentEntities.get(change.entityId);
                         return (
-                          <li key={change.entityId} className="rounded-control border border-border bg-surface p-3">
-                            <p className="text-ui font-medium wrap-anywhere">{entityLabel(entity, change.entityId)}</p>
-                            <p className="mt-1 text-xs text-muted wrap-anywhere">{change.kind} · {entity?.filePath ?? change.entityId}</p>
-                            {change.kind === 'modified' && (
-                              <p className="mt-1 font-mono text-xs text-muted wrap-anywhere">
-                                {baselineEntities.get(change.entityId)?.structuralHash === currentEntities.get(change.entityId)?.structuralHash
-                                  ? 'Metadata changed'
+                          <li
+                            key={change.entityId}
+                            className="rounded-control border border-border bg-surface p-3"
+                          >
+                            <p className="text-ui font-medium wrap-anywhere">
+                              {entityLabel(entity, change.entityId)}
+                            </p>
+                            <p className="mt-1 text-xs wrap-anywhere text-muted">
+                              {change.kind} ·{" "}
+                              {entity?.filePath ?? change.entityId}
+                            </p>
+                            {change.kind === "modified" && (
+                              <p className="mt-1 font-mono text-xs wrap-anywhere text-muted">
+                                {baselineEntities.get(change.entityId)
+                                  ?.structuralHash ===
+                                currentEntities.get(change.entityId)
+                                  ?.structuralHash
+                                  ? "Metadata changed"
                                   : `${baselineEntities.get(change.entityId)?.structuralHash.slice(0, 8)} → ${currentEntities.get(change.entityId)?.structuralHash.slice(0, 8)}`}
                               </p>
                             )}
@@ -186,14 +269,34 @@ export function SnapshotPanel({
                     <h4 className="text-ui font-medium">Relations</h4>
                     <ul className="mt-2 space-y-2">
                       {relations.map((change) => {
-                        const relation = change.kind === 'removed' ? change.before : change.after;
+                        const relation =
+                          change.kind === "removed"
+                            ? change.before
+                            : change.after;
                         return (
-                          <li key={change.relationId} className="rounded-control border border-border bg-surface p-3">
-                            <p className="text-ui font-medium wrap-anywhere">{relation.kind}</p>
-                            <p className="mt-1 text-xs text-muted wrap-anywhere">
-                              {relationEntityLabel(relation.sourceEntityId, currentEntities, baselineEntities)} → {relationEntityLabel(relation.targetEntityId, currentEntities, baselineEntities)}
+                          <li
+                            key={change.relationId}
+                            className="rounded-control border border-border bg-surface p-3"
+                          >
+                            <p className="text-ui font-medium wrap-anywhere">
+                              {relation.kind}
                             </p>
-                            <p className="mt-1 text-xs text-muted">{change.kind}</p>
+                            <p className="mt-1 text-xs wrap-anywhere text-muted">
+                              {relationEntityLabel(
+                                relation.sourceEntityId,
+                                currentEntities,
+                                baselineEntities
+                              )}{" "}
+                              →{" "}
+                              {relationEntityLabel(
+                                relation.targetEntityId,
+                                currentEntities,
+                                baselineEntities
+                              )}
+                            </p>
+                            <p className="mt-1 text-xs text-muted">
+                              {change.kind}
+                            </p>
                           </li>
                         );
                       })}
@@ -201,18 +304,33 @@ export function SnapshotPanel({
                   </section>
                 )}
                 {baseline && flowImpactAnalysis && (
-                  <FlowImpactPreview analysis={flowImpactAnalysis} before={baseline} after={current} />
+                  <FlowImpactPreview
+                    analysis={flowImpactAnalysis}
+                    before={baseline}
+                    after={current}
+                  />
                 )}
               </>
             )}
           </div>
           {current.diagnostics.length > 0 && (
-            <section className="mt-6 border-t border-border pt-5" aria-label="Scanner diagnostics">
+            <section
+              className="mt-6 border-t border-border pt-5"
+              aria-label="Scanner diagnostics"
+            >
               <h3 className="text-ui font-medium">Diagnostics</h3>
               <ul className="mt-2 space-y-2">
                 {current.diagnostics.map((diagnostic, index) => (
-                  <li key={`${diagnostic.code}:${diagnostic.filePath}:${index}`} className="text-xs text-muted wrap-anywhere">
-                    {diagnostic.filePath ? `${diagnostic.filePath} · ` : ''}{diagnostic.message}
+                  <li
+                    key={`${diagnostic.code}:${diagnostic.filePath}:${index}`}
+                    className="text-xs wrap-anywhere text-muted"
+                  >
+                    {diagnostic.filePath !== undefined &&
+                    diagnostic.filePath !== null &&
+                    diagnostic.filePath.length > 0
+                      ? `${diagnostic.filePath} · `
+                      : ""}
+                    {diagnostic.message}
                   </li>
                 ))}
               </ul>

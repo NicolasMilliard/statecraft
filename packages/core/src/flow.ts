@@ -1,16 +1,16 @@
-import type { CodeReference } from './code-reference.js';
+import type { CodeReference } from "./code-reference.js";
 
 export const FLOW_NODE_KINDS = [
-  'screen',
-  'ui',
-  'action',
-  'service',
-  'state',
+  "screen",
+  "ui",
+  "action",
+  "service",
+  "state",
 ] as const;
 
 export type FlowNodeKind = (typeof FLOW_NODE_KINDS)[number];
 
-export const FLOW_EDGE_KINDS = ['transition', 'success', 'failure'] as const;
+export const FLOW_EDGE_KINDS = ["transition", "success", "failure"] as const;
 
 export type FlowEdgeKind = (typeof FLOW_EDGE_KINDS)[number];
 

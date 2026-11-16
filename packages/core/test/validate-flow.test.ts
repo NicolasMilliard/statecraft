@@ -1,34 +1,31 @@
-import {
-  resolveCodeReference,
-  validateFlow,
-  type CodeReference,
-  type Flow,
-} from '@statecraft/core';
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { resolveCodeReference, validateFlow } from "@statecraft/core";
+import type { CodeReference, Flow } from "@statecraft/core";
 
 function createFlow(): Flow {
   return {
-    id: 'checkout',
-    name: 'Checkout',
-    entryNodeId: 'order',
+    id: "checkout",
+    name: "Checkout",
+    entryNodeId: "order",
     nodes: [
-      { id: 'order', kind: 'service', label: 'POST /orders' },
-      { id: 'success', kind: 'state', label: 'Success' },
-      { id: 'failure', kind: 'state', label: 'Failure' },
+      { id: "order", kind: "service", label: "POST /orders" },
+      { id: "success", kind: "state", label: "Success" },
+      { id: "failure", kind: "state", label: "Failure" },
     ],
     edges: [
       {
-        id: 'success-path',
-        sourceNodeId: 'order',
-        targetNodeId: 'success',
-        kind: 'success',
+        id: "success-path",
+        sourceNodeId: "order",
+        targetNodeId: "success",
+        kind: "success",
       },
       {
-        id: 'failure-path',
-        sourceNodeId: 'order',
-        targetNodeId: 'failure',
-        kind: 'failure',
+        id: "failure-path",
+        sourceNodeId: "order",
+        targetNodeId: "failure",
+        kind: "failure",
       },
     ],
     codeReferences: [],
@@ -37,19 +34,19 @@ function createFlow(): Flow {
 
 function createReference(): CodeReference {
   return {
-    id: 'order-code',
-    flowNodeId: 'order',
-    repositoryId: 'storefront',
-    codeEntityId: 'create-order',
-    role: 'primary',
+    id: "order-code",
+    flowNodeId: "order",
+    repositoryId: "storefront",
+    codeEntityId: "create-order",
+    role: "primary",
   };
 }
 
-test('accepts a consistent flow with success and failure branches', () => {
+void test("accepts a consistent flow with success and failure branches", () => {
   assert.deepEqual(validateFlow(createFlow()), []);
 });
 
-test('accepts an empty draft', () => {
+void test("accepts an empty draft", () => {
   const flow: Flow = {
     ...createFlow(),
     entryNodeId: null,
@@ -60,7 +57,7 @@ test('accepts an empty draft', () => {
   assert.deepEqual(validateFlow(flow), []);
 });
 
-test('accepts a draft with nodes but no entry point or edges', () => {
+void test("accepts a draft with nodes but no entry point or edges", () => {
   const flow: Flow = {
     ...createFlow(),
     entryNodeId: null,
@@ -70,7 +67,7 @@ test('accepts a draft with nodes but no entry point or edges', () => {
   assert.deepEqual(validateFlow(flow), []);
 });
 
-test('reports duplicate node and edge identifiers', () => {
+void test("reports duplicate node and edge identifiers", () => {
   const flow = createFlow();
   const [node] = flow.nodes;
   const [edge] = flow.edges;
@@ -85,62 +82,62 @@ test('reports duplicate node and edge identifiers', () => {
   });
 
   assert.deepEqual(issues, [
-    { code: 'duplicate_node_id', nodeId: 'order' },
-    { code: 'duplicate_edge_id', edgeId: 'success-path' },
+    { code: "duplicate_node_id", nodeId: "order" },
+    { code: "duplicate_edge_id", edgeId: "success-path" },
   ]);
 });
 
-test('reports an entry point referencing a missing node', () => {
+void test("reports an entry point referencing a missing node", () => {
   const flow: Flow = {
     ...createFlow(),
-    entryNodeId: 'missing',
+    entryNodeId: "missing",
   };
 
   assert.deepEqual(validateFlow(flow), [
-    { code: 'entry_node_not_found', nodeId: 'missing' },
+    { code: "entry_node_not_found", nodeId: "missing" },
   ]);
 });
 
-test('reports both missing endpoints of an edge', () => {
+void test("reports both missing endpoints of an edge", () => {
   const flow: Flow = {
     ...createFlow(),
     edges: [
       {
-        id: 'broken-edge',
-        sourceNodeId: 'missing-source',
-        targetNodeId: 'missing-target',
-        kind: 'transition',
+        id: "broken-edge",
+        sourceNodeId: "missing-source",
+        targetNodeId: "missing-target",
+        kind: "transition",
       },
     ],
   };
 
   assert.deepEqual(validateFlow(flow), [
     {
-      code: 'edge_source_not_found',
-      edgeId: 'broken-edge',
-      nodeId: 'missing-source',
+      code: "edge_source_not_found",
+      edgeId: "broken-edge",
+      nodeId: "missing-source",
     },
     {
-      code: 'edge_target_not_found',
-      edgeId: 'broken-edge',
-      nodeId: 'missing-target',
+      code: "edge_target_not_found",
+      edgeId: "broken-edge",
+      nodeId: "missing-target",
     },
   ]);
 });
 
-test('accepts cycles and disconnected nodes', () => {
+void test("accepts cycles and disconnected nodes", () => {
   const flow = createFlow();
 
   const issues = validateFlow({
     ...flow,
-    nodes: [...flow.nodes, { id: 'sidebar', kind: 'ui', label: 'Sidebar' }],
+    nodes: [...flow.nodes, { id: "sidebar", kind: "ui", label: "Sidebar" }],
     edges: [
       ...flow.edges,
       {
-        id: 'retry',
-        sourceNodeId: 'failure',
-        targetNodeId: 'order',
-        kind: 'transition',
+        id: "retry",
+        sourceNodeId: "failure",
+        targetNodeId: "order",
+        kind: "transition",
       },
     ],
   });
@@ -148,7 +145,7 @@ test('accepts cycles and disconnected nodes', () => {
   assert.deepEqual(issues, []);
 });
 
-test('does not modify the input flow', () => {
+void test("does not modify the input flow", () => {
   const flow = createFlow();
   const before = structuredClone(flow);
 
@@ -157,7 +154,7 @@ test('does not modify the input flow', () => {
   assert.deepEqual(flow, before);
 });
 
-test('accepts multiple code references on one node', () => {
+void test("accepts multiple code references on one node", () => {
   const reference = createReference();
 
   const flow: Flow = {
@@ -166,9 +163,9 @@ test('accepts multiple code references on one node', () => {
       reference,
       {
         ...reference,
-        id: 'order-schema-code',
-        codeEntityId: 'order-schema',
-        role: 'dependency',
+        id: "order-schema-code",
+        codeEntityId: "order-schema",
+        role: "dependency",
       },
     ],
   };
@@ -176,7 +173,7 @@ test('accepts multiple code references on one node', () => {
   assert.deepEqual(validateFlow(flow), []);
 });
 
-test('accepts a code entity shared by multiple nodes', () => {
+void test("accepts a code entity shared by multiple nodes", () => {
   const reference = createReference();
 
   const flow: Flow = {
@@ -185,9 +182,9 @@ test('accepts a code entity shared by multiple nodes', () => {
       reference,
       {
         ...reference,
-        id: 'success-code',
-        flowNodeId: 'success',
-        role: 'dependency',
+        id: "success-code",
+        flowNodeId: "success",
+        role: "dependency",
       },
     ],
   };
@@ -195,7 +192,7 @@ test('accepts a code entity shared by multiple nodes', () => {
   assert.deepEqual(validateFlow(flow), []);
 });
 
-test('reports duplicate code reference identifiers', () => {
+void test("reports duplicate code reference identifiers", () => {
   const reference = createReference();
 
   const flow: Flow = {
@@ -204,26 +201,26 @@ test('reports duplicate code reference identifiers', () => {
       reference,
       {
         ...reference,
-        flowNodeId: 'success',
+        flowNodeId: "success",
       },
     ],
   };
 
   assert.deepEqual(validateFlow(flow), [
     {
-      code: 'duplicate_code_reference_id',
-      referenceId: 'order-code',
+      code: "duplicate_code_reference_id",
+      referenceId: "order-code",
     },
   ]);
 });
 
-test('reports a missing referenced node without modifying the flow', () => {
+void test("reports a missing referenced node without modifying the flow", () => {
   const flow: Flow = {
     ...createFlow(),
     codeReferences: [
       {
         ...createReference(),
-        flowNodeId: 'missing-node',
+        flowNodeId: "missing-node",
       },
     ],
   };
@@ -232,16 +229,16 @@ test('reports a missing referenced node without modifying the flow', () => {
 
   assert.deepEqual(validateFlow(flow), [
     {
-      code: 'code_reference_node_not_found',
-      referenceId: 'order-code',
-      nodeId: 'missing-node',
+      code: "code_reference_node_not_found",
+      referenceId: "order-code",
+      nodeId: "missing-node",
     },
   ]);
 
   assert.deepEqual(flow, before);
 });
 
-test('accepts structurally valid references with unresolved code', () => {
+void test("accepts structurally valid references with unresolved code", () => {
   const reference = createReference();
 
   const flow: Flow = {
@@ -250,7 +247,7 @@ test('accepts structurally valid references with unresolved code', () => {
   };
 
   assert.deepEqual(resolveCodeReference(reference, null), {
-    status: 'graph_unavailable',
+    status: "graph_unavailable",
   });
 
   assert.deepEqual(
@@ -259,7 +256,7 @@ test('accepts structurally valid references with unresolved code', () => {
       entities: [],
       relations: [],
     }),
-    { status: 'not_found' },
+    { status: "not_found" }
   );
 
   assert.deepEqual(validateFlow(flow), []);

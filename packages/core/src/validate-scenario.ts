@@ -1,17 +1,17 @@
-import type { Flow } from './flow.js';
-import type { Scenario } from './scenario.js';
+import type { Flow } from "./flow.js";
+import type { Scenario } from "./scenario.js";
 
 export type ScenarioValidationIssue =
   | {
-      readonly code: 'scenario_flow_mismatch';
+      readonly code: "scenario_flow_mismatch";
       readonly expectedFlowId: string;
       readonly actualFlowId: string;
     }
   | {
       readonly code:
-        | 'duplicate_override'
-        | 'override_node_not_found'
-        | 'override_node_not_service';
+        | "duplicate_override"
+        | "override_node_not_found"
+        | "override_node_not_service";
       readonly nodeId: string;
       readonly overrideIndex: number;
     };
@@ -21,12 +21,12 @@ export type ScenarioValidationIssue =
  */
 export function validateScenario(
   scenario: Scenario,
-  flow: Flow,
+  flow: Flow
 ): readonly ScenarioValidationIssue[] {
   if (scenario.flowId !== flow.id) {
     return [
       {
-        code: 'scenario_flow_mismatch',
+        code: "scenario_flow_mismatch",
         expectedFlowId: flow.id,
         actualFlowId: scenario.flowId,
       },
@@ -44,7 +44,7 @@ export function validateScenario(
 
     if (overriddenNodeIds.has(nodeId)) {
       issues.push({
-        code: 'duplicate_override',
+        code: "duplicate_override",
         nodeId,
         overrideIndex,
       });
@@ -56,13 +56,13 @@ export function validateScenario(
 
     if (node === undefined) {
       issues.push({
-        code: 'override_node_not_found',
+        code: "override_node_not_found",
         nodeId,
         overrideIndex,
       });
-    } else if (node.kind !== 'service') {
+    } else if (node.kind !== "service") {
       issues.push({
-        code: 'override_node_not_service',
+        code: "override_node_not_service",
         nodeId,
         overrideIndex,
       });

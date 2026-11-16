@@ -1,15 +1,20 @@
-import type { ReactNode, Ref } from 'react';
-import { StatecraftMark } from '../ui/StatecraftMark';
-import { CommandButton } from './CommandButton';
-import type { CommandRegistry, ShortcutPlatform } from './commands';
-import { EditorNotice } from './EditorNotice';
-import { SaveStatus } from './SaveStatus';
-import { STORAGE_FEEDBACK, type StorageIssue } from './storage-feedback';
+import type { ReactNode, Ref } from "react";
+
+import { StatecraftMark } from "../ui/StatecraftMark";
+import { CommandButton } from "./CommandButton";
+import type { CommandRegistry, ShortcutPlatform } from "./commands";
+import { EditorNotice } from "./EditorNotice";
+import { SaveStatus } from "./SaveStatus";
+import { STORAGE_FEEDBACK } from "./storage-feedback";
+import type { StorageIssue } from "./storage-feedback";
 
 interface EditorHeaderProps {
   readonly nameEditor: ReactNode;
   readonly fileActions: ReactNode;
-  readonly commands: Pick<CommandRegistry, 'new-flow' | 'save' | 'commands' | 'export-json'>;
+  readonly commands: Pick<
+    CommandRegistry,
+    "new-flow" | "save" | "commands" | "export-json"
+  >;
   readonly platform: ShortcutPlatform;
   readonly hasUnsavedChanges: boolean;
   readonly willReplaceInvalidDraft: boolean;
@@ -31,9 +36,35 @@ export function EditorHeader({
   paletteOpen,
   commandsButtonRef,
 }: EditorHeaderProps) {
-  const storageFeedback = willReplaceInvalidDraft ? STORAGE_FEEDBACK['invalid-draft']
-    : storageIssue === 'unavailable' ? STORAGE_FEEDBACK.unavailable : null;
+  function getStorageFeedback() {
+    if (willReplaceInvalidDraft) {
+      return STORAGE_FEEDBACK["invalid-draft"];
+    }
+    if (storageIssue === "unavailable") {
+      return STORAGE_FEEDBACK.unavailable;
+    }
+    return null;
+  }
+  const storageFeedback = getStorageFeedback();
 
+  function getNoticeSaveLabel() {
+    if (willReplaceInvalidDraft) {
+      return "Replace local copy" as const;
+    }
+    if (storageIssue === "save-failed") {
+      return "Retry save" as const;
+    }
+    return "Save locally" as const;
+  }
+  function getSaveLabel() {
+    if (willReplaceInvalidDraft) {
+      return "Replace local copy" as const;
+    }
+    if (storageIssue === "save-failed") {
+      return "Retry save" as const;
+    }
+    return "Save" as const;
+  }
   return (
     <header className="flex min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-border bg-chrome px-4 py-3 lg:px-5">
       <div className="flex min-w-0 flex-1 basis-80 items-center gap-3">
@@ -41,14 +72,20 @@ export function EditorHeader({
           <StatecraftMark />
           statecraft
         </p>
-        <span aria-hidden="true" className="text-border-strong">/</span>
+        <span aria-hidden="true" className="text-border-strong">
+          /
+        </span>
         {nameEditor}
       </div>
 
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <SaveStatus hasUnsavedChanges={hasUnsavedChanges} hasStorageIssue={storageIssue !== null} isRestoring={isRestoring} />
+        <SaveStatus
+          hasUnsavedChanges={hasUnsavedChanges}
+          hasStorageIssue={storageIssue !== null}
+          isRestoring={isRestoring}
+        />
         <CommandButton
-          command={commands['new-flow']}
+          command={commands["new-flow"]}
           platform={platform}
           variant="secondary"
           title="Create an empty flow. Save the current flow first to keep it in your workspace."
@@ -57,7 +94,7 @@ export function EditorHeader({
         </CommandButton>
         {fileActions}
         <CommandButton command={commands.save} platform={platform}>
-          {willReplaceInvalidDraft ? 'Replace local copy' : storageIssue === 'save-failed' ? 'Retry save' : 'Save'}
+          {getSaveLabel()}
         </CommandButton>
         <CommandButton
           ref={commandsButtonRef}
@@ -71,12 +108,23 @@ export function EditorHeader({
       </div>
 
       {storageFeedback !== null && (
-        <EditorNotice title={storageFeedback.title} detail={storageFeedback.detail}>
-          <CommandButton command={commands['export-json']} platform={platform} variant="secondary">
+        <EditorNotice
+          title={storageFeedback.title}
+          detail={storageFeedback.detail}
+        >
+          <CommandButton
+            command={commands["export-json"]}
+            platform={platform}
+            variant="secondary"
+          >
             Export current flow
           </CommandButton>
-          <CommandButton command={commands.save} platform={platform} variant="secondary">
-            {willReplaceInvalidDraft ? 'Replace local copy' : storageIssue === 'save-failed' ? 'Retry save' : 'Save locally'}
+          <CommandButton
+            command={commands.save}
+            platform={platform}
+            variant="secondary"
+          >
+            {getNoticeSaveLabel()}
           </CommandButton>
         </EditorNotice>
       )}

@@ -1,8 +1,10 @@
-import type { SnapshotDocument } from '@statecraft/core';
-import { useEffect, useId, useRef } from 'react';
-import { Button } from '../ui/Button';
-import { describeFileOpening } from './describe-file-opening';
-import type { OpenDocument } from './open-document';
+/* oxlint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- Native dialog Escape handling complements backdrop clicks. */
+import type { SnapshotDocument } from "@statecraft/core";
+import { useEffect, useId, useRef } from "react";
+
+import { Button } from "../ui/Button";
+import { describeFileOpening } from "./describe-file-opening";
+import type { OpenDocument } from "./open-document";
 
 interface OpenFileConfirmationProps {
   readonly fileName: string;
@@ -30,7 +32,7 @@ export function OpenFileConfirmation({
     document,
     currentFlowName,
     hasUnsavedChanges,
-    currentSnapshot,
+    currentSnapshot
   );
 
   useEffect(() => {
@@ -56,22 +58,34 @@ export function OpenFileConfirmation({
       aria-labelledby={`${id}-title`}
       aria-describedby={`${id}-detail`}
       className="command-palette"
-      onCancel={(event) => { event.preventDefault(); cancel(); }}
-      onClick={(event) => { if (event.target === event.currentTarget) cancel(); }}
+      onCancel={(event) => {
+        event.preventDefault();
+        cancel();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          cancel();
+        }
+      }}
     >
       <div className="px-5 pt-5">
         <h2 id={`${id}-title`} className="text-sm font-medium wrap-anywhere">
           {description.title}
         </h2>
-        <p className="mt-2 font-mono text-xs text-muted wrap-anywhere">
+        <p className="mt-2 font-mono text-xs wrap-anywhere text-muted">
           {fileName}
         </p>
-        <p id={`${id}-detail`} className="mt-4 text-ui text-muted wrap-anywhere">
+        <p
+          id={`${id}-detail`}
+          className="mt-4 text-ui wrap-anywhere text-muted"
+        >
           {description.detail}
         </p>
       </div>
       <div className="mt-5 flex justify-end gap-2 border-t border-border px-5 py-4">
-        <Button ref={cancelRef} variant="secondary" onClick={cancel}>Cancel</Button>
+        <Button ref={cancelRef} variant="secondary" onClick={cancel}>
+          Cancel
+        </Button>
         <Button onClick={confirm}>{description.confirmLabel}</Button>
       </div>
     </dialog>

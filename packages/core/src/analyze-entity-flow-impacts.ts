@@ -1,10 +1,10 @@
-import type { SnapshotEntityDiff } from './diff-snapshot-entities.js';
+import type { SnapshotEntityDiff } from "./diff-snapshot-entities.js";
 import type {
   FlowImpact,
   FlowImpactAnalysis,
   FlowImpactReason,
-} from './flow-impact.js';
-import type { Flow } from './flow.js';
+} from "./flow-impact.js";
+import type { Flow } from "./flow.js";
 
 /**
  * Flows must be validated.
@@ -12,14 +12,14 @@ import type { Flow } from './flow.js';
  */
 export function analyzeEntityFlowImpacts(
   flows: readonly Flow[],
-  diff: SnapshotEntityDiff,
+  diff: SnapshotEntityDiff
 ): FlowImpactAnalysis {
-  if (diff.status === 'incompatible') {
+  if (diff.status === "incompatible") {
     return diff;
   }
 
   const changesByEntityId = new Map(
-    diff.changes.map((change) => [change.entityId, change] as const),
+    diff.changes.map((change) => [change.entityId, change] as const)
   );
 
   const impacts: FlowImpact[] = [];
@@ -39,7 +39,7 @@ export function analyzeEntityFlowImpacts(
       }
 
       reasons.push({
-        type: 'entity',
+        type: "entity",
         referenceId: reference.id,
         nodeId: reference.flowNodeId,
         change,
@@ -55,7 +55,7 @@ export function analyzeEntityFlowImpacts(
   }
 
   return {
-    status: 'analyzed',
+    status: "analyzed",
     repositoryId: diff.repositoryId,
     beforeSnapshotId: diff.beforeSnapshotId,
     afterSnapshotId: diff.afterSnapshotId,

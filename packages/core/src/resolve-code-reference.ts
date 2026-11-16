@@ -1,16 +1,16 @@
-import type { CodeReference } from './code-reference.js';
-import type { CodeEntity, CodeGraph } from './code.js';
+import type { CodeReference } from "./code-reference.js";
+import type { CodeEntity, CodeGraph } from "./code.js";
 
 export type CodeReferenceResolution =
   | {
-      readonly status: 'resolved';
+      readonly status: "resolved";
       readonly entity: CodeEntity;
     }
   | {
-      readonly status: 'not_found';
+      readonly status: "not_found";
     }
   | {
-      readonly status: 'graph_unavailable';
+      readonly status: "graph_unavailable";
     };
 
 /**
@@ -18,22 +18,22 @@ export type CodeReferenceResolution =
  */
 export function resolveCodeReference(
   reference: CodeReference,
-  graph: CodeGraph | null,
+  graph: CodeGraph | null
 ): CodeReferenceResolution {
   if (graph === null || graph.repositoryId !== reference.repositoryId) {
-    return { status: 'graph_unavailable' };
+    return { status: "graph_unavailable" };
   }
 
   const entity = graph.entities.find(
-    (candidate) => candidate.id === reference.codeEntityId,
+    (candidate) => candidate.id === reference.codeEntityId
   );
 
   if (entity === undefined) {
-    return { status: 'not_found' };
+    return { status: "not_found" };
   }
 
   return {
-    status: 'resolved',
+    status: "resolved",
     entity,
   };
 }

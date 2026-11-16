@@ -1,13 +1,13 @@
 import type {
   CodeRelationChange,
   SnapshotRelationDiff,
-} from './diff-snapshot-relations.js';
+} from "./diff-snapshot-relations.js";
 import type {
   FlowImpact,
   FlowImpactAnalysis,
   FlowImpactReason,
-} from './flow-impact.js';
-import type { Flow } from './flow.js';
+} from "./flow-impact.js";
+import type { Flow } from "./flow.js";
 
 /**
  * Flows must be validated.
@@ -15,9 +15,9 @@ import type { Flow } from './flow.js';
  */
 export function analyzeRelationFlowImpacts(
   flows: readonly Flow[],
-  diff: SnapshotRelationDiff,
+  diff: SnapshotRelationDiff
 ): FlowImpactAnalysis {
-  if (diff.status === 'incompatible') {
+  if (diff.status === "incompatible") {
     return diff;
   }
 
@@ -26,12 +26,12 @@ export function analyzeRelationFlowImpacts(
   for (const change of diff.changes) {
     const entityIds = new Set<string>();
 
-    if (change.kind !== 'added') {
+    if (change.kind !== "added") {
       entityIds.add(change.before.sourceEntityId);
       entityIds.add(change.before.targetEntityId);
     }
 
-    if (change.kind !== 'removed') {
+    if (change.kind !== "removed") {
       entityIds.add(change.after.sourceEntityId);
       entityIds.add(change.after.targetEntityId);
     }
@@ -61,7 +61,7 @@ export function analyzeRelationFlowImpacts(
 
       for (const change of changes) {
         reasons.push({
-          type: 'relation',
+          type: "relation",
           referenceId: reference.id,
           nodeId: reference.flowNodeId,
           entityId: reference.codeEntityId,
@@ -79,7 +79,7 @@ export function analyzeRelationFlowImpacts(
   }
 
   return {
-    status: 'analyzed',
+    status: "analyzed",
     repositoryId: diff.repositoryId,
     beforeSnapshotId: diff.beforeSnapshotId,
     afterSnapshotId: diff.afterSnapshotId,

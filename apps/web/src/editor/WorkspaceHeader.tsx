@@ -1,10 +1,12 @@
-import type { RefObject } from 'react';
-import type { CommandRegistry, ShortcutPlatform } from './commands';
-import { EditorHeader } from './EditorHeader';
-import { FlowFileActions, type FileOpenSource, type FlowFileActionsHandle } from './FlowFileActions';
-import { FlowNameEditor } from './FlowNameEditor';
-import type { OpenDocument } from './open-document';
-import type { useFlowEditor } from './use-flow-editor';
+import type { RefObject } from "react";
+
+import type { CommandRegistry, ShortcutPlatform } from "./commands";
+import { EditorHeader } from "./EditorHeader";
+import { FlowFileActions } from "./FlowFileActions";
+import type { FileOpenSource, FlowFileActionsHandle } from "./FlowFileActions";
+import { FlowNameEditor } from "./FlowNameEditor";
+import type { OpenDocument } from "./open-document";
+import type { useFlowEditor } from "./use-flow-editor";
 
 interface WorkspaceHeaderProps {
   readonly editor: ReturnType<typeof useFlowEditor>;
@@ -17,7 +19,11 @@ interface WorkspaceHeaderProps {
   readonly filesRef: RefObject<FlowFileActionsHandle | null>;
   readonly commandsButtonRef: RefObject<HTMLButtonElement | null>;
   readonly onRenameClose: () => void;
-  readonly onDocumentReady: (fileName: string, document: OpenDocument, source: FileOpenSource) => void;
+  readonly onDocumentReady: (
+    fileName: string,
+    document: OpenDocument,
+    source: FileOpenSource
+  ) => void;
   readonly onRestoringChange: (isRestoring: boolean) => void;
 }
 
@@ -51,7 +57,7 @@ export function WorkspaceHeader({
         <FlowNameEditor
           key={flow.id}
           ref={nameInputRef}
-          command={commands['rename-flow']}
+          command={commands["rename-flow"]}
           platform={platform}
           name={flow.name}
           isEditing={renamingFlowId === flow.id}
@@ -63,8 +69,8 @@ export function WorkspaceHeader({
         <FlowFileActions
           key={flow.id}
           ref={filesRef}
-          openCommand={commands['open-json']}
-          exportCommand={commands['export-json']}
+          openCommand={commands["open-json"]}
+          exportCommand={commands["export-json"]}
           platform={platform}
           flowName={flow.name}
           onExport={editor.exportDocument}

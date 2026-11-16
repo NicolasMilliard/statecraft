@@ -1,8 +1,8 @@
-import { analyzeSnapshotFlowImpacts } from './analyze-snapshot-flow-impacts.js';
-import type { CodeReference } from './code-reference.js';
-import type { FlowImpactAnalysis, FlowImpactReason } from './flow-impact.js';
-import type { Flow } from './flow.js';
-import type { SyncSnapshot } from './snapshot.js';
+import { analyzeSnapshotFlowImpacts } from "./analyze-snapshot-flow-impacts.js";
+import type { CodeReference } from "./code-reference.js";
+import type { FlowImpactAnalysis, FlowImpactReason } from "./flow-impact.js";
+import type { Flow } from "./flow.js";
+import type { SyncSnapshot } from "./snapshot.js";
 
 export interface FlowReview {
   readonly flowId: string;
@@ -13,31 +13,43 @@ export interface FlowReview {
 
 export type ReviewedCodeReference = Pick<
   CodeReference,
-  'id' | 'flowNodeId' | 'codeEntityId' | 'role'
+  "id" | "flowNodeId" | "codeEntityId" | "role"
 >;
 
 export function reviewedCodeReferences(
   flow: Flow,
-  repositoryId: string,
+  repositoryId: string
 ): readonly ReviewedCodeReference[] {
   return flow.codeReferences
     .filter((reference) => reference.repositoryId === repositoryId)
-    .map(({ id, flowNodeId, codeEntityId, role }) => ({ id, flowNodeId, codeEntityId, role }))
-    .sort((left, right) => left.id.localeCompare(right.id));
+    .map(({ id, flowNodeId, codeEntityId, role }) => ({
+      id,
+      flowNodeId,
+      codeEntityId,
+      role,
+    }))
+    .toSorted((left, right) => left.id.localeCompare(right.id));
 }
 
 function mappingMatchesReview(flow: Flow, review: FlowReview): boolean {
   const current = reviewedCodeReferences(flow, review.repositoryId);
-  const reviewed = [...review.reviewedReferences].sort((left, right) => left.id.localeCompare(right.id));
+  const reviewed = [...review.reviewedReferences].toSorted((left, right) =>
+    left.id.localeCompare(right.id)
+  );
 
-  return current.length === reviewed.length && current.every((reference, index) => {
-    const previous = reviewed[index];
-    return previous !== undefined &&
-      reference.id === previous.id &&
-      reference.flowNodeId === previous.flowNodeId &&
-      reference.codeEntityId === previous.codeEntityId &&
-      reference.role === previous.role;
-  });
+  return (
+    current.length === reviewed.length &&
+    current.every((reference, index) => {
+      const previous = reviewed[index];
+      return (
+        previous !== undefined &&
+        reference.id === previous.id &&
+        reference.flowNodeId === previous.flowNodeId &&
+        reference.codeEntityId === previous.codeEntityId &&
+        reference.role === previous.role
+      );
+    })
+  );
 }
 
 export type FlowReviewAssessment = {
@@ -46,31 +58,31 @@ export type FlowReviewAssessment = {
   readonly currentSnapshotId: string;
 } & (
   | {
-      readonly status: 'unreviewed';
+      readonly status: "unreviewed";
     }
   | {
-      readonly status: 'unreviewed';
-      readonly reason: 'mapping_changed';
+      readonly status: "unreviewed";
+      readonly reason: "mapping_changed";
       readonly reviewedSnapshotId: string;
     }
   | {
-      readonly status: 'unchanged';
+      readonly status: "unchanged";
       readonly reviewedSnapshotId: string;
     }
   | {
-      readonly status: 'needs_review';
+      readonly status: "needs_review";
       readonly reviewedSnapshotId: string;
       readonly reasons: readonly FlowImpactReason[];
     }
   | {
-      readonly status: 'unavailable';
+      readonly status: "unavailable";
       readonly reviewedSnapshotId: string;
       readonly reason:
-        | 'review_flow_mismatch'
-        | 'review_repository_mismatch'
-        | 'reviewed_snapshot_unavailable'
-        | 'reviewed_snapshot_mismatch'
-        | Extract<FlowImpactAnalysis, { status: 'incompatible' }>['reason'];
+        | "review_flow_mismatch"
+        | "review_repository_mismatch"
+        | "reviewed_snapshot_unavailable"
+        | "reviewed_snapshot_mismatch"
+        | Extract<FlowImpactAnalysis, { status: "incompatible" }>["reason"];
     }
 );
 
@@ -83,7 +95,7 @@ export function evaluateFlowReview(
   flow: Flow,
   review: FlowReview | null,
   reviewedSnapshot: SyncSnapshot | null,
-  currentSnapshot: SyncSnapshot,
+  currentSnapshot: SyncSnapshot
 ): FlowReviewAssessment {
   const context = {
     flowId: flow.id,
@@ -94,7 +106,7 @@ export function evaluateFlowReview(
   if (review === null) {
     return {
       ...context,
-      status: 'unreviewed',
+      status: "unreviewed",
     };
   }
 
@@ -106,53 +118,53 @@ export function evaluateFlowReview(
   if (review.flowId !== flow.id) {
     return {
       ...reviewContext,
-      status: 'unavailable',
-      reason: 'review_flow_mismatch',
+      status: "unavailable",
+      reason: "review_flow_mismatch",
     };
   }
 
   if (review.repositoryId !== currentSnapshot.graph.repositoryId) {
     return {
       ...reviewContext,
-      status: 'unavailable',
-      reason: 'review_repository_mismatch',
+      status: "unavailable",
+      reason: "review_repository_mismatch",
     };
   }
 
   if (!mappingMatchesReview(flow, review)) {
     return {
       ...reviewContext,
-      status: 'unreviewed',
-      reason: 'mapping_changed',
+      status: "unreviewed",
+      reason: "mapping_changed",
     };
   }
 
   if (reviewedSnapshot === null) {
     return {
       ...reviewContext,
-      status: 'unavailable',
-      reason: 'reviewed_snapshot_unavailable',
+      status: "unavailable",
+      reason: "reviewed_snapshot_unavailable",
     };
   }
 
   if (reviewedSnapshot.id !== review.snapshotId) {
     return {
       ...reviewContext,
-      status: 'unavailable',
-      reason: 'reviewed_snapshot_mismatch',
+      status: "unavailable",
+      reason: "reviewed_snapshot_mismatch",
     };
   }
 
   const analysis = analyzeSnapshotFlowImpacts(
     [flow],
     reviewedSnapshot,
-    currentSnapshot,
+    currentSnapshot
   );
 
-  if (analysis.status === 'incompatible') {
+  if (analysis.status === "incompatible") {
     return {
       ...reviewContext,
-      status: 'unavailable',
+      status: "unavailable",
       reason: analysis.reason,
     };
   }
@@ -162,13 +174,13 @@ export function evaluateFlowReview(
   if (impact === undefined) {
     return {
       ...reviewContext,
-      status: 'unchanged',
+      status: "unchanged",
     };
   }
 
   return {
     ...reviewContext,
-    status: 'needs_review',
+    status: "needs_review",
     reasons: impact.reasons,
   };
 }

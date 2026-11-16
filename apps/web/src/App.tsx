@@ -1,28 +1,36 @@
-import type { FlowNodeKind } from '@statecraft/core';
-import { useLayoutEffect, useRef, useState } from 'react';
-import type { CanvasSelection } from './canvas/canvas-selection';
-import type { FlowNodePosition } from './canvas/flow-layout';
-import { FlowCanvas, type FlowCanvasHandle } from './canvas/FlowCanvas';
-import { CommandPalette } from './editor/CommandPalette';
-import { createCommands, getShortcutPlatform } from './editor/commands';
-import { EditorStatusBar } from './editor/EditorStatusBar';
-import { FlowSwitchConfirmation } from './editor/FlowSwitchConfirmation';
-import type { FlowFileActionsHandle } from './editor/FlowFileActions';
-import { OpenFileConfirmation } from './editor/OpenFileConfirmation';
-import { notifySaveResult } from './editor/save-feedback';
-import { useDocumentOpening } from './editor/use-document-opening';
-import { useEditorShortcuts } from './editor/use-editor-shortcuts';
-import { useFileDrop } from './editor/use-file-drop';
-import { useFlowEditor } from './editor/use-flow-editor';
-import { WorkspaceHeader } from './editor/WorkspaceHeader';
-import { checkoutFlow, checkoutLayout } from './examples/checkout';
-import { useScenarioWorkspace } from './scenarios/use-scenario-workspace';
-import { useSnapshotHistory } from './sync/use-snapshot-history';
-import { WorkspaceSidebar, type WorkspacePanelMode } from './WorkspaceSidebar';
+import type { FlowNodeKind } from "@statecraft/core";
+import { useLayoutEffect, useRef, useState } from "react";
+
+import type { CanvasSelection } from "./canvas/canvas-selection";
+import type { FlowNodePosition } from "./canvas/flow-layout";
+import { FlowCanvas } from "./canvas/FlowCanvas";
+import type { FlowCanvasHandle } from "./canvas/FlowCanvas";
+import { CommandPalette } from "./editor/CommandPalette";
+import { createCommands, getShortcutPlatform } from "./editor/commands";
+import { EditorStatusBar } from "./editor/EditorStatusBar";
+import type { FlowFileActionsHandle } from "./editor/FlowFileActions";
+import { FlowSwitchConfirmation } from "./editor/FlowSwitchConfirmation";
+import { OpenFileConfirmation } from "./editor/OpenFileConfirmation";
+import { notifySaveResult } from "./editor/save-feedback";
+import { useDocumentOpening } from "./editor/use-document-opening";
+import { useEditorShortcuts } from "./editor/use-editor-shortcuts";
+import { useFileDrop } from "./editor/use-file-drop";
+import { useFlowEditor } from "./editor/use-flow-editor";
+import { WorkspaceHeader } from "./editor/WorkspaceHeader";
+import { checkoutFlow, checkoutLayout } from "./examples/checkout";
+import { useScenarioWorkspace } from "./scenarios/use-scenario-workspace";
+import { useSnapshotHistory } from "./sync/use-snapshot-history";
+import { WorkspaceSidebar } from "./WorkspaceSidebar";
+import type { WorkspacePanelMode } from "./WorkspaceSidebar";
 
 type PendingFlowChange =
-  | { readonly kind: 'new' }
-  | { readonly kind: 'saved'; readonly flowId: string; readonly name: string; readonly nodeId?: string };
+  | { readonly kind: "new" }
+  | {
+      readonly kind: "saved";
+      readonly flowId: string;
+      readonly name: string;
+      readonly nodeId?: string;
+    };
 
 export default function App() {
   const editor = useFlowEditor(checkoutFlow, checkoutLayout);
@@ -34,12 +42,16 @@ export default function App() {
     edgeIds: [],
   });
   const [canvasRevision, setCanvasRevision] = useState(0);
-  const [canvasFocusNodeId, setCanvasFocusNodeId] = useState<string | null>(null);
+  const [canvasFocusNodeId, setCanvasFocusNodeId] = useState<string | null>(
+    null
+  );
   const [isRestoring, setIsRestoring] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [panelMode, setPanelMode] = useState<WorkspacePanelMode>('inspector');
-  const [pendingFlowChange, setPendingFlowChange] = useState<PendingFlowChange | null>(null);
+  const [panelMode, setPanelMode] = useState<WorkspacePanelMode>("inspector");
+  const [pendingFlowChange, setPendingFlowChange] =
+    useState<PendingFlowChange | null>(null);
   const [renamingFlowId, setRenamingFlowId] = useState<string | null>(null);
+  // oxlint-disable-next-line react/hook-use-state -- This lazy initial value stays fixed for the mounted editor.
   const [platform] = useState(() => getShortcutPlatform(navigator.platform));
   const workspaceRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<FlowCanvasHandle>(null);
@@ -56,11 +68,11 @@ export default function App() {
   }
 
   const selectedNodes = flow.nodes.filter((node) =>
-    selection.nodeIds.includes(node.id),
+    selection.nodeIds.includes(node.id)
   );
 
   const selectedEdges = flow.edges.filter((edge) =>
-    selection.edgeIds.includes(edge.id),
+    selection.edgeIds.includes(edge.id)
   );
 
   const selectedCount = selectedNodes.length + selectedEdges.length;
@@ -78,11 +90,18 @@ export default function App() {
       focusCanvasAfterUpdate.current = true;
     },
     importSnapshot: snapshots.importDocument,
-    onSnapshotSaved: () => setPanelMode('sync'),
+    onSnapshotSaved: () => {
+      setPanelMode("sync");
+    },
   });
-  const isOpeningBlocked = isRestoring || opening.isSavingSnapshot || opening.pendingOpen !== null || pendingFlowChange !== null;
+  const isOpeningBlocked = isWorkspaceOpeningBlocked(
+    isRestoring,
+    opening.isSavingSnapshot,
+    opening.pendingOpen !== null,
+    pendingFlowChange !== null
+  );
   const fileDrop = useFileDrop(isOpeningBlocked, (file) => {
-    void filesRef.current?.openFile(file, 'drop');
+    void filesRef.current?.openFile(file, "drop");
   });
 
   useLayoutEffect(() => {
@@ -103,11 +122,13 @@ export default function App() {
   function handleNodeAdd(
     kind: FlowNodeKind,
     position: FlowNodePosition,
-    focusTarget: 'canvas' | 'label',
+    focusTarget: "canvas" | "label"
   ) {
     const nodeId = editor.addNode(kind, position);
-    pendingLabelFocusId.current = focusTarget === 'label' ? nodeId : null;
-    if (focusTarget === 'label') setPanelMode('inspector');
+    pendingLabelFocusId.current = focusTarget === "label" ? nodeId : null;
+    if (focusTarget === "label") {
+      setPanelMode("inspector");
+    }
     return nodeId;
   }
 
@@ -127,50 +148,66 @@ export default function App() {
     focusCanvasAfterUpdate.current = true;
     editor.deleteElements(
       selectedNodes.map((node) => node.id),
-      selectedEdges.map((edge) => edge.id),
+      selectedEdges.map((edge) => edge.id)
     );
 
     setSelection({ nodeIds: [], edgeIds: [] });
   }
 
   function performFlowChange(change: PendingFlowChange) {
-    if (change.kind === 'saved' && !editor.openSavedFlow(change.flowId)) return;
-    if (change.kind === 'new') editor.createFlow();
-    const nodeId = change.kind === 'saved' ? change.nodeId ?? null : null;
+    if (change.kind === "saved" && !editor.openSavedFlow(change.flowId)) {
+      return;
+    }
+    if (change.kind === "new") {
+      editor.createFlow();
+    }
+    const nodeId = change.kind === "saved" ? (change.nodeId ?? null) : null;
     setCanvasFocusNodeId(nodeId);
     focusCanvasAfterUpdate.current = nodeId === null;
-    if (nodeId !== null) setPanelMode('inspector');
+    if (nodeId !== null) {
+      setPanelMode("inspector");
+    }
     setSelection({ nodeIds: [], edgeIds: [] });
     scenarios.reset();
     setCanvasRevision((current) => current + 1);
   }
 
   function handleNewFlow() {
-    if (isOpeningBlocked) return;
+    if (isOpeningBlocked) {
+      return;
+    }
     if (editor.hasUnsavedChanges) {
-      setPendingFlowChange({ kind: 'new' });
+      setPendingFlowChange({ kind: "new" });
     } else {
-      performFlowChange({ kind: 'new' });
+      performFlowChange({ kind: "new" });
     }
   }
 
   function locateActiveNode(nodeId: string) {
-    if (isOpeningBlocked || !flow.nodes.some((node) => node.id === nodeId)) return;
-    setPanelMode('inspector');
+    if (isOpeningBlocked || !flow.nodes.some((node) => node.id === nodeId)) {
+      return;
+    }
+    setPanelMode("inspector");
     canvasRef.current?.focusNode(nodeId);
   }
 
   function handleFlowOpen(flowId: string, nodeId?: string) {
-    if (isOpeningBlocked) return;
+    if (isOpeningBlocked) {
+      return;
+    }
     if (flowId === flow.id && !editor.hasUnsavedChanges) {
-      if (nodeId !== undefined) locateActiveNode(nodeId);
+      if (nodeId !== undefined) {
+        locateActiveNode(nodeId);
+      }
       return;
     }
     const saved = editor.savedFlows.find((item) => item.flow.id === flowId);
-    if (saved === undefined) return;
+    if (saved === undefined) {
+      return;
+    }
 
     const change: PendingFlowChange = {
-      kind: 'saved',
+      kind: "saved",
       flowId,
       name: saved.flow.name,
       ...(nodeId === undefined ? {} : { nodeId }),
@@ -183,7 +220,9 @@ export default function App() {
   }
 
   function saveAndChangeFlow() {
-    if (pendingFlowChange === null) return;
+    if (pendingFlowChange === null) {
+      return;
+    }
     if (!editor.save()) {
       notifySaveResult(false, () => filesRef.current?.export());
       return;
@@ -206,60 +245,62 @@ export default function App() {
             : null;
         setPaletteOpen(true);
       },
-      'new-flow': handleNewFlow,
-      'rename-flow': () => {
+      "new-flow": handleNewFlow,
+      "rename-flow": () => {
         setRenamingFlowId(flow.id);
         nameInputRef.current?.focus();
       },
-      save: () =>
-        notifySaveResult(editor.save(), () => filesRef.current?.export()),
-      'open-json': () => filesRef.current?.open(),
-      'export-json': () => filesRef.current?.export(),
+      save: () => {
+        notifySaveResult(editor.save(), () => filesRef.current?.export());
+      },
+      "open-json": () => filesRef.current?.open(),
+      "export-json": () => filesRef.current?.export(),
       undo: () => {
-        focusCanvasAfterUpdate.current = panelMode === 'inspector';
+        focusCanvasAfterUpdate.current = panelMode === "inspector";
         editor.undo();
       },
       redo: () => {
-        focusCanvasAfterUpdate.current = panelMode === 'inspector';
+        focusCanvasAfterUpdate.current = panelMode === "inspector";
         editor.redo();
       },
-      'reset-layout': editor.resetLayout,
-      'fit-view': () => canvasRef.current?.fitView(),
-      'select-all': () => canvasRef.current?.selectAll(),
-      'delete-selection': handleSelectionDelete,
+      "reset-layout": editor.resetLayout,
+      "fit-view": () => canvasRef.current?.fitView(),
+      "select-all": () => canvasRef.current?.selectAll(),
+      "delete-selection": handleSelectionDelete,
       cancel: () => canvasRef.current?.cancel(),
-      'add-screen': () => canvasRef.current?.addNode('screen'),
-      'add-ui': () => canvasRef.current?.addNode('ui'),
-      'add-action': () => canvasRef.current?.addNode('action'),
-      'add-service': () => canvasRef.current?.addNode('service'),
-      'add-state': () => canvasRef.current?.addNode('state'),
+      "add-screen": () => canvasRef.current?.addNode("screen"),
+      "add-ui": () => canvasRef.current?.addNode("ui"),
+      "add-action": () => canvasRef.current?.addNode("action"),
+      "add-service": () => canvasRef.current?.addNode("service"),
+      "add-state": () => canvasRef.current?.addNode("state"),
     },
     {
-      'new-flow': !isOpeningBlocked,
-      'rename-flow': !isOpeningBlocked,
+      "new-flow": !isOpeningBlocked,
+      "rename-flow": !isOpeningBlocked,
       save:
         !isOpeningBlocked &&
         (editor.hasUnsavedChanges || editor.storageIssue !== null),
-      'open-json': !isOpeningBlocked,
-      'export-json': !isOpeningBlocked,
+      "open-json": !isOpeningBlocked,
+      "export-json": !isOpeningBlocked,
       undo: editor.canUndo && !isOpeningBlocked,
       redo: editor.canRedo && !isOpeningBlocked,
-      'reset-layout': !isOpeningBlocked && flow.nodes.length > 0,
-      'fit-view': flow.nodes.length > 0,
-      'select-all': selectedCount < flow.nodes.length + flow.edges.length,
-      'delete-selection': selectedCount > 0 && !isOpeningBlocked,
-      'add-screen': !isOpeningBlocked,
-      'add-ui': !isOpeningBlocked,
-      'add-action': !isOpeningBlocked,
-      'add-service': !isOpeningBlocked,
-      'add-state': !isOpeningBlocked,
-    },
+      "reset-layout": !isOpeningBlocked && flow.nodes.length > 0,
+      "fit-view": flow.nodes.length > 0,
+      "select-all": selectedCount < flow.nodes.length + flow.edges.length,
+      "delete-selection": selectedCount > 0 && !isOpeningBlocked,
+      "add-screen": !isOpeningBlocked,
+      "add-ui": !isOpeningBlocked,
+      "add-action": !isOpeningBlocked,
+      "add-service": !isOpeningBlocked,
+      "add-state": !isOpeningBlocked,
+    }
   );
 
-  if (editor.willReplaceInvalidDraft)
-    commands.save = { ...commands.save, label: 'Replace local copy' };
-  else if (editor.storageIssue === 'save-failed')
-    commands.save = { ...commands.save, label: 'Retry save' };
+  if (editor.willReplaceInvalidDraft) {
+    commands.save = { ...commands.save, label: "Replace local copy" };
+  } else if (editor.storageIssue === "save-failed") {
+    commands.save = { ...commands.save, label: "Retry save" };
+  }
 
   useEditorShortcuts({ workspaceRef, commands, platform, paletteOpen });
 
@@ -279,7 +320,9 @@ export default function App() {
         nameInputRef={nameInputRef}
         filesRef={filesRef}
         commandsButtonRef={commandsButtonRef}
-        onRenameClose={() => setRenamingFlowId(null)}
+        onRenameClose={() => {
+          setRenamingFlowId(null);
+        }}
         onDocumentReady={opening.onDocumentReady}
         onRestoringChange={setIsRestoring}
       />
@@ -329,13 +372,15 @@ export default function App() {
         <CommandPalette
           commands={Object.values(commands)}
           platform={platform}
-          onClose={() => setPaletteOpen(false)}
+          onClose={() => {
+            setPaletteOpen(false);
+          }}
           onRestoreFocus={() => {
             const previous = paletteReturnFocus.current;
             if (
-              previous?.isConnected &&
+              previous?.isConnected === true &&
               previous !== document.body &&
-              !previous.matches(':disabled')
+              !previous.matches(":disabled")
             ) {
               previous.focus({ preventScroll: true });
             } else {
@@ -358,8 +403,14 @@ export default function App() {
       {pendingFlowChange !== null && (
         <FlowSwitchConfirmation
           currentFlowName={flow.name}
-          title={pendingFlowChange.kind === 'new' ? 'Create a new flow?' : `Open “${pendingFlowChange.name}”?`}
-          onCancel={() => setPendingFlowChange(null)}
+          title={
+            pendingFlowChange.kind === "new"
+              ? "Create a new flow?"
+              : `Open “${pendingFlowChange.name}”?`
+          }
+          onCancel={() => {
+            setPendingFlowChange(null);
+          }}
           onDiscard={() => {
             const change = pendingFlowChange;
             setPendingFlowChange(null);
@@ -369,7 +420,10 @@ export default function App() {
         />
       )}
       {fileDrop.active && (
-        <div role="status" className="pointer-events-none absolute inset-2 z-50 flex items-center justify-center rounded-lg border-2 border-dashed border-brand-border bg-brand-soft/85">
+        <div
+          role="status"
+          className="pointer-events-none absolute inset-2 z-50 flex items-center justify-center rounded-lg border-2 border-dashed border-brand-border bg-brand-soft/85"
+        >
           <p className="rounded-control border border-brand-border bg-surface px-5 py-3 text-sm font-medium text-brand shadow-node">
             Drop one JSON file to open it
           </p>
@@ -377,4 +431,13 @@ export default function App() {
       )}
     </main>
   );
+}
+
+function isWorkspaceOpeningBlocked(
+  restoring: boolean,
+  saving: boolean,
+  hasPendingOpen: boolean,
+  hasPendingChange: boolean
+): boolean {
+  return restoring || saving || hasPendingOpen || hasPendingChange;
 }

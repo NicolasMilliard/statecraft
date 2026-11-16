@@ -1,5 +1,5 @@
-import { Button } from '../ui/Button';
-import { InspectorPanel } from './InspectorPanel';
+import { Button } from "../ui/Button";
+import { InspectorPanel } from "./InspectorPanel";
 
 interface SelectionInspectorProps {
   readonly nodeCount: number;

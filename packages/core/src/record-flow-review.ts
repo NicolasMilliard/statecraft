@@ -1,6 +1,7 @@
-import { reviewedCodeReferences, type FlowReview } from './flow-review.js';
-import type { Flow } from './flow.js';
-import type { SyncSnapshot } from './snapshot.js';
+import { reviewedCodeReferences } from "./flow-review.js";
+import type { FlowReview } from "./flow-review.js";
+import type { Flow } from "./flow.js";
+import type { SyncSnapshot } from "./snapshot.js";
 
 /**
  * Call after an explicit review of the supplied snapshot.
@@ -10,19 +11,22 @@ import type { SyncSnapshot } from './snapshot.js';
 export function recordFlowReview(
   reviews: readonly FlowReview[],
   flow: Flow,
-  reviewedSnapshot: SyncSnapshot,
+  reviewedSnapshot: SyncSnapshot
 ): readonly FlowReview[] {
   const recorded: FlowReview = {
     flowId: flow.id,
     repositoryId: reviewedSnapshot.graph.repositoryId,
     snapshotId: reviewedSnapshot.id,
-    reviewedReferences: reviewedCodeReferences(flow, reviewedSnapshot.graph.repositoryId),
+    reviewedReferences: reviewedCodeReferences(
+      flow,
+      reviewedSnapshot.graph.repositoryId
+    ),
   };
 
   const existingIndex = reviews.findIndex(
     (review) =>
       review.flowId === recorded.flowId &&
-      review.repositoryId === recorded.repositoryId,
+      review.repositoryId === recorded.repositoryId
   );
 
   if (existingIndex === -1) {
@@ -30,6 +34,6 @@ export function recordFlowReview(
   }
 
   return reviews.map((review, index) =>
-    index === existingIndex ? recorded : review,
+    index === existingIndex ? recorded : review
   );
 }

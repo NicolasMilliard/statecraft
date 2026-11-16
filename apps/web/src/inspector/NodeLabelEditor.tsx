@@ -1,7 +1,11 @@
-import type { FlowNode } from '@statecraft/core';
-import { useId, useState, type Ref } from 'react';
-import { Button } from '../ui/Button';
-import { TextInput } from '../ui/TextInput';
+/* oxlint-disable jsx-a11y/no-noninteractive-element-interactions -- The form delegates Escape from its inputs and buttons to cancel editing. */
+import type { FlowNode } from "@statecraft/core";
+import { useId, useState } from "react";
+import type { Ref } from "react";
+
+import { isComposingKey } from "../editor/is-composing-key";
+import { Button } from "../ui/Button";
+import { TextInput } from "../ui/TextInput";
 
 interface NodeLabelEditorProps {
   readonly ref?: Ref<HTMLInputElement>;
@@ -27,7 +31,7 @@ export function NodeLabelEditor({ ref, node, onRename }: NodeLabelEditorProps) {
   return (
     <form
       onKeyDown={(event) => {
-        if (event.key === 'Escape' && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
+        if (event.key === "Escape" && !isComposingKey(event.nativeEvent)) {
           event.preventDefault();
           event.stopPropagation();
           setDraftLabel(node.label);
@@ -60,9 +64,11 @@ export function NodeLabelEditor({ ref, node, onRename }: NodeLabelEditorProps) {
         name="label"
         autoComplete="off"
         value={draftLabel}
-        onChange={(event) => setDraftLabel(event.target.value)}
+        onChange={(event) => {
+          setDraftLabel(event.target.value);
+        }}
         aria-invalid={!isValid}
-        aria-describedby={`${inputId}-hint${!isValid ? ` ${inputId}-error` : ''}`}
+        aria-describedby={`${inputId}-hint${isValid ? "" : ` ${inputId}-error`}`}
         className="mt-2"
       />
 
@@ -84,7 +90,9 @@ export function NodeLabelEditor({ ref, node, onRename }: NodeLabelEditorProps) {
         <Button
           variant="secondary"
           disabled={!canCancel}
-          onClick={() => setDraftLabel(node.label)}
+          onClick={() => {
+            setDraftLabel(node.label);
+          }}
         >
           Cancel
         </Button>

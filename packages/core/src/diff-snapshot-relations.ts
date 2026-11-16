@@ -1,35 +1,35 @@
-import type { CodeRelation } from './code.js';
-import type { SyncSnapshot } from './snapshot.js';
+import type { CodeRelation } from "./code.js";
+import type { SyncSnapshot } from "./snapshot.js";
 
 export type CodeRelationChange =
   | {
       readonly relationId: string;
-      readonly kind: 'added';
+      readonly kind: "added";
       readonly after: CodeRelation;
     }
   | {
       readonly relationId: string;
-      readonly kind: 'removed';
+      readonly kind: "removed";
       readonly before: CodeRelation;
     }
   | {
       readonly relationId: string;
-      readonly kind: 'modified';
+      readonly kind: "modified";
       readonly before: CodeRelation;
       readonly after: CodeRelation;
     };
 
 export type SnapshotRelationDiff =
   | {
-      readonly status: 'compared';
+      readonly status: "compared";
       readonly repositoryId: string;
       readonly beforeSnapshotId: string;
       readonly afterSnapshotId: string;
       readonly changes: readonly CodeRelationChange[];
     }
   | {
-      readonly status: 'incompatible';
-      readonly reason: 'repository_mismatch' | 'analysis_profile_mismatch';
+      readonly status: "incompatible";
+      readonly reason: "repository_mismatch" | "analysis_profile_mismatch";
     };
 
 /**
@@ -37,28 +37,28 @@ export type SnapshotRelationDiff =
  */
 export function diffSnapshotRelations(
   before: SyncSnapshot,
-  after: SyncSnapshot,
+  after: SyncSnapshot
 ): SnapshotRelationDiff {
   if (before.graph.repositoryId !== after.graph.repositoryId) {
     return {
-      status: 'incompatible',
-      reason: 'repository_mismatch',
+      status: "incompatible",
+      reason: "repository_mismatch",
     };
   }
 
   if (before.analysisProfileId !== after.analysisProfileId) {
     return {
-      status: 'incompatible',
-      reason: 'analysis_profile_mismatch',
+      status: "incompatible",
+      reason: "analysis_profile_mismatch",
     };
   }
 
   const beforeRelations = new Map(
-    before.graph.relations.map((relation) => [relation.id, relation] as const),
+    before.graph.relations.map((relation) => [relation.id, relation] as const)
   );
 
   const afterRelations = new Map(
-    after.graph.relations.map((relation) => [relation.id, relation] as const),
+    after.graph.relations.map((relation) => [relation.id, relation] as const)
   );
 
   const relationIds = new Set([
@@ -68,20 +68,20 @@ export function diffSnapshotRelations(
 
   const changes: CodeRelationChange[] = [];
 
-  for (const relationId of [...relationIds].sort()) {
+  for (const relationId of [...relationIds].toSorted()) {
     const previous = beforeRelations.get(relationId);
     const current = afterRelations.get(relationId);
 
     if (previous === undefined && current !== undefined) {
       changes.push({
         relationId,
-        kind: 'added',
+        kind: "added",
         after: current,
       });
     } else if (previous !== undefined && current === undefined) {
       changes.push({
         relationId,
-        kind: 'removed',
+        kind: "removed",
         before: previous,
       });
     } else if (
@@ -91,7 +91,7 @@ export function diffSnapshotRelations(
     ) {
       changes.push({
         relationId,
-        kind: 'modified',
+        kind: "modified",
         before: previous,
         after: current,
       });
@@ -99,7 +99,7 @@ export function diffSnapshotRelations(
   }
 
   return {
-    status: 'compared',
+    status: "compared",
     repositoryId: before.graph.repositoryId,
     beforeSnapshotId: before.id,
     afterSnapshotId: after.id,
@@ -109,7 +109,7 @@ export function diffSnapshotRelations(
 
 function hasRelationChanged(
   before: CodeRelation,
-  after: CodeRelation,
+  after: CodeRelation
 ): boolean {
   return (
     before.kind !== after.kind ||

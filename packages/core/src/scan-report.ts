@@ -1,4 +1,4 @@
-import type { CodeGraph } from './code.js';
+import type { CodeGraph } from "./code.js";
 
 export interface ScanDiagnostic {
   readonly code: string;

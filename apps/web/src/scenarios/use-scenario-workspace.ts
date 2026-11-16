@@ -1,23 +1,35 @@
-import type { Flow } from '@statecraft/core';
-import { useMemo, useState } from 'react';
-import type { CanvasPlayback } from '../canvas/FlowCanvas';
-import type { useFlowEditor } from '../editor/use-flow-editor';
-import { useScenarioPlayback } from './use-scenario-playback';
+import type { Flow } from "@statecraft/core";
+import { useMemo, useState } from "react";
 
-export function useScenarioWorkspace(flow: Flow, editor: ReturnType<typeof useFlowEditor>) {
+import type { CanvasPlayback } from "../canvas/FlowCanvas";
+import type { useFlowEditor } from "../editor/use-flow-editor";
+import { useScenarioPlayback } from "./use-scenario-playback";
+
+export function useScenarioWorkspace(
+  flow: Flow,
+  editor: ReturnType<typeof useFlowEditor>
+) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [focusNameId, setFocusNameId] = useState<string | null>(null);
-  const selected = editor.scenarios.find((scenario) => scenario.id === selectedId) ??
-    editor.scenarios[0] ?? null;
+  const selected =
+    editor.scenarios.find((scenario) => scenario.id === selectedId) ??
+    editor.scenarios[0] ??
+    null;
   const run = useScenarioPlayback(flow, selected);
   const trace = run.playback?.result.trace ?? null;
   const step = run.playback?.stepIndex ?? -1;
-  const canvasPlayback = useMemo<CanvasPlayback | null>(() => trace === null ? null : {
-    currentNodeId: trace.nodeIds[step] ?? null,
-    visitedNodeIds: trace.nodeIds.slice(0, step + 1),
-    currentEdgeId: step > 0 ? trace.edgeIds[step - 1] ?? null : null,
-    visitedEdgeIds: trace.edgeIds.slice(0, step),
-  }, [trace, step]);
+  const canvasPlayback = useMemo<CanvasPlayback | null>(
+    () =>
+      trace === null
+        ? null
+        : {
+            currentNodeId: trace.nodeIds[step] ?? null,
+            visitedNodeIds: trace.nodeIds.slice(0, step + 1),
+            currentEdgeId: step > 0 ? (trace.edgeIds[step - 1] ?? null) : null,
+            visitedEdgeIds: trace.edgeIds.slice(0, step),
+          },
+    [trace, step]
+  );
 
   function reset() {
     setSelectedId(null);
@@ -58,7 +70,9 @@ export function useScenarioWorkspace(flow: Flow, editor: ReturnType<typeof useFl
     resume: run.resume,
     nextStep: run.nextStep,
     restart: run.restart,
-    nameFocusHandled: () => setFocusNameId(null),
+    nameFocusHandled: () => {
+      setFocusNameId(null);
+    },
     reset,
     select,
     create,

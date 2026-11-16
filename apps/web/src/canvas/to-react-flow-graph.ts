@@ -1,11 +1,8 @@
-import {
-  validateFlow,
-  type Flow,
-  type FlowEdgeKind,
-  type FlowNodeKind,
-} from '@statecraft/core';
-import type { Edge, Node } from '@xyflow/react';
-import type { FlowLayout } from './flow-layout';
+import { validateFlow } from "@statecraft/core";
+import type { Flow, FlowEdgeKind, FlowNodeKind } from "@statecraft/core";
+import type { Edge, Node } from "@xyflow/react";
+
+import type { FlowLayout } from "./flow-layout";
 
 export type CanvasNode = Node<
   {
@@ -13,23 +10,23 @@ export type CanvasNode = Node<
     kind: FlowNodeKind;
     isEntry: boolean;
   },
-  'statecraft'
+  "statecraft"
 >;
 
-export type CanvasEdge = Edge<{ kind: FlowEdgeKind }, 'statecraft'>;
+export type CanvasEdge = Edge<{ kind: FlowEdgeKind }, "statecraft">;
 
 export const CANVAS_NODE_WIDTH = 192;
 export const CANVAS_NODE_MIN_HEIGHT = 80;
 
 export function toReactFlowGraph(
   flow: Flow,
-  layout: FlowLayout,
+  layout: FlowLayout
 ): { nodes: CanvasNode[]; edges: CanvasEdge[] } {
   const issues = validateFlow(flow);
 
   if (issues.length > 0) {
     throw new Error(
-      `Invalid flow "${flow.id}": ${issues.map((issue) => issue.code).join(', ')}`,
+      `Invalid flow "${flow.id}": ${issues.map((issue) => issue.code).join(", ")}`
     );
   }
 
@@ -48,8 +45,8 @@ export function toReactFlowGraph(
 
     return {
       id: node.id,
-      type: 'statecraft',
-      ariaLabel: `${node.label}, ${node.kind}${isEntry ? ', entry point' : ''}`,
+      type: "statecraft",
+      ariaLabel: `${node.label}, ${node.kind}${isEntry ? ", entry point" : ""}`,
       position: { ...position },
       style: { width: CANVAS_NODE_WIDTH, minHeight: CANVAS_NODE_MIN_HEIGHT },
       data: {
@@ -70,7 +67,7 @@ export function toReactFlowGraph(
       id: edge.id,
       source: edge.sourceNodeId,
       target: edge.targetNodeId,
-      type: 'statecraft',
+      type: "statecraft",
       selectable: true,
       focusable: true,
       ariaLabel: `${sourceLabel} to ${targetLabel}, ${edge.kind}`,

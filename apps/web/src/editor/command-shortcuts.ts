@@ -1,4 +1,8 @@
-import type { CommandRegistry, EditorCommand, ShortcutPlatform } from './commands';
+import type {
+  CommandRegistry,
+  EditorCommand,
+  ShortcutPlatform,
+} from "./commands";
 
 interface ShortcutEvent {
   readonly key: string;
@@ -24,28 +28,51 @@ interface ShortcutContext {
 export function handleCommandShortcut(
   event: ShortcutEvent,
   commands: CommandRegistry,
-  context: ShortcutContext,
+  context: ShortcutContext
 ): boolean {
-  if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || context.modalOpen) return false;
+  if (
+    event.defaultPrevented ||
+    event.isComposing ||
+    event.keyCode === 229 ||
+    context.modalOpen
+  ) {
+    return false;
+  }
 
-  const command: EditorCommand | undefined = Object.values(commands).find((candidate) => {
-    if (context.editingText && !candidate.allowInText) return false;
-    if (candidate.scope === 'canvas' && !context.canvasFocused) return false;
+  const command: EditorCommand | undefined = Object.values(commands).find(
+    (candidate) => {
+      if (context.editingText && candidate.allowInText !== true) {
+        return false;
+      }
+      if (candidate.scope === "canvas" && !context.canvasFocused) {
+        return false;
+      }
 
-    return candidate.shortcuts?.some((shortcut) => {
-      const meta = context.platform === 'mac' && !!shortcut.mod;
-      const ctrl = context.platform === 'other' && !!shortcut.mod;
-      return event.key.toLowerCase() === shortcut.key.toLowerCase() &&
-        event.metaKey === meta && event.ctrlKey === ctrl &&
-        event.shiftKey === !!shortcut.shift && !event.altKey;
-    });
-  });
+      return (
+        candidate.shortcuts?.some((shortcut) => {
+          const meta = context.platform === "mac" && shortcut.mod === true;
+          const ctrl = context.platform === "other" && shortcut.mod === true;
+          return (
+            event.key.toLowerCase() === shortcut.key.toLowerCase() &&
+            event.metaKey === meta &&
+            event.ctrlKey === ctrl &&
+            event.shiftKey === (shortcut.shift === true) &&
+            !event.altKey
+          );
+        }) === true
+      );
+    }
+  );
 
-  if (command === undefined) return false;
+  if (command === undefined) {
+    return false;
+  }
 
   // Consume a known shortcut even when disabled, to avoid the browser's Save dialog.
   event.preventDefault();
   event.stopPropagation();
-  if (command.enabled && !event.repeat) command.run();
+  if (command.enabled && !event.repeat) {
+    command.run();
+  }
   return true;
 }

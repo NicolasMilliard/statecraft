@@ -1,9 +1,9 @@
-import type { FlowEditorState } from './flow-editor-state';
+import type { FlowEditorState } from "./flow-editor-state";
 
 export function deleteFlowElements(
   editor: FlowEditorState,
   nodeIds: readonly string[],
-  edgeIds: readonly string[],
+  edgeIds: readonly string[]
 ): FlowEditorState {
   const { flow, layout, initialLayout } = editor;
   const deletedNodeIds = new Set(nodeIds);
@@ -15,7 +15,7 @@ export function deleteFlowElements(
     (edge) =>
       !deletedEdgeIds.has(edge.id) &&
       !deletedNodeIds.has(edge.sourceNodeId) &&
-      !deletedNodeIds.has(edge.targetNodeId),
+      !deletedNodeIds.has(edge.targetNodeId)
   );
 
   if (
@@ -25,22 +25,27 @@ export function deleteFlowElements(
     return editor;
   }
 
-  const positions = { ...layout.positions };
-  const initialPositions = { ...initialLayout.positions };
-
-  for (const nodeId of deletedNodeIds) {
-    delete positions[nodeId];
-    delete initialPositions[nodeId];
-  }
+  const positions = Object.fromEntries(
+    Object.entries(layout.positions).filter(
+      ([nodeId]) => !deletedNodeIds.has(nodeId)
+    )
+  );
+  const initialPositions = Object.fromEntries(
+    Object.entries(initialLayout.positions).filter(
+      ([nodeId]) => !deletedNodeIds.has(nodeId)
+    )
+  );
 
   const hasDeletedOverride = editor.scenarios.some((scenario) =>
-    scenario.overrides.some((override) => deletedNodeIds.has(override.flowNodeId)),
+    scenario.overrides.some((override) =>
+      deletedNodeIds.has(override.flowNodeId)
+    )
   );
 
   const scenarios = hasDeletedOverride
     ? editor.scenarios.map((scenario) => {
         const overrides = scenario.overrides.filter(
-          (override) => !deletedNodeIds.has(override.flowNodeId),
+          (override) => !deletedNodeIds.has(override.flowNodeId)
         );
         return overrides.length === scenario.overrides.length
           ? scenario
@@ -59,7 +64,7 @@ export function deleteFlowElements(
       nodes,
       edges,
       codeReferences: flow.codeReferences.filter(
-        (reference) => !deletedNodeIds.has(reference.flowNodeId),
+        (reference) => !deletedNodeIds.has(reference.flowNodeId)
       ),
     },
     layout: {

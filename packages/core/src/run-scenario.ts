@@ -1,19 +1,15 @@
-import type { Flow, FlowEdge, FlowEdgeKind } from './flow.js';
-import {
-  DEFAULT_SERVICE_OUTCOME,
-  type Scenario,
-  type ServiceOutcome,
-} from './scenario.js';
-import { validateFlow, type FlowValidationIssue } from './validate-flow.js';
-import {
-  validateScenario,
-  type ScenarioValidationIssue,
-} from './validate-scenario.js';
+import type { Flow, FlowEdge, FlowEdgeKind } from "./flow.js";
+import { DEFAULT_SERVICE_OUTCOME } from "./scenario.js";
+import type { Scenario, ServiceOutcome } from "./scenario.js";
+import { validateFlow } from "./validate-flow.js";
+import type { FlowValidationIssue } from "./validate-flow.js";
+import { validateScenario } from "./validate-scenario.js";
+import type { ScenarioValidationIssue } from "./validate-scenario.js";
 
 export interface ScenarioRunServiceOutcome {
   readonly flowNodeId: string;
   readonly outcome: ServiceOutcome;
-  readonly source: 'default' | 'override';
+  readonly source: "default" | "override";
 }
 
 export interface ScenarioRunTrace {
@@ -23,24 +19,30 @@ export interface ScenarioRunTrace {
 }
 
 export type ScenarioRunStopReason =
-  | { readonly code: 'invalid_flow'; readonly issues: readonly FlowValidationIssue[] }
-  | { readonly code: 'invalid_scenario'; readonly issues: readonly ScenarioValidationIssue[] }
-  | { readonly code: 'missing_entry' }
   | {
-      readonly code: 'missing_branch' | 'ambiguous_branch';
+      readonly code: "invalid_flow";
+      readonly issues: readonly FlowValidationIssue[];
+    }
+  | {
+      readonly code: "invalid_scenario";
+      readonly issues: readonly ScenarioValidationIssue[];
+    }
+  | { readonly code: "missing_entry" }
+  | {
+      readonly code: "missing_branch" | "ambiguous_branch";
       readonly nodeId: string;
       readonly expectedEdgeKind: FlowEdgeKind;
     }
-  | { readonly code: 'cycle'; readonly nodeId: string };
+  | { readonly code: "cycle"; readonly nodeId: string };
 
 export type ScenarioRunResult =
   | {
-      readonly status: 'completed';
+      readonly status: "completed";
       readonly trace: ScenarioRunTrace;
       readonly terminalNodeId: string;
     }
   | {
-      readonly status: 'stopped';
+      readonly status: "stopped";
       readonly trace: ScenarioRunTrace;
       readonly reason: ScenarioRunStopReason;
     };
@@ -55,21 +57,25 @@ export function runScenario(flow: Flow, scenario: Scenario): ScenarioRunResult {
 
   const flowIssues = validateFlow(flow);
   if (flowIssues.length > 0) {
-    return { status: 'stopped', trace, reason: { code: 'invalid_flow', issues: flowIssues } };
+    return {
+      status: "stopped",
+      trace,
+      reason: { code: "invalid_flow", issues: flowIssues },
+    };
   }
 
   const scenarioIssues = validateScenario(scenario, flow);
   if (scenarioIssues.length > 0) {
     return {
-      status: 'stopped',
+      status: "stopped",
       trace,
-      reason: { code: 'invalid_scenario', issues: scenarioIssues },
+      reason: { code: "invalid_scenario", issues: scenarioIssues },
     };
   }
 
-  const entryNodeId = flow.entryNodeId;
+  const { entryNodeId } = flow;
   if (entryNodeId === null) {
-    return { status: 'stopped', trace, reason: { code: 'missing_entry' } };
+    return { status: "stopped", trace, reason: { code: "missing_entry" } };
   }
 
   const nodesById = new Map(flow.nodes.map((node) => [node.id, node] as const));
@@ -81,7 +87,9 @@ export function runScenario(flow: Flow, scenario: Scenario): ScenarioRunResult {
   }
 
   const overridesByNode = new Map(
-    scenario.overrides.map((override) => [override.flowNodeId, override] as const),
+    scenario.overrides.map(
+      (override) => [override.flowNodeId, override] as const
+    )
   );
 
   let currentNodeId = entryNodeId;
@@ -95,39 +103,39 @@ export function runScenario(flow: Flow, scenario: Scenario): ScenarioRunResult {
       throw new Error(`Validated Flow has no node "${currentNodeId}".`);
     }
 
-    let expectedEdgeKind: FlowEdgeKind = 'transition';
-    if (currentNode.kind === 'service') {
+    let expectedEdgeKind: FlowEdgeKind = "transition";
+    if (currentNode.kind === "service") {
       const override = overridesByNode.get(currentNodeId);
       const outcome = { ...(override?.outcome ?? DEFAULT_SERVICE_OUTCOME) };
       expectedEdgeKind = outcome.kind;
       trace.serviceOutcomes.push({
         flowNodeId: currentNodeId,
         outcome,
-        source: override === undefined ? 'default' : 'override',
+        source: override === undefined ? "default" : "override",
       });
     }
 
     const outgoing = outgoingBySource.get(currentNodeId) ?? [];
     if (outgoing.length === 0) {
-      return { status: 'completed', trace, terminalNodeId: currentNodeId };
+      return { status: "completed", trace, terminalNodeId: currentNodeId };
     }
 
     const matching = outgoing.filter((edge) => edge.kind === expectedEdgeKind);
     if (matching.length !== 1) {
       return {
-        status: 'stopped',
+        status: "stopped",
         trace,
         reason: {
-          code: matching.length === 0 ? 'missing_branch' : 'ambiguous_branch',
+          code: matching.length === 0 ? "missing_branch" : "ambiguous_branch",
           nodeId: currentNodeId,
           expectedEdgeKind,
         },
       };
     }
 
-    const edge = matching[0];
+    const [edge] = matching;
     if (edge === undefined) {
-      throw new Error('A single matching edge was expected.');
+      throw new Error("A single matching edge was expected.");
     }
 
     trace.edgeIds.push(edge.id);
@@ -135,9 +143,9 @@ export function runScenario(flow: Flow, scenario: Scenario): ScenarioRunResult {
 
     if (visited.has(edge.targetNodeId)) {
       return {
-        status: 'stopped',
+        status: "stopped",
         trace,
-        reason: { code: 'cycle', nodeId: edge.targetNodeId },
+        reason: { code: "cycle", nodeId: edge.targetNodeId },
       };
     }
 

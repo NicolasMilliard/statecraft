@@ -1,4 +1,4 @@
-export const SERVICE_OUTCOME_KINDS = ['success', 'failure'] as const;
+export const SERVICE_OUTCOME_KINDS = ["success", "failure"] as const;
 
 export type ServiceOutcomeKind = (typeof SERVICE_OUTCOME_KINDS)[number];
 
@@ -9,7 +9,7 @@ export interface ServiceOutcome {
 }
 
 export const DEFAULT_SERVICE_OUTCOME: ServiceOutcome = Object.freeze({
-  kind: 'success',
+  kind: "success",
   code: null,
   httpStatus: null,
 });
