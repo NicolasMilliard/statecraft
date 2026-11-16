@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState } from "react";
 
 const HISTORY_LIMIT = 100;
 
@@ -61,7 +61,7 @@ export function useHistoryState<T extends object>(createInitialState: () => T) {
 
   const redo = useCallback(() => {
     setHistory((current) => {
-      const next = current.future[0];
+      const [next] = current.future;
 
       if (next === undefined) {
         return current;

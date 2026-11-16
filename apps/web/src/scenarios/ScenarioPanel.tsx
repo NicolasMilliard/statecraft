@@ -1,12 +1,15 @@
-import type { Flow, Scenario, ServiceOutcome } from '@statecraft/core';
-import { useId, useLayoutEffect, useRef, useState } from 'react';
-import { InspectorPanel } from '../inspector/InspectorPanel';
-import { Button } from '../ui/Button';
-import { Select } from '../ui/Select';
-import { TextInput } from '../ui/TextInput';
-import { ScenarioRunPanel } from './ScenarioRunPanel';
-import { ScenarioServiceEditor } from './ScenarioServiceEditor';
-import type { ScenarioPlayback } from './use-scenario-playback';
+/* oxlint-disable jsx-a11y/no-noninteractive-element-interactions -- The form delegates Escape from its inputs and buttons to cancel editing. */
+import type { Flow, Scenario, ServiceOutcome } from "@statecraft/core";
+import { useId, useLayoutEffect, useRef, useState } from "react";
+
+import { isComposingKey } from "../editor/is-composing-key";
+import { InspectorPanel } from "../inspector/InspectorPanel";
+import { Button } from "../ui/Button";
+import { Select } from "../ui/Select";
+import { TextInput } from "../ui/TextInput";
+import { ScenarioRunPanel } from "./ScenarioRunPanel";
+import { ScenarioServiceEditor } from "./ScenarioServiceEditor";
+import type { ScenarioPlayback } from "./use-scenario-playback";
 
 interface ScenarioPanelProps {
   readonly flow: Flow;
@@ -28,7 +31,7 @@ interface ScenarioPanelProps {
   readonly onOverrideChange: (
     scenarioId: string,
     flowNodeId: string,
-    outcome: ServiceOutcome | null,
+    outcome: ServiceOutcome | null
   ) => void;
 }
 
@@ -54,7 +57,9 @@ function ScenarioNameEditor({
   }
 
   useLayoutEffect(() => {
-    if (!focusOnMount) return;
+    if (!focusOnMount) {
+      return;
+    }
     inputRef.current?.focus();
     inputRef.current?.select();
     onFocusHandled();
@@ -68,24 +73,30 @@ function ScenarioNameEditor({
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        if (canApply) onRename(scenario.id, normalizedName);
+        if (canApply) {
+          onRename(scenario.id, normalizedName);
+        }
       }}
       onKeyDown={(event) => {
-        if (event.key === 'Escape' && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
+        if (event.key === "Escape" && !isComposingKey(event.nativeEvent)) {
           event.preventDefault();
           event.stopPropagation();
           setDraftName(scenario.name);
         }
       }}
     >
-      <label htmlFor={id} className="block text-ui font-medium">Name</label>
+      <label htmlFor={id} className="block text-ui font-medium">
+        Name
+      </label>
       <TextInput
         ref={inputRef}
         id={id}
         value={draftName}
-        onChange={(event) => setDraftName(event.target.value)}
+        onChange={(event) => {
+          setDraftName(event.target.value);
+        }}
         aria-invalid={!isValid}
-        aria-describedby={!isValid ? `${id}-error` : undefined}
+        aria-describedby={isValid ? undefined : `${id}-error`}
         className="mt-2"
       />
       {!isValid && (
@@ -94,11 +105,15 @@ function ScenarioNameEditor({
         </p>
       )}
       <div className="mt-2 flex gap-2">
-        <Button type="submit" disabled={!canApply}>Apply name</Button>
+        <Button type="submit" disabled={!canApply}>
+          Apply name
+        </Button>
         <Button
           variant="secondary"
           disabled={draftName === scenario.name}
-          onClick={() => setDraftName(scenario.name)}
+          onClick={() => {
+            setDraftName(scenario.name);
+          }}
         >
           Cancel
         </Button>
@@ -127,12 +142,12 @@ export function ScenarioPanel({
   onOverrideChange,
 }: ScenarioPanelProps) {
   const id = useId();
-  const serviceNodes = flow.nodes.filter((node) => node.kind === 'service');
+  const serviceNodes = flow.nodes.filter((node) => node.kind === "service");
 
   return (
     <InspectorPanel
       title="Scenarios"
-      context={`${scenarios.length} ${scenarios.length === 1 ? 'scenario' : 'scenarios'}`}
+      context={`${scenarios.length} ${scenarios.length === 1 ? "scenario" : "scenarios"}`}
     >
       <p className="text-ui text-muted">
         Explore alternative Service outcomes in this flow.
@@ -144,90 +159,108 @@ export function ScenarioPanel({
           <p className="mt-2 text-xs text-muted">
             Each scenario can override the outcome of any Service.
           </p>
-          <Button onClick={onCreate} className="mt-4">New scenario</Button>
+          <Button onClick={onCreate} className="mt-4">
+            New scenario
+          </Button>
         </div>
-      ) : selectedScenario !== null && (
-        <>
-          <label htmlFor={`${id}-select`} className="mt-5 block text-ui font-medium">
-            Scenario
-          </label>
-          <Select
-            id={`${id}-select`}
-            value={selectedScenario.id}
-            onChange={(event) => onSelect(event.target.value)}
-            containerClassName="mt-2"
-          >
-            {scenarios.map((scenario) => (
-              <option key={scenario.id} value={scenario.id}>{scenario.name}</option>
-            ))}
-          </Select>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button onClick={onCreate}>New</Button>
-            <Button variant="secondary" onClick={() => onDuplicate(selectedScenario.id)}>
-              Duplicate
-            </Button>
-          </div>
-
-          <ScenarioRunPanel
-            flow={flow}
-            playback={playback}
-            onRun={onRun}
-            onPause={onPause}
-            onResume={onResume}
-            onNextStep={onNextStep}
-            onRestart={onRestart}
-          />
-
-          <div className="mt-6 border-t border-border pt-5">
-            <ScenarioNameEditor
-              key={selectedScenario.id}
-              scenario={selectedScenario}
-              onRename={onRename}
-              focusOnMount={focusNameScenarioId === selectedScenario.id}
-              onFocusHandled={onNameFocusHandled}
-            />
-          </div>
-
-          <div className="mt-6 border-t border-border pt-5">
-            <h3 className="text-ui font-medium">Service outcomes</h3>
-            <p className="mt-1 text-xs text-muted">
-              Outcomes here are simulated. They do not call the service.
-            </p>
-            {serviceNodes.length === 0 ? (
-              <p className="mt-4 text-ui text-muted">
-                Add a Service node to define an outcome.
-              </p>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {serviceNodes.map((node) => (
-                  <ScenarioServiceEditor
-                    key={`${selectedScenario.id}:${node.id}`}
-                    node={node}
-                    override={selectedScenario.overrides.find(
-                      (override) => override.flowNodeId === node.id,
-                    ) ?? null}
-                    onChange={(outcome) => onOverrideChange(
-                      selectedScenario.id,
-                      node.id,
-                      outcome,
-                    )}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-6 border-t border-border pt-4">
-            <Button
-              variant="danger"
-              onClick={() => onDelete(selectedScenario.id)}
-              title="Delete this scenario. Use Undo to restore it."
+      ) : (
+        selectedScenario !== null && (
+          <>
+            <label
+              htmlFor={`${id}-select`}
+              className="mt-5 block text-ui font-medium"
             >
-              Delete scenario
-            </Button>
-          </div>
-        </>
+              Scenario
+            </label>
+            <Select
+              id={`${id}-select`}
+              value={selectedScenario.id}
+              onChange={(event) => {
+                onSelect(event.target.value);
+              }}
+              containerClassName="mt-2"
+            >
+              {scenarios.map((scenario) => (
+                <option key={scenario.id} value={scenario.id}>
+                  {scenario.name}
+                </option>
+              ))}
+            </Select>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button onClick={onCreate}>New</Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  onDuplicate(selectedScenario.id);
+                }}
+              >
+                Duplicate
+              </Button>
+            </div>
+
+            <ScenarioRunPanel
+              flow={flow}
+              playback={playback}
+              onRun={onRun}
+              onPause={onPause}
+              onResume={onResume}
+              onNextStep={onNextStep}
+              onRestart={onRestart}
+            />
+
+            <div className="mt-6 border-t border-border pt-5">
+              <ScenarioNameEditor
+                key={selectedScenario.id}
+                scenario={selectedScenario}
+                onRename={onRename}
+                focusOnMount={focusNameScenarioId === selectedScenario.id}
+                onFocusHandled={onNameFocusHandled}
+              />
+            </div>
+
+            <div className="mt-6 border-t border-border pt-5">
+              <h3 className="text-ui font-medium">Service outcomes</h3>
+              <p className="mt-1 text-xs text-muted">
+                Outcomes here are simulated. They do not call the service.
+              </p>
+              {serviceNodes.length === 0 ? (
+                <p className="mt-4 text-ui text-muted">
+                  Add a Service node to define an outcome.
+                </p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {serviceNodes.map((node) => (
+                    <ScenarioServiceEditor
+                      key={`${selectedScenario.id}:${node.id}`}
+                      node={node}
+                      override={
+                        selectedScenario.overrides.find(
+                          (override) => override.flowNodeId === node.id
+                        ) ?? null
+                      }
+                      onChange={(outcome) => {
+                        onOverrideChange(selectedScenario.id, node.id, outcome);
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 border-t border-border pt-4">
+              <Button
+                variant="danger"
+                onClick={() => {
+                  onDelete(selectedScenario.id);
+                }}
+                title="Delete this scenario. Use Undo to restore it."
+              >
+                Delete scenario
+              </Button>
+            </div>
+          </>
+        )
       )}
     </InspectorPanel>
   );

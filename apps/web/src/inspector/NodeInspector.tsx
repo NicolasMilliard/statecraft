@@ -3,13 +3,14 @@ import type {
   Flow,
   FlowNode,
   SyncSnapshot,
-} from '@statecraft/core';
-import type { Ref } from 'react';
-import { NODE_KIND_LABELS } from '../node-kind-labels';
-import { Button } from '../ui/Button';
-import { CodeMappingInspector } from './CodeMappingInspector';
-import { InspectorPanel } from './InspectorPanel';
-import { NodeLabelEditor } from './NodeLabelEditor';
+} from "@statecraft/core";
+import type { Ref } from "react";
+
+import { NODE_KIND_LABELS } from "../node-kind-labels";
+import { Button } from "../ui/Button";
+import { CodeMappingInspector } from "./CodeMappingInspector";
+import { InspectorPanel } from "./InspectorPanel";
+import { NodeLabelEditor } from "./NodeLabelEditor";
 
 interface NodeInspectorProps {
   readonly labelInputRef?: Ref<HTMLInputElement>;
@@ -24,9 +25,12 @@ interface NodeInspectorProps {
   readonly onCodeAttach: (
     nodeId: string,
     entityId: string,
-    role: CodeReferenceRole,
+    role: CodeReferenceRole
   ) => void;
-  readonly onCodeRoleChange: (referenceId: string, role: CodeReferenceRole) => void;
+  readonly onCodeRoleChange: (
+    referenceId: string,
+    role: CodeReferenceRole
+  ) => void;
   readonly onCodeDetach: (referenceId: string) => void;
 }
 
@@ -45,16 +49,18 @@ export function NodeInspector({
   onCodeDetach,
 }: NodeInspectorProps) {
   return (
-    <InspectorPanel context={node === null ? 'No selection' : 'Node'}>
+    <InspectorPanel context={node === null ? "No selection" : "Node"}>
       {node === null ? (
         <div className="py-5">
           <h3 className="text-ui font-medium">
-            {isFlowEmpty ? 'Give your flow a starting point' : 'Explore your flow'}
+            {isFlowEmpty
+              ? "Give your flow a starting point"
+              : "Explore your flow"}
           </h3>
           <p className="mt-2 text-ui text-muted">
             {isFlowEmpty
-              ? 'Add a node to name it and edit its details here.'
-              : 'Select a node or connection to inspect and edit its details.'}
+              ? "Add a node to name it and edit its details here."
+              : "Select a node or connection to inspect and edit its details."}
           </p>
           {!isFlowEmpty && (
             <p className="mt-4 text-xs text-muted">
@@ -65,15 +71,17 @@ export function NodeInspector({
       ) : (
         <div key={node.id}>
           <div className="mb-6">
-            <h3 className="text-sm font-medium wrap-anywhere">
-              {node.label}
-            </h3>
-            <p className="mt-1 font-mono text-xs text-muted wrap-anywhere">
+            <h3 className="text-sm font-medium wrap-anywhere">{node.label}</h3>
+            <p className="mt-1 font-mono text-xs wrap-anywhere text-muted">
               {node.id}
             </p>
           </div>
 
-          <NodeLabelEditor ref={labelInputRef} node={node} onRename={onNodeRename} />
+          <NodeLabelEditor
+            ref={labelInputRef}
+            node={node}
+            onRename={onNodeRename}
+          />
 
           <dl className="mt-6 space-y-5 text-ui">
             <div className="flex items-center justify-between gap-3">
@@ -85,16 +93,18 @@ export function NodeInspector({
 
             <div className="flex items-center justify-between gap-3">
               <dt className="text-muted">Entry point</dt>
-              <dd>{isEntry ? 'Yes' : 'No'}</dd>
+              <dd>{isEntry ? "Yes" : "No"}</dd>
             </div>
           </dl>
 
           <Button
             variant="secondary"
-            onClick={() => onEntryNodeChange(isEntry ? null : node.id)}
+            onClick={() => {
+              onEntryNodeChange(isEntry ? null : node.id);
+            }}
             className="mt-3 w-full"
           >
-            {isEntry ? 'Clear entry point' : 'Set as entry point'}
+            {isEntry ? "Clear entry point" : "Set as entry point"}
           </Button>
 
           <CodeMappingInspector
@@ -111,7 +121,12 @@ export function NodeInspector({
               Deleting this node also removes its connections.
             </p>
 
-            <Button variant="danger" onClick={() => onNodeDelete(node.id)}>
+            <Button
+              variant="danger"
+              onClick={() => {
+                onNodeDelete(node.id);
+              }}
+            >
               Delete node
             </Button>
           </div>

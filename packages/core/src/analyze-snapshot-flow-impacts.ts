@@ -1,10 +1,10 @@
-import { analyzeEntityFlowImpacts } from './analyze-entity-flow-impacts.js';
-import { analyzeRelationFlowImpacts } from './analyze-relation-flow-impacts.js';
-import { diffSnapshotEntities } from './diff-snapshot-entities.js';
-import { diffSnapshotRelations } from './diff-snapshot-relations.js';
-import type { FlowImpact, FlowImpactAnalysis } from './flow-impact.js';
-import type { Flow } from './flow.js';
-import type { SyncSnapshot } from './snapshot.js';
+import { analyzeEntityFlowImpacts } from "./analyze-entity-flow-impacts.js";
+import { analyzeRelationFlowImpacts } from "./analyze-relation-flow-impacts.js";
+import { diffSnapshotEntities } from "./diff-snapshot-entities.js";
+import { diffSnapshotRelations } from "./diff-snapshot-relations.js";
+import type { FlowImpact, FlowImpactAnalysis } from "./flow-impact.js";
+import type { Flow } from "./flow.js";
+import type { SyncSnapshot } from "./snapshot.js";
 
 /**
  * Flows must be validated and have unique IDs.
@@ -13,32 +13,32 @@ import type { SyncSnapshot } from './snapshot.js';
 export function analyzeSnapshotFlowImpacts(
   flows: readonly Flow[],
   before: SyncSnapshot,
-  after: SyncSnapshot,
+  after: SyncSnapshot
 ): FlowImpactAnalysis {
   const entityAnalysis = analyzeEntityFlowImpacts(
     flows,
-    diffSnapshotEntities(before, after),
+    diffSnapshotEntities(before, after)
   );
 
-  if (entityAnalysis.status === 'incompatible') {
+  if (entityAnalysis.status === "incompatible") {
     return entityAnalysis;
   }
 
   const relationAnalysis = analyzeRelationFlowImpacts(
     flows,
-    diffSnapshotRelations(before, after),
+    diffSnapshotRelations(before, after)
   );
 
-  if (relationAnalysis.status === 'incompatible') {
+  if (relationAnalysis.status === "incompatible") {
     return relationAnalysis;
   }
 
   const entityImpactsByFlowId = new Map(
-    entityAnalysis.impacts.map((impact) => [impact.flowId, impact] as const),
+    entityAnalysis.impacts.map((impact) => [impact.flowId, impact] as const)
   );
 
   const relationImpactsByFlowId = new Map(
-    relationAnalysis.impacts.map((impact) => [impact.flowId, impact] as const),
+    relationAnalysis.impacts.map((impact) => [impact.flowId, impact] as const)
   );
 
   const impacts: FlowImpact[] = [];

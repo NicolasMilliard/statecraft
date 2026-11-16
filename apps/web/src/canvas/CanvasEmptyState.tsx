@@ -1,20 +1,24 @@
-import { useId } from 'react';
-import { CommandButton } from '../editor/CommandButton';
-import type { CommandRegistry, ShortcutPlatform } from '../editor/commands';
+import { useId } from "react";
+
+import { CommandButton } from "../editor/CommandButton";
+import type { CommandRegistry, ShortcutPlatform } from "../editor/commands";
 
 interface CanvasEmptyStateProps {
-  readonly commands: Pick<CommandRegistry, 'add-screen' | 'open-json'>;
+  readonly commands: Pick<CommandRegistry, "add-screen" | "open-json">;
   readonly platform: ShortcutPlatform;
 }
 
-export function CanvasEmptyState({ commands, platform }: CanvasEmptyStateProps) {
+export function CanvasEmptyState({
+  commands,
+  platform,
+}: CanvasEmptyStateProps) {
   const titleId = useId();
 
   return (
     <section
       aria-labelledby={titleId}
       // React Flow's renderer sits at z-index 4 and otherwise intercepts clicks.
-      className="pointer-events-none nopan nowheel absolute inset-0 z-5 flex flex-col overflow-y-auto px-6 pt-44 pb-20"
+      className="nopan nowheel pointer-events-none absolute inset-0 z-5 flex flex-col overflow-y-auto px-6 pt-44 pb-20"
     >
       <div className="mx-auto my-auto w-full max-w-sm shrink-0 text-center">
         <h2 id={titleId} className="text-lg font-medium tracking-tight">
@@ -24,10 +28,19 @@ export function CanvasEmptyState({ commands, platform }: CanvasEmptyStateProps) 
           Add a screen to map the first step of your user journey.
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
-          <CommandButton className="pointer-events-auto" command={commands['add-screen']} platform={platform}>
+          <CommandButton
+            className="pointer-events-auto"
+            command={commands["add-screen"]}
+            platform={platform}
+          >
             Add first screen
           </CommandButton>
-          <CommandButton className="pointer-events-auto" command={commands['open-json']} platform={platform} variant="secondary">
+          <CommandButton
+            className="pointer-events-auto"
+            command={commands["open-json"]}
+            platform={platform}
+            variant="secondary"
+          >
             Open JSON
           </CommandButton>
         </div>

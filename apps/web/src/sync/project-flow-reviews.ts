@@ -1,6 +1,13 @@
-import type { Flow, FlowReview, SnapshotDocument, SyncSnapshot } from '@statecraft/core';
-import type { FlowEditorState } from '../editor/flow-editor-state';
-import { assessWorkspaceFlowReview, type WorkspaceFlowReviewAssessment } from './workspace-flow-reviews.ts';
+import type {
+  Flow,
+  FlowReview,
+  SnapshotDocument,
+  SyncSnapshot,
+} from "@statecraft/core";
+
+import type { FlowEditorState } from "../editor/flow-editor-state";
+import { assessWorkspaceFlowReview } from "./workspace-flow-reviews.ts";
+import type { WorkspaceFlowReviewAssessment } from "./workspace-flow-reviews.ts";
 
 export interface ProjectFlowReviewItem {
   readonly editor: FlowEditorState;
@@ -19,18 +26,30 @@ export function assessProjectFlowReviews(
   activeReviews: readonly FlowReview[],
   hasUnsavedChanges: boolean,
   documents: readonly SnapshotDocument[],
-  currentSnapshot: SyncSnapshot | null,
+  currentSnapshot: SyncSnapshot | null
 ): ProjectFlowReviews {
   const saved = savedFlows.map((editor) => ({
     editor,
-    assessment: assessWorkspaceFlowReview(editor.flow, editor.reviews, documents, currentSnapshot),
+    assessment: assessWorkspaceFlowReview(
+      editor.flow,
+      editor.reviews,
+      documents,
+      currentSnapshot
+    ),
   }));
 
   return {
     saved,
-    needsReviewCount: saved.filter(({ assessment }) => assessment.status === 'needs_review').length,
+    needsReviewCount: saved.filter(
+      ({ assessment }) => assessment.status === "needs_review"
+    ).length,
     activePreview: hasUnsavedChanges
-      ? assessWorkspaceFlowReview(activeFlow, activeReviews, documents, currentSnapshot)
+      ? assessWorkspaceFlowReview(
+          activeFlow,
+          activeReviews,
+          documents,
+          currentSnapshot
+        )
       : null,
   };
 }

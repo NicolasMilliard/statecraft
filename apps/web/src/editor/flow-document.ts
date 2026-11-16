@@ -4,13 +4,12 @@ import {
   SERVICE_OUTCOME_KINDS,
   validateFlow,
   validateScenario,
-  type Flow,
-  type FlowReview,
-  type Scenario,
-} from '@statecraft/core';
-import { z } from 'zod';
-import type { FlowLayout } from '../canvas/flow-layout';
-import type { FlowEditorState } from './flow-editor-state';
+} from "@statecraft/core";
+import type { Flow, FlowReview, Scenario } from "@statecraft/core";
+import { z } from "zod";
+
+import type { FlowLayout } from "../canvas/flow-layout";
+import type { FlowEditorState } from "./flow-editor-state";
 
 const nonEmptyString = z.string().min(1);
 
@@ -24,7 +23,7 @@ const flowSchema: z.ZodType<Flow> = z
         id: nonEmptyString,
         kind: z.enum(FLOW_NODE_KINDS),
         label: nonEmptyString,
-      }),
+      })
     ),
     edges: z.array(
       z.strictObject({
@@ -32,7 +31,7 @@ const flowSchema: z.ZodType<Flow> = z
         sourceNodeId: nonEmptyString,
         targetNodeId: nonEmptyString,
         kind: z.enum(FLOW_EDGE_KINDS),
-      }),
+      })
     ),
     codeReferences: z.array(
       z.strictObject({
@@ -40,12 +39,12 @@ const flowSchema: z.ZodType<Flow> = z
         flowNodeId: nonEmptyString,
         repositoryId: nonEmptyString,
         codeEntityId: nonEmptyString,
-        role: z.enum(['primary', 'dependency']),
-      }),
+        role: z.enum(["primary", "dependency"]),
+      })
     ),
   })
   .refine((flow) => validateFlow(flow).length === 0, {
-    message: 'Invalid flow references.',
+    message: "Invalid flow references.",
   });
 
 const layoutSchema: z.ZodType<FlowLayout> = z.strictObject({
@@ -55,7 +54,7 @@ const layoutSchema: z.ZodType<FlowLayout> = z.strictObject({
     z.strictObject({
       x: z.number(),
       y: z.number(),
-    }),
+    })
   ),
 });
 
@@ -68,10 +67,13 @@ const scenarioSchema: z.ZodType<Scenario> = z.strictObject({
       flowNodeId: nonEmptyString,
       outcome: z.strictObject({
         kind: z.enum(SERVICE_OUTCOME_KINDS),
-        code: z.string().refine((code) => code.trim().length > 0).nullable(),
+        code: z
+          .string()
+          .refine((code) => code.trim().length > 0)
+          .nullable(),
         httpStatus: z.number().int().min(100).max(599).nullable(),
       }),
-    }),
+    })
   ),
 });
 
@@ -79,14 +81,20 @@ const reviewSchema: z.ZodType<FlowReview> = z.strictObject({
   flowId: nonEmptyString,
   repositoryId: nonEmptyString,
   snapshotId: nonEmptyString,
-  reviewedReferences: z.array(z.strictObject({
-    id: nonEmptyString,
-    flowNodeId: nonEmptyString,
-    codeEntityId: nonEmptyString,
-    role: z.enum(['primary', 'dependency']),
-  })).refine((references) =>
-    new Set(references.map((reference) => reference.id)).size === references.length,
-  ),
+  reviewedReferences: z
+    .array(
+      z.strictObject({
+        id: nonEmptyString,
+        flowNodeId: nonEmptyString,
+        codeEntityId: nonEmptyString,
+        role: z.enum(["primary", "dependency"]),
+      })
+    )
+    .refine(
+      (references) =>
+        new Set(references.map((reference) => reference.id)).size ===
+        references.length
+    ),
 });
 
 const editorFields = {
@@ -105,35 +113,42 @@ function layoutsMatchFlow(editor: {
     (candidate) =>
       candidate.flowId === flow.id &&
       Object.keys(candidate.positions).length === flow.nodes.length &&
-      flow.nodes.every((node) => Object.hasOwn(candidate.positions, node.id)),
+      flow.nodes.every((node) => Object.hasOwn(candidate.positions, node.id))
   );
 }
 
 const editorV1Schema = z.strictObject(editorFields).refine(layoutsMatchFlow, {
-  message: 'Layouts must contain exactly the flow nodes.',
+  message: "Layouts must contain exactly the flow nodes.",
 });
 
 function scenariosAreUnique(scenarios: readonly Scenario[]): boolean {
-  return new Set(scenarios.map((scenario) => scenario.id)).size === scenarios.length;
+  return (
+    new Set(scenarios.map((scenario) => scenario.id)).size === scenarios.length
+  );
 }
 
-function scenariosMatchFlow(flow: Flow, scenarios: readonly Scenario[]): boolean {
-  return scenarios.every((scenario) => validateScenario(scenario, flow).length === 0);
+function scenariosMatchFlow(
+  flow: Flow,
+  scenarios: readonly Scenario[]
+): boolean {
+  return scenarios.every(
+    (scenario) => validateScenario(scenario, flow).length === 0
+  );
 }
 
 const editorV2Schema = z
   .strictObject({ ...editorFields, scenarios: z.array(scenarioSchema) })
   .refine(layoutsMatchFlow, {
-    message: 'Layouts must contain exactly the flow nodes.',
+    message: "Layouts must contain exactly the flow nodes.",
   })
-  .refine(
-    ({ scenarios }) => scenariosAreUnique(scenarios),
-    { message: 'Scenario IDs must be unique.', path: ['scenarios'] },
-  )
-  .refine(
-    ({ flow, scenarios }) => scenariosMatchFlow(flow, scenarios),
-    { message: 'Invalid scenario references.', path: ['scenarios'] },
-  );
+  .refine(({ scenarios }) => scenariosAreUnique(scenarios), {
+    message: "Scenario IDs must be unique.",
+    path: ["scenarios"],
+  })
+  .refine(({ flow, scenarios }) => scenariosMatchFlow(flow, scenarios), {
+    message: "Invalid scenario references.",
+    path: ["scenarios"],
+  });
 
 const editorV3Schema: z.ZodType<FlowEditorState> = z
   .strictObject({
@@ -142,21 +157,28 @@ const editorV3Schema: z.ZodType<FlowEditorState> = z
     reviews: z.array(reviewSchema),
   })
   .refine(layoutsMatchFlow, {
-    message: 'Layouts must contain exactly the flow nodes.',
+    message: "Layouts must contain exactly the flow nodes.",
   })
   .refine(({ scenarios }) => scenariosAreUnique(scenarios), {
-    message: 'Scenario IDs must be unique.', path: ['scenarios'],
+    message: "Scenario IDs must be unique.",
+    path: ["scenarios"],
   })
   .refine(({ flow, scenarios }) => scenariosMatchFlow(flow, scenarios), {
-    message: 'Invalid scenario references.', path: ['scenarios'],
-  })
-  .refine(({ flow, reviews }) => reviews.every((review) => review.flowId === flow.id), {
-    message: 'Review belongs to another flow.', path: ['reviews'],
+    message: "Invalid scenario references.",
+    path: ["scenarios"],
   })
   .refine(
+    ({ flow, reviews }) => reviews.every((review) => review.flowId === flow.id),
+    {
+      message: "Review belongs to another flow.",
+      path: ["reviews"],
+    }
+  )
+  .refine(
     ({ reviews }) =>
-      new Set(reviews.map((review) => review.repositoryId)).size === reviews.length,
-    { message: 'Review repositories must be unique.', path: ['reviews'] },
+      new Set(reviews.map((review) => review.repositoryId)).size ===
+      reviews.length,
+    { message: "Review repositories must be unique.", path: ["reviews"] }
   );
 
 const documentV1Schema = z.strictObject({
@@ -185,16 +207,25 @@ export function serializeFlowDocument(editor: FlowEditorState): string {
 
 export function parseFlowDocument(
   serialized: string,
-  expectedFlowId?: string,
+  expectedFlowId?: string
 ): FlowEditorState {
   const value: unknown = JSON.parse(serialized);
-  const document = z.union([documentV1Schema, documentV2Schema, documentV3Schema]).parse(value);
-  const editor: FlowEditorState = document.version === 1
-    ? { ...document.editor, scenarios: [], reviews: [] }
-    : document.version === 2 ? { ...document.editor, reviews: [] } : document.editor;
+  const document = z
+    .union([documentV1Schema, documentV2Schema, documentV3Schema])
+    .parse(value);
+  function restoreEditor() {
+    if (document.version === 1) {
+      return { ...document.editor, scenarios: [], reviews: [] };
+    }
+    if (document.version === 2) {
+      return { ...document.editor, reviews: [] };
+    }
+    return document.editor;
+  }
+  const editor: FlowEditorState = restoreEditor();
 
   if (expectedFlowId !== undefined && editor.flow.id !== expectedFlowId) {
-    throw new Error('Document belongs to another flow.');
+    throw new Error("Document belongs to another flow.");
   }
 
   return editor;

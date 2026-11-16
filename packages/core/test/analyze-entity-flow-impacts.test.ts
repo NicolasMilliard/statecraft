@@ -1,42 +1,41 @@
-import {
-  analyzeEntityFlowImpacts,
-  type CodeChange,
-  type CodeReference,
-  type Flow,
-  type SnapshotEntityDiff,
-} from '@statecraft/core';
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { analyzeEntityFlowImpacts } from "@statecraft/core";
+import type {
+  CodeChange,
+  CodeReference,
+  Flow,
+  SnapshotEntityDiff,
+} from "@statecraft/core";
 
 function createFlow(
   id: string,
   entityIds: readonly string[],
-  repositoryId = 'storefront',
+  repositoryId = "storefront"
 ): Flow {
   return {
     id,
     name: id,
-    entryNodeId: 'payment',
-    nodes: [{ id: 'payment', kind: 'ui', label: 'Payment form' }],
+    entryNodeId: "payment",
+    nodes: [{ id: "payment", kind: "ui", label: "Payment form" }],
     edges: [],
-    codeReferences: entityIds.map(
-      (codeEntityId, index): CodeReference => ({
-        id: `${id}-ref-${index}`,
-        flowNodeId: 'payment',
-        repositoryId,
-        codeEntityId,
-        role: index === 0 ? 'primary' : 'dependency',
-      }),
-    ),
+    codeReferences: entityIds.map((codeEntityId, index): CodeReference => ({
+      id: `${id}-ref-${index}`,
+      flowNodeId: "payment",
+      repositoryId,
+      codeEntityId,
+      role: index === 0 ? "primary" : "dependency",
+    })),
   };
 }
 
 function createDiff(changes: readonly CodeChange[]): SnapshotEntityDiff {
   return {
-    status: 'compared',
-    repositoryId: 'storefront',
-    beforeSnapshotId: 'before',
-    afterSnapshotId: 'after',
+    status: "compared",
+    repositoryId: "storefront",
+    beforeSnapshotId: "before",
+    afterSnapshotId: "after",
     changes,
   };
 }
@@ -44,51 +43,51 @@ function createDiff(changes: readonly CodeChange[]): SnapshotEntityDiff {
 function impactsFor(flows: readonly Flow[], diff: SnapshotEntityDiff) {
   const result = analyzeEntityFlowImpacts(flows, diff);
 
-  assert.ok(result.status === 'analyzed');
+  assert.ok(result.status === "analyzed");
 
   return result.impacts;
 }
 
-test('finds all flows referencing a changed entity without mutation', () => {
+void test("finds all flows referencing a changed entity without mutation", () => {
   const flows = [
-    createFlow('checkout', ['payment-form']),
-    createFlow('update-payment', ['payment-form']),
-    createFlow('profile', ['profile-form']),
-    createFlow('draft', []),
+    createFlow("checkout", ["payment-form"]),
+    createFlow("update-payment", ["payment-form"]),
+    createFlow("profile", ["profile-form"]),
+    createFlow("draft", []),
   ];
 
   const change: CodeChange = {
-    entityId: 'payment-form',
-    kind: 'modified',
+    entityId: "payment-form",
+    kind: "modified",
   };
 
   const diff = createDiff([change]);
   const original = structuredClone({ flows, diff });
 
   assert.deepEqual(analyzeEntityFlowImpacts(flows, diff), {
-    status: 'analyzed',
-    repositoryId: 'storefront',
-    beforeSnapshotId: 'before',
-    afterSnapshotId: 'after',
+    status: "analyzed",
+    repositoryId: "storefront",
+    beforeSnapshotId: "before",
+    afterSnapshotId: "after",
     impacts: [
       {
-        flowId: 'checkout',
+        flowId: "checkout",
         reasons: [
           {
-            type: 'entity',
-            referenceId: 'checkout-ref-0',
-            nodeId: 'payment',
+            type: "entity",
+            referenceId: "checkout-ref-0",
+            nodeId: "payment",
             change,
           },
         ],
       },
       {
-        flowId: 'update-payment',
+        flowId: "update-payment",
         reasons: [
           {
-            type: 'entity',
-            referenceId: 'update-payment-ref-0',
-            nodeId: 'payment',
+            type: "entity",
+            referenceId: "update-payment-ref-0",
+            nodeId: "payment",
             change,
           },
         ],
@@ -99,12 +98,12 @@ test('finds all flows referencing a changed entity without mutation', () => {
   assert.deepEqual({ flows, diff }, original);
 });
 
-test('groups primary and dependency impacts under one flow', () => {
-  const flow = createFlow('checkout', ['payment-form', 'payment-query']);
+void test("groups primary and dependency impacts under one flow", () => {
+  const flow = createFlow("checkout", ["payment-form", "payment-query"]);
 
   const diff = createDiff([
-    { entityId: 'payment-form', kind: 'modified' },
-    { entityId: 'payment-query', kind: 'modified' },
+    { entityId: "payment-form", kind: "modified" },
+    { entityId: "payment-query", kind: "modified" },
   ]);
 
   const impacts = impactsFor([flow], diff);
@@ -116,27 +115,27 @@ test('groups primary and dependency impacts under one flow', () => {
 
   assert.deepEqual(
     impact.reasons.map((reason) => reason.referenceId),
-    ['checkout-ref-0', 'checkout-ref-1'],
+    ["checkout-ref-0", "checkout-ref-1"]
   );
 });
 
-for (const kind of ['added', 'removed'] as const) {
-  test(`reports references to ${kind} entities`, () => {
-    const flow = createFlow('checkout', ['payment-form']);
+for (const kind of ["added", "removed"] as const) {
+  void test(`reports references to ${kind} entities`, () => {
+    const flow = createFlow("checkout", ["payment-form"]);
 
     const change: CodeChange = {
-      entityId: 'payment-form',
+      entityId: "payment-form",
       kind,
     };
 
     assert.deepEqual(impactsFor([flow], createDiff([change])), [
       {
-        flowId: 'checkout',
+        flowId: "checkout",
         reasons: [
           {
-            type: 'entity',
-            referenceId: 'checkout-ref-0',
-            nodeId: 'payment',
+            type: "entity",
+            referenceId: "checkout-ref-0",
+            nodeId: "payment",
             change,
           },
         ],
@@ -145,29 +144,29 @@ for (const kind of ['added', 'removed'] as const) {
   });
 }
 
-test('ignores matching entity IDs from another repository', () => {
-  const flow = createFlow('checkout', ['payment-form'], 'another-repository');
+void test("ignores matching entity IDs from another repository", () => {
+  const flow = createFlow("checkout", ["payment-form"], "another-repository");
 
-  const diff = createDiff([{ entityId: 'payment-form', kind: 'modified' }]);
+  const diff = createDiff([{ entityId: "payment-form", kind: "modified" }]);
 
   assert.deepEqual(impactsFor([flow], diff), []);
 });
 
-test('returns no impacts when there are no entity changes', () => {
-  const flow = createFlow('checkout', ['payment-form']);
+void test("returns no impacts when there are no entity changes", () => {
+  const flow = createFlow("checkout", ["payment-form"]);
 
   assert.deepEqual(impactsFor([flow], createDiff([])), []);
 });
 
-test('preserves incompatible comparison results', () => {
-  const flow = createFlow('checkout', ['payment-form']);
+void test("preserves incompatible comparison results", () => {
+  const flow = createFlow("checkout", ["payment-form"]);
 
   for (const reason of [
-    'repository_mismatch',
-    'analysis_profile_mismatch',
+    "repository_mismatch",
+    "analysis_profile_mismatch",
   ] as const) {
     const diff: SnapshotEntityDiff = {
-      status: 'incompatible',
+      status: "incompatible",
       reason,
     };
 

@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId } from "react";
 
 export function StatecraftMark() {
   const clipId = useId();
@@ -26,7 +26,13 @@ export function StatecraftMark() {
           stroke="white"
           strokeWidth={6}
         />
-        <circle className="statecraft-mark__dot" cx={40} cy={40} r={8} fill="white" />
+        <circle
+          className="statecraft-mark__dot"
+          cx={40}
+          cy={40}
+          r={8}
+          fill="white"
+        />
       </g>
       <defs>
         <clipPath id={clipId}>

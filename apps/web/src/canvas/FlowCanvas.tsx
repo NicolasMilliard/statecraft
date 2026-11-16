@@ -1,4 +1,5 @@
-import type { Flow, FlowNodeKind } from '@statecraft/core';
+/* oxlint-disable jsx-a11y/no-noninteractive-tabindex -- The diagram region is focusable for its documented canvas keyboard shortcuts. */
+import type { Flow, FlowNodeKind } from "@statecraft/core";
 import {
   Background,
   ConnectionLineType,
@@ -11,11 +12,13 @@ import {
   useNodesState,
   useReactFlow,
   useStoreApi,
-  type IsValidConnection,
-  type OnConnect,
-  type OnNodesChange,
-  type OnSelectionChangeFunc,
-} from '@xyflow/react';
+} from "@xyflow/react";
+import type {
+  IsValidConnection,
+  OnConnect,
+  OnNodesChange,
+  OnSelectionChangeFunc,
+} from "@xyflow/react";
 import {
   useCallback,
   useEffect,
@@ -23,27 +26,26 @@ import {
   useImperativeHandle,
   useRef,
   useState,
-  type Ref,
-  type DragEvent,
-} from 'react';
-import { canAddFlowEdge } from '../editor/can-add-flow-edge';
-import type { CommandRegistry, ShortcutPlatform } from '../editor/commands';
-import { runCommand } from '../editor/commands';
-import type { CanvasSelection } from './canvas-selection';
-import type { FlowLayout, FlowNodePosition } from './flow-layout';
-import { NODE_KIND_MIME_TYPE, parseDraggedNodeKind } from './node-drag';
-import { NodePalette } from './NodePalette';
-import { CanvasEmptyState } from './CanvasEmptyState';
-import { StatecraftEdge } from './StatecraftEdge';
-import { StatecraftNode } from './StatecraftNode';
-import { syncCanvasEdges, syncCanvasNodes } from './sync-canvas-graph';
+} from "react";
+import type { Ref, DragEvent } from "react";
+
+import { canAddFlowEdge } from "../editor/can-add-flow-edge";
+import type { CommandRegistry, ShortcutPlatform } from "../editor/commands";
+import { runCommand } from "../editor/commands";
+import type { CanvasSelection } from "./canvas-selection";
+import { CanvasEmptyState } from "./CanvasEmptyState";
+import type { FlowLayout, FlowNodePosition } from "./flow-layout";
+import { NODE_KIND_MIME_TYPE, parseDraggedNodeKind } from "./node-drag";
+import { NodePalette } from "./NodePalette";
+import { StatecraftEdge } from "./StatecraftEdge";
+import { StatecraftNode } from "./StatecraftNode";
+import { syncCanvasEdges, syncCanvasNodes } from "./sync-canvas-graph";
 import {
   toReactFlowGraph,
   CANVAS_NODE_WIDTH,
   CANVAS_NODE_MIN_HEIGHT,
-  type CanvasEdge,
-  type CanvasNode,
-} from './to-react-flow-graph';
+} from "./to-react-flow-graph";
+import type { CanvasEdge, CanvasNode } from "./to-react-flow-graph";
 
 const nodeTypes = { statecraft: StatecraftNode };
 const edgeTypes = { statecraft: StatecraftEdge };
@@ -74,17 +76,21 @@ interface FlowCanvasProps {
   readonly initialFocusNodeId?: string | null;
   readonly onLayoutChange: (layout: FlowLayout) => void;
   readonly onSelectionChange: (selection: CanvasSelection) => void;
-  readonly onNodeAdd: (kind: FlowNodeKind, position: FlowNodePosition, focusTarget: 'canvas' | 'label') => string;
+  readonly onNodeAdd: (
+    kind: FlowNodeKind,
+    position: FlowNodePosition,
+    focusTarget: "canvas" | "label"
+  ) => string;
   readonly onNodesConnect: (sourceNodeId: string, targetNodeId: string) => void;
 }
 
 function canDropPaletteNode(event: DragEvent<HTMLDivElement>): boolean {
-  const target = event.target;
+  const { target } = event;
 
   return (
     event.dataTransfer.types.includes(NODE_KIND_MIME_TYPE) &&
     !(
-      target instanceof Element && target.closest('.react-flow__panel') !== null
+      target instanceof Element && target.closest(".react-flow__panel") !== null
     )
   );
 }
@@ -110,84 +116,148 @@ function FlowCanvasContent({
   onNodeAdd,
   onNodesConnect,
 }: FlowCanvasProps) {
-  const { screenToFlowPosition, getNodes, getNodesBounds, getZoom, setCenter, fitView } = useReactFlow<CanvasNode>();
+  const {
+    screenToFlowPosition,
+    getNodes,
+    getNodesBounds,
+    getZoom,
+    setCenter,
+    fitView,
+  } = useReactFlow<CanvasNode>();
   const store = useStoreApi();
   const sectionRef = useRef<HTMLElement>(null);
   const connectionCancelled = useRef(false);
   const addedNodeId = useRef<string | null>(null);
+  // oxlint-disable-next-line react/hook-use-state -- This lazy initial value stays fixed for the mounted editor.
   const [fitViewOnMount] = useState(() => flow.nodes.length > 0);
 
   const graph = useMemo<{ nodes: CanvasNode[]; edges: CanvasEdge[] }>(() => {
     const base = toReactFlowGraph(flow, layout);
-    const visitedNodes = new Set(playback?.visitedNodeIds ?? []);
-    const visitedEdges = new Set(playback?.visitedEdgeIds ?? []);
+    const visitedNodes = new Set(playback?.visitedNodeIds);
+    const visitedEdges = new Set(playback?.visitedEdgeIds);
 
     return {
-      nodes: base.nodes.map((node) => ({
-        ...node,
-        className: node.id === playback?.currentNodeId
-          ? 'run-current'
-          : visitedNodes.has(node.id) ? 'run-visited' : '',
-      })),
-      edges: base.edges.map((edge) => ({
-        ...edge,
-        className: edge.id === playback?.currentEdgeId
-          ? 'run-current'
-          : visitedEdges.has(edge.id) ? 'run-visited' : '',
-      })),
+      nodes: base.nodes.map((node) => {
+        function getNodePlaybackClass() {
+          if (node.id === playback?.currentNodeId) {
+            return "run-current" as const;
+          }
+          if (visitedNodes.has(node.id)) {
+            return "run-visited" as const;
+          }
+          return "" as const;
+        }
+        return {
+          ...node,
+          className: getNodePlaybackClass(),
+        };
+      }),
+      edges: base.edges.map((edge) => {
+        function getEdgePlaybackClass() {
+          if (edge.id === playback?.currentEdgeId) {
+            return "run-current" as const;
+          }
+          if (visitedEdges.has(edge.id)) {
+            return "run-visited" as const;
+          }
+          return "" as const;
+        }
+        return {
+          ...edge,
+          className: getEdgePlaybackClass(),
+        };
+      }),
     };
   }, [flow, layout, playback]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(
-    graph.nodes,
+    graph.nodes
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges);
 
-  const focusNode = useCallback((nodeId: string) => {
-    const node = getNodes().find((item) => item.id === nodeId)
-      ?? graph.nodes.find((item) => item.id === nodeId);
-    if (!node) return;
-    setNodes((current) => current.map((item) => ({ ...item, selected: item.id === nodeId })));
-    setEdges((current) => current.map((edge) => ({ ...edge, selected: false })));
-    onSelectionChange({ nodeIds: [nodeId], edgeIds: [] });
-    void setCenter(
-      node.position.x + (node.measured?.width ?? CANVAS_NODE_WIDTH) / 2,
-      node.position.y + (node.measured?.height ?? CANVAS_NODE_MIN_HEIGHT) / 2,
-      { zoom: Math.max(getZoom(), 1) },
-    );
-    sectionRef.current?.focus({ preventScroll: true });
-  }, [getNodes, graph.nodes, getZoom, onSelectionChange, setCenter, setEdges, setNodes]);
+  const focusNode = useCallback(
+    (nodeId: string) => {
+      const node =
+        getNodes().find((item) => item.id === nodeId) ??
+        graph.nodes.find((item) => item.id === nodeId);
+      if (!node) {
+        return;
+      }
+      setNodes((current) =>
+        current.map((item) => ({ ...item, selected: item.id === nodeId }))
+      );
+      setEdges((current) =>
+        current.map((edge) => ({ ...edge, selected: false }))
+      );
+      onSelectionChange({ nodeIds: [nodeId], edgeIds: [] });
+      void setCenter(
+        node.position.x + (node.measured?.width ?? CANVAS_NODE_WIDTH) / 2,
+        node.position.y + (node.measured?.height ?? CANVAS_NODE_MIN_HEIGHT) / 2,
+        { zoom: Math.max(getZoom(), 1) }
+      );
+      sectionRef.current?.focus({ preventScroll: true });
+    },
+    [
+      getNodes,
+      graph.nodes,
+      getZoom,
+      onSelectionChange,
+      setCenter,
+      setEdges,
+      setNodes,
+    ]
+  );
 
   useImperativeHandle(ref, () => ({
     focus: () => sectionRef.current?.focus({ preventScroll: true }),
     focusNode,
-    fitView: () => { void fitView({ padding: 0.2 }); },
+    fitView: () => {
+      void fitView({ padding: 0.2 });
+    },
     selectAll: () => {
-      setNodes((current) => current.map((node) => ({ ...node, selected: true })));
-      setEdges((current) => current.map((edge) => ({ ...edge, selected: true })));
+      setNodes((current) =>
+        current.map((node) => ({ ...node, selected: true }))
+      );
+      setEdges((current) =>
+        current.map((edge) => ({ ...edge, selected: true }))
+      );
       sectionRef.current?.focus({ preventScroll: true });
     },
     cancel: () => {
       const state = store.getState();
-      if (state.connection.inProgress || state.connectionClickStartHandle !== null) {
+      if (
+        state.connection.inProgress ||
+        state.connectionClickStartHandle !== null
+      ) {
         // XYFlow may still deliver the pointer-up callback after cancellation.
         connectionCancelled.current = true;
         state.cancelConnection();
         store.setState({ connectionClickStartHandle: null });
         return;
       }
-      setNodes((current) => current.map((node) => ({ ...node, selected: false })));
-      setEdges((current) => current.map((edge) => ({ ...edge, selected: false })));
+      setNodes((current) =>
+        current.map((node) => ({ ...node, selected: false }))
+      );
+      setEdges((current) =>
+        current.map((edge) => ({ ...edge, selected: false }))
+      );
     },
     addNode: (kind) => {
       const current = getNodes();
       const bounds = getNodesBounds(current);
-      const position = current.length === 0 ? { x: 0, y: 0 } : {
-        x: bounds.x + bounds.width + 80,
-        y: bounds.y + bounds.height / 2 - CANVAS_NODE_MIN_HEIGHT / 2,
-      };
-      addedNodeId.current = onNodeAdd(kind, position, 'label');
-      void setCenter(position.x + CANVAS_NODE_WIDTH / 2, position.y + CANVAS_NODE_MIN_HEIGHT / 2, { zoom: getZoom() });
+      const position =
+        current.length === 0
+          ? { x: 0, y: 0 }
+          : {
+              x: bounds.x + bounds.width + 80,
+              y: bounds.y + bounds.height / 2 - CANVAS_NODE_MIN_HEIGHT / 2,
+            };
+      addedNodeId.current = onNodeAdd(kind, position, "label");
+      void setCenter(
+        position.x + CANVAS_NODE_WIDTH / 2,
+        position.y + CANVAS_NODE_MIN_HEIGHT / 2,
+        { zoom: getZoom() }
+      );
     },
   }));
 
@@ -196,7 +266,9 @@ function FlowCanvasContent({
     addedNodeId.current = null;
 
     setNodes((current) => syncCanvasNodes(current, graph.nodes, nodeToSelect));
-    setEdges((current) => syncCanvasEdges(current, graph.edges, nodeToSelect !== null));
+    setEdges((current) =>
+      syncCanvasEdges(current, graph.edges, nodeToSelect !== null)
+    );
   }, [graph, setNodes, setEdges]);
 
   const handleNodesChange = useCallback<OnNodesChange<CanvasNode>>(
@@ -207,7 +279,7 @@ function FlowCanvasContent({
 
       for (const change of changes) {
         if (
-          change.type !== 'position' ||
+          change.type !== "position" ||
           change.dragging === true ||
           change.position === undefined
         ) {
@@ -235,7 +307,7 @@ function FlowCanvasContent({
         });
       }
     },
-    [layout, onLayoutChange, onNodesChange],
+    [layout, onLayoutChange, onNodesChange]
   );
 
   const handleSelectionChange = useCallback<OnSelectionChangeFunc<CanvasNode>>(
@@ -245,27 +317,29 @@ function FlowCanvasContent({
         edgeIds: selectedEdges.map((edge) => edge.id),
       });
     },
-    [onSelectionChange],
+    [onSelectionChange]
   );
 
   const isValidConnection = useCallback<IsValidConnection>(
     (connection) =>
-      canAddFlowEdge(flow, connection.source, connection.target, 'transition'),
-    [flow],
+      canAddFlowEdge(flow, connection.source, connection.target, "transition"),
+    [flow]
   );
 
   const handleConnect = useCallback<OnConnect>(
     (connection) => {
-      if (connectionCancelled.current) return;
+      if (connectionCancelled.current) {
+        return;
+      }
       onNodesConnect(connection.source, connection.target);
     },
-    [onNodesConnect],
+    [onNodesConnect]
   );
 
   const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
 
-    event.dataTransfer.dropEffect = canDropPaletteNode(event) ? 'copy' : 'none';
+    event.dataTransfer.dropEffect = canDropPaletteNode(event) ? "copy" : "none";
   }, []);
 
   const handleDrop = useCallback(
@@ -277,7 +351,7 @@ function FlowCanvasContent({
       }
 
       const kind = parseDraggedNodeKind(
-        event.dataTransfer.getData(NODE_KIND_MIME_TYPE),
+        event.dataTransfer.getData(NODE_KIND_MIME_TYPE)
       );
 
       if (kind === null) {
@@ -289,10 +363,10 @@ function FlowCanvasContent({
         y: event.clientY,
       });
 
-      addedNodeId.current = onNodeAdd(kind, position, 'canvas');
+      addedNodeId.current = onNodeAdd(kind, position, "canvas");
       sectionRef.current?.focus({ preventScroll: true });
     },
-    [onNodeAdd, screenToFlowPosition],
+    [onNodeAdd, screenToFlowPosition]
   );
 
   return (
@@ -303,14 +377,23 @@ function FlowCanvasContent({
       className="h-full min-h-0 w-full min-w-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
       aria-label={`${flow.name} flow diagram`}
       onPointerDownCapture={(event) => {
-        if (event.target instanceof Element && event.target.closest('.react-flow__pane') !== null) {
+        if (
+          event.target instanceof Element &&
+          event.target.closest(".react-flow__pane") !== null
+        ) {
           sectionRef.current?.focus({ preventScroll: true });
         }
       }}
     >
       <ReactFlow<CanvasNode, CanvasEdge>
         onInit={() => {
-          if (initialFocusNodeId) focusNode(initialFocusNodeId);
+          if (
+            initialFocusNodeId !== undefined &&
+            initialFocusNodeId !== null &&
+            initialFocusNodeId.length > 0
+          ) {
+            focusNode(initialFocusNodeId);
+          }
         }}
         nodes={nodes}
         edges={edges}
@@ -320,8 +403,12 @@ function FlowCanvasContent({
         onNodesChange={handleNodesChange}
         onSelectionChange={handleSelectionChange}
         onConnect={handleConnect}
-        onConnectStart={() => { connectionCancelled.current = false; }}
-        onClickConnectStart={() => { connectionCancelled.current = false; }}
+        onConnectStart={() => {
+          connectionCancelled.current = false;
+        }}
+        onClickConnectStart={() => {
+          connectionCancelled.current = false;
+        }}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         isValidConnection={isValidConnection}
@@ -341,10 +428,21 @@ function FlowCanvasContent({
         maxZoom={1.5}
       >
         <Background gap={20} size={1} />
-        {flow.nodes.length === 0 && <CanvasEmptyState commands={commands} platform={platform} />}
+        {flow.nodes.length === 0 && (
+          <CanvasEmptyState commands={commands} platform={platform} />
+        )}
         <Controls showInteractive={false} showFitView={false}>
-          <ControlButton aria-label="Fit View" title="Fit view" disabled={!commands['fit-view'].enabled} onClick={() => runCommand(commands['fit-view'])}>
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4v1H3v3zm8-4h4v4h-1V3h-3zM2 10h1v3h3v1H2zm11 0h1v4h-4v-1h3z" /></svg>
+          <ControlButton
+            aria-label="Fit View"
+            title="Fit view"
+            disabled={!commands["fit-view"].enabled}
+            onClick={() => {
+              runCommand(commands["fit-view"]);
+            }}
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M2 6V2h4v1H3v3zm8-4h4v4h-1V3h-3zM2 10h1v3h3v1H2zm11 0h1v4h-4v-1h3z" />
+            </svg>
           </ControlButton>
         </Controls>
         <NodePalette commands={commands} platform={platform} />

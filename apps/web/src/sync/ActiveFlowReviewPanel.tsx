@@ -1,7 +1,8 @@
-import type { Flow, SnapshotDocument, SyncSnapshot } from '@statecraft/core';
-import { Button } from '../ui/Button';
-import { FlowImpactReasons } from './FlowImpactPreview';
-import type { WorkspaceFlowReviewAssessment } from './workspace-flow-reviews';
+import type { Flow, SnapshotDocument, SyncSnapshot } from "@statecraft/core";
+
+import { Button } from "../ui/Button";
+import { FlowImpactReasons } from "./FlowImpactPreview";
+import type { WorkspaceFlowReviewAssessment } from "./workspace-flow-reviews";
 
 interface ActiveFlowReviewPanelProps {
   readonly flow: Flow;
@@ -15,10 +16,18 @@ interface ActiveFlowReviewPanelProps {
 
 function unavailableExplanation(reason: string): string {
   switch (reason) {
-    case 'reviewed_snapshot_unavailable': return 'The reviewed snapshot is missing from local history.';
-    case 'analysis_profile_mismatch': return 'The reviewed snapshot uses another analysis profile.';
-    case 'repository_mismatch': return 'The reviewed snapshot belongs to another repository.';
-    default: return 'The recorded review cannot be compared with this snapshot.';
+    case "reviewed_snapshot_unavailable": {
+      return "The reviewed snapshot is missing from local history.";
+    }
+    case "analysis_profile_mismatch": {
+      return "The reviewed snapshot uses another analysis profile.";
+    }
+    case "repository_mismatch": {
+      return "The reviewed snapshot belongs to another repository.";
+    }
+    default: {
+      return "The recorded review cannot be compared with this snapshot.";
+    }
   }
 }
 
@@ -31,34 +40,53 @@ export function ActiveFlowReviewPanel({
   saveFailed,
   onMarkReviewed,
 }: ActiveFlowReviewPanelProps) {
-  const reviewedDocument = 'reviewedSnapshotId' in assessment
-    ? documents.find((document) => document.snapshot.id === assessment.reviewedSnapshotId)
-    : null;
-  const alreadyReviewedCurrent = assessment.status === 'unchanged' &&
+  const reviewedDocument =
+    "reviewedSnapshotId" in assessment
+      ? documents.find(
+          (document) => document.snapshot.id === assessment.reviewedSnapshotId
+        )
+      : null;
+  const alreadyReviewedCurrent =
+    assessment.status === "unchanged" &&
     assessment.reviewedSnapshotId === current.id;
-  const canRecord = assessment.status !== 'no_snapshot' &&
-    assessment.status !== 'unmapped' && !hasUnsavedChanges && !alreadyReviewedCurrent;
+  const canRecord =
+    assessment.status !== "no_snapshot" &&
+    assessment.status !== "unmapped" &&
+    !hasUnsavedChanges &&
+    !alreadyReviewedCurrent;
 
-  return (
-    <section className="mt-6 border-t border-border pt-5" aria-label="Active flow review">
-      <h3 className="text-ui font-medium wrap-anywhere">Review · {flow.name}</h3>
-      <p className="mt-2 text-xs text-muted wrap-anywhere">
-        {current.graph.repositoryId} · Current snapshot: {current.id}
-      </p>
-      {assessment.status === 'unmapped' ? (
-        <p className="mt-3 text-ui text-muted">This Flow has no code links in this repository.</p>
-      ) : assessment.status === 'unreviewed' ? (
+  function renderReviewStatus() {
+    if (assessment.status === "unmapped") {
+      return (
         <p className="mt-3 text-ui text-muted">
-          Unreviewed · {'reason' in assessment
-            ? 'The code mapping changed since the recorded review.'
-            : 'No review checkpoint has been recorded.'}
+          This Flow has no code links in this repository.
         </p>
-      ) : assessment.status === 'unchanged' ? (
-        <p className="mt-3 text-ui text-muted">Up to date · no direct changes to linked code since the recorded review.</p>
-      ) : assessment.status === 'needs_review' ? (
+      );
+    }
+    if (assessment.status === "unreviewed") {
+      return (
+        <p className="mt-3 text-ui text-muted">
+          Unreviewed ·{" "}
+          {"reason" in assessment
+            ? "The code mapping changed since the recorded review."
+            : "No review checkpoint has been recorded."}
+        </p>
+      );
+    }
+    if (assessment.status === "unchanged") {
+      return (
+        <p className="mt-3 text-ui text-muted">
+          Up to date · no direct changes to linked code since the recorded
+          review.
+        </p>
+      );
+    }
+    if (assessment.status === "needs_review") {
+      return (
         <>
           <p className="mt-3 text-ui text-foreground">
-            Needs review · {assessment.reasons.length} {assessment.reasons.length === 1 ? 'reason' : 'reasons'}
+            Needs review · {assessment.reasons.length}{" "}
+            {assessment.reasons.length === 1 ? "reason" : "reasons"}
           </p>
           {reviewedDocument && (
             <FlowImpactReasons
@@ -69,26 +97,53 @@ export function ActiveFlowReviewPanel({
             />
           )}
         </>
-      ) : assessment.status === 'unavailable' ? (
+      );
+    }
+    if (assessment.status === "unavailable") {
+      return (
         <p className="mt-3 text-ui text-danger">
           Unavailable · {unavailableExplanation(assessment.reason)}
         </p>
-      ) : null}
-      {'reviewedSnapshotId' in assessment && (
-        <p className="mt-3 font-mono text-xs text-muted wrap-anywhere">
+      );
+    }
+    return null;
+  }
+  return (
+    <section
+      className="mt-6 border-t border-border pt-5"
+      aria-label="Active flow review"
+    >
+      <h3 className="text-ui font-medium wrap-anywhere">
+        Review · {flow.name}
+      </h3>
+      <p className="mt-2 text-xs wrap-anywhere text-muted">
+        {current.graph.repositoryId} · Current snapshot: {current.id}
+      </p>
+      {renderReviewStatus()}
+      {"reviewedSnapshotId" in assessment && (
+        <p className="mt-3 font-mono text-xs wrap-anywhere text-muted">
           Reviewed snapshot: {assessment.reviewedSnapshotId}
         </p>
       )}
-      {hasUnsavedChanges && assessment.status !== 'unmapped' && (
-        <p className="mt-3 text-xs text-muted">Save this Flow before recording a review.</p>
+      {hasUnsavedChanges && assessment.status !== "unmapped" && (
+        <p className="mt-3 text-xs text-muted">
+          Save this Flow before recording a review.
+        </p>
       )}
-      {saveFailed && <p role="alert" className="mt-3 text-ui text-danger">Could not save the review checkpoint. The previous review is unchanged.</p>}
-      {assessment.status !== 'unmapped' && (
+      {saveFailed && (
+        <p role="alert" className="mt-3 text-ui text-danger">
+          Could not save the review checkpoint. The previous review is
+          unchanged.
+        </p>
+      )}
+      {assessment.status !== "unmapped" && (
         <Button
           variant="secondary"
           className="mt-4"
           disabled={!canRecord}
-          onClick={() => onMarkReviewed(current)}
+          onClick={() => {
+            onMarkReviewed(current);
+          }}
         >
           Mark as reviewed
         </Button>

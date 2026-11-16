@@ -1,7 +1,11 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import { Button } from '../ui/Button';
-import { TextInput } from '../ui/TextInput';
-import { filterCommands, formatShortcut, runCommand, type EditorCommand, type ShortcutPlatform } from './commands';
+/* oxlint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-element-to-interactive-role -- The combobox owns keyboard navigation via aria-activedescendant; the native dialog handles Escape. */
+import { useEffect, useId, useRef, useState } from "react";
+
+import { Button } from "../ui/Button";
+import { TextInput } from "../ui/TextInput";
+import { filterCommands, formatShortcut, runCommand } from "./commands";
+import type { EditorCommand, ShortcutPlatform } from "./commands";
+import { isComposingKey } from "./is-composing-key";
 
 interface CommandPaletteProps {
   readonly commands: readonly EditorCommand[];
@@ -10,17 +14,25 @@ interface CommandPaletteProps {
   readonly onRestoreFocus: () => void;
 }
 
-export function CommandPalette({ commands, platform, onClose, onRestoreFocus }: CommandPaletteProps) {
+export function CommandPalette({
+  commands,
+  platform,
+  onClose,
+  onRestoreFocus,
+}: CommandPaletteProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const composing = useRef(false);
   const id = useId();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const filtered = filterCommands(commands, query);
-  const active = filtered.find((command) => command.id === activeId) ?? filtered.find((command) => command.enabled) ?? filtered[0];
+  const active =
+    filtered.find((command) => command.id === activeId) ??
+    filtered.find((command) => command.enabled) ??
+    filtered[0];
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -29,10 +41,14 @@ export function CommandPalette({ commands, platform, onClose, onRestoreFocus }: 
     return () => dialog?.close();
   }, []);
 
+  const activeCommandId = active?.id;
   useEffect(() => {
+    if (activeCommandId === undefined) {
+      return;
+    }
     const option = listRef.current?.querySelector('[aria-selected="true"]');
-    option?.scrollIntoView({ block: 'nearest' });
-  }, [active?.id]);
+    option?.scrollIntoView({ block: "nearest" });
+  }, [activeCommandId]);
 
   function close() {
     dialogRef.current?.close();
@@ -41,7 +57,9 @@ export function CommandPalette({ commands, platform, onClose, onRestoreFocus }: 
   }
 
   function execute(command: EditorCommand) {
-    if (!command.enabled) return;
+    if (!command.enabled) {
+      return;
+    }
     // Close synchronously so focus and file pickers run in the original user gesture.
     close();
     runCommand(command);
@@ -52,11 +70,25 @@ export function CommandPalette({ commands, platform, onClose, onRestoreFocus }: 
       ref={dialogRef}
       aria-labelledby={`${id}-title`}
       className="command-palette"
-      onCancel={(event) => { event.preventDefault(); if (!composing.current) close(); }}
-      onClick={(event) => { if (event.target === event.currentTarget) close(); }}
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!composing.current) {
+          close();
+        }
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          close();
+        }
+      }}
       onKeyDown={(event) => {
-        if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey && !event.altKey) {
-          const activeElement = document.activeElement;
+        if (
+          event.key === "Tab" &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey
+        ) {
+          const { activeElement } = document;
           if (event.shiftKey && activeElement === closeButtonRef.current) {
             event.preventDefault();
             inputRef.current?.focus();
@@ -65,17 +97,35 @@ export function CommandPalette({ commands, platform, onClose, onRestoreFocus }: 
             closeButtonRef.current?.focus();
           }
         }
-        if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
-        if (event.key.toLowerCase() === 'k' && (platform === 'mac' ? event.metaKey : event.ctrlKey) && !event.shiftKey && !event.altKey) {
+        if (isComposingKey(event.nativeEvent)) {
+          return;
+        }
+        if (
+          event.key.toLowerCase() === "k" &&
+          (platform === "mac" ? event.metaKey : event.ctrlKey) &&
+          !event.shiftKey &&
+          !event.altKey
+        ) {
           event.preventDefault();
           event.stopPropagation();
-          if (!event.repeat) close();
+          if (!event.repeat) {
+            close();
+          }
         }
       }}
     >
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <h2 id={`${id}-title`} className="text-ui font-medium">Commands</h2>
-        <Button ref={closeButtonRef} variant="secondary" onClick={close} aria-label="Close commands">Esc</Button>
+        <h2 id={`${id}-title`} className="text-ui font-medium">
+          Commands
+        </h2>
+        <Button
+          ref={closeButtonRef}
+          variant="secondary"
+          onClick={close}
+          aria-label="Close commands"
+        >
+          Esc
+        </Button>
       </div>
       <div className="p-3">
         <TextInput
@@ -85,29 +135,54 @@ export function CommandPalette({ commands, platform, onClose, onRestoreFocus }: 
           aria-autocomplete="list"
           aria-expanded="true"
           aria-controls={`${id}-list`}
-          aria-activedescendant={active === undefined ? undefined : `${id}-${active.id}`}
+          aria-activedescendant={
+            active === undefined ? undefined : `${id}-${active.id}`
+          }
           autoComplete="off"
           placeholder="Search commands…"
           value={query}
-          onCompositionStart={() => { composing.current = true; }}
-          onCompositionEnd={() => { composing.current = false; }}
-          onChange={(event) => { setQuery(event.target.value); setActiveId(null); }}
+          onCompositionStart={() => {
+            composing.current = true;
+          }}
+          onCompositionEnd={() => {
+            composing.current = false;
+          }}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setActiveId(null);
+          }}
           onKeyDown={(event) => {
-            if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
-            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            if (isComposingKey(event.nativeEvent)) {
+              return;
+            }
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
               event.preventDefault();
-              const current = filtered.findIndex((command) => command.id === active?.id);
-              const direction = event.key === 'ArrowDown' ? 1 : -1;
-              const next = filtered[(current + direction + filtered.length) % filtered.length];
+              const current = filtered.findIndex(
+                (command) => command.id === active?.id
+              );
+              const direction = event.key === "ArrowDown" ? 1 : -1;
+              const next =
+                filtered[
+                  (current + direction + filtered.length) % filtered.length
+                ];
               setActiveId(next?.id ?? null);
-            } else if (event.key === 'Enter') {
+            } else if (event.key === "Enter") {
               event.preventDefault();
-              if (!event.repeat && active !== undefined) execute(active);
+              if (!event.repeat && active !== undefined) {
+                execute(active);
+              }
             }
           }}
         />
       </div>
-      <ul ref={listRef} id={`${id}-list`} role="listbox" tabIndex={-1} aria-label="Available commands" className="max-h-[min(22rem,45dvh)] overflow-y-auto overscroll-contain px-2 pb-2">
+      <ul
+        ref={listRef}
+        id={`${id}-list`}
+        role="listbox"
+        tabIndex={-1}
+        aria-label="Available commands"
+        className="max-h-[min(22rem,45dvh)] overflow-y-auto overscroll-contain px-2 pb-2"
+      >
         {filtered.map((command) => (
           <li
             key={command.id}
@@ -116,17 +191,36 @@ export function CommandPalette({ commands, platform, onClose, onRestoreFocus }: 
             aria-label={command.label}
             aria-selected={command.id === active?.id}
             aria-disabled={!command.enabled}
-            onPointerMove={() => setActiveId(command.id)}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => execute(command)}
-            className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-control px-3 py-2 text-ui aria-selected:bg-brand-soft aria-selected:text-brand aria-disabled:cursor-not-allowed aria-disabled:opacity-45"
+            onPointerMove={() => {
+              setActiveId(command.id);
+            }}
+            onMouseDown={(event) => {
+              event.preventDefault();
+            }}
+            onClick={() => {
+              execute(command);
+            }}
+            className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-control px-3 py-2 text-ui aria-disabled:cursor-not-allowed aria-disabled:opacity-45 aria-selected:bg-brand-soft aria-selected:text-brand"
           >
-            <span>{command.label}<span aria-hidden="true" className="ml-2 text-xs text-muted">{command.group}</span></span>
-            {command.shortcuts?.[0] !== undefined && <kbd className="shrink-0 font-mono text-xs">{formatShortcut(command.shortcuts[0], platform)}</kbd>}
+            <span>
+              {command.label}
+              <span aria-hidden="true" className="ml-2 text-xs text-muted">
+                {command.group}
+              </span>
+            </span>
+            {command.shortcuts?.[0] !== undefined && (
+              <kbd className="shrink-0 font-mono text-xs">
+                {formatShortcut(command.shortcuts[0], platform)}
+              </kbd>
+            )}
           </li>
         ))}
       </ul>
-      {filtered.length === 0 && <p role="status" className="px-5 py-6 text-ui text-muted">No matching commands.</p>}
+      {filtered.length === 0 && (
+        <p role="status" className="px-5 py-6 text-ui text-muted">
+          No matching commands.
+        </p>
+      )}
       <div className="flex flex-wrap justify-between gap-2 border-t border-border px-4 py-3 text-xs text-muted">
         <span>↑ ↓ Navigate · Enter Run · Esc Close</span>
         <span>{filtered.length} commands</span>

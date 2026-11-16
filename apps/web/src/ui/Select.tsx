@@ -1,22 +1,22 @@
-import type { ComponentPropsWithRef } from 'react';
+import type { ComponentPropsWithRef } from "react";
 
-type SelectProps = ComponentPropsWithRef<'select'> & {
+type SelectProps = ComponentPropsWithRef<"select"> & {
   readonly containerClassName?: string;
 };
 
 const classes = [
-  'block min-h-9 w-full min-w-0 appearance-none rounded-control',
-  'border border-border-strong bg-surface py-1.5 pl-3 pr-9',
-  'text-ui text-foreground',
-  'focus-visible:outline-2 focus-visible:outline-offset-2',
-  'focus-visible:outline-brand',
-  'disabled:cursor-not-allowed',
-  'disabled:bg-surface-hover disabled:text-muted',
-].join(' ');
+  "block min-h-9 w-full min-w-0 appearance-none rounded-control",
+  "border border-border-strong bg-surface py-1.5 pl-3 pr-9",
+  "text-ui text-foreground",
+  "focus-visible:outline-2 focus-visible:outline-offset-2",
+  "focus-visible:outline-brand",
+  "disabled:cursor-not-allowed",
+  "disabled:bg-surface-hover disabled:text-muted",
+].join(" ");
 
 export function Select({
-  className = '',
-  containerClassName = '',
+  className = "",
+  containerClassName = "",
   children,
   ...props
 }: SelectProps) {

@@ -1,4 +1,4 @@
-export type CodeReferenceRole = 'primary' | 'dependency';
+export type CodeReferenceRole = "primary" | "dependency";
 
 export interface CodeReference {
   readonly id: string;

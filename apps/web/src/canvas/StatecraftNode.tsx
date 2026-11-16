@@ -1,14 +1,13 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { memo } from 'react';
-import { NODE_KIND_LABELS } from '../node-kind-labels';
-import { NodeKindIcon } from './NodeKindIcon';
-import type { CanvasNode } from './to-react-flow-graph';
+import { Handle, Position } from "@xyflow/react";
+import type { NodeProps } from "@xyflow/react";
+import { memo } from "react";
 
-export const StatecraftNode = memo(function StatecraftNode({
-  data,
-  isConnectable,
-}: NodeProps<CanvasNode>) {
-  return (
+import { NODE_KIND_LABELS } from "../node-kind-labels";
+import { NodeKindIcon } from "./NodeKindIcon";
+import type { CanvasNode } from "./to-react-flow-graph";
+
+export const StatecraftNode = memo(
+  ({ data, isConnectable }: NodeProps<CanvasNode>) => (
     <>
       {data.isEntry && (
         <div className="statecraft-node__entry" aria-hidden="true">
@@ -41,7 +40,7 @@ export const StatecraftNode = memo(function StatecraftNode({
       </div>
 
       <div
-        className={`statecraft-node__label${data.kind === 'service' ? ' font-mono' : ''}`}
+        className={`statecraft-node__label${data.kind === "service" ? " font-mono" : ""}`}
       >
         {data.label}
       </div>
@@ -53,5 +52,7 @@ export const StatecraftNode = memo(function StatecraftNode({
         title={`Connect from ${data.label}`}
       />
     </>
-  );
-});
+  )
+);
+
+StatecraftNode.displayName = "StatecraftNode";

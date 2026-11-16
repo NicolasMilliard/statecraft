@@ -1,29 +1,29 @@
-import type { Flow } from './flow.js';
+import type { Flow } from "./flow.js";
 
 export type FlowValidationIssue =
   | {
-      readonly code: 'duplicate_node_id';
+      readonly code: "duplicate_node_id";
       readonly nodeId: string;
     }
   | {
-      readonly code: 'duplicate_edge_id';
+      readonly code: "duplicate_edge_id";
       readonly edgeId: string;
     }
   | {
-      readonly code: 'entry_node_not_found';
+      readonly code: "entry_node_not_found";
       readonly nodeId: string;
     }
   | {
-      readonly code: 'edge_source_not_found' | 'edge_target_not_found';
+      readonly code: "edge_source_not_found" | "edge_target_not_found";
       readonly edgeId: string;
       readonly nodeId: string;
     }
   | {
-      readonly code: 'duplicate_code_reference_id';
+      readonly code: "duplicate_code_reference_id";
       readonly referenceId: string;
     }
   | {
-      readonly code: 'code_reference_node_not_found';
+      readonly code: "code_reference_node_not_found";
       readonly referenceId: string;
       readonly nodeId: string;
     };
@@ -37,7 +37,7 @@ export function validateFlow(flow: Flow): readonly FlowValidationIssue[] {
   for (const node of flow.nodes) {
     if (nodeIds.has(node.id)) {
       issues.push({
-        code: 'duplicate_node_id',
+        code: "duplicate_node_id",
         nodeId: node.id,
       });
     }
@@ -47,7 +47,7 @@ export function validateFlow(flow: Flow): readonly FlowValidationIssue[] {
 
   if (flow.entryNodeId !== null && !nodeIds.has(flow.entryNodeId)) {
     issues.push({
-      code: 'entry_node_not_found',
+      code: "entry_node_not_found",
       nodeId: flow.entryNodeId,
     });
   }
@@ -55,7 +55,7 @@ export function validateFlow(flow: Flow): readonly FlowValidationIssue[] {
   for (const edge of flow.edges) {
     if (edgeIds.has(edge.id)) {
       issues.push({
-        code: 'duplicate_edge_id',
+        code: "duplicate_edge_id",
         edgeId: edge.id,
       });
     }
@@ -64,7 +64,7 @@ export function validateFlow(flow: Flow): readonly FlowValidationIssue[] {
 
     if (!nodeIds.has(edge.sourceNodeId)) {
       issues.push({
-        code: 'edge_source_not_found',
+        code: "edge_source_not_found",
         edgeId: edge.id,
         nodeId: edge.sourceNodeId,
       });
@@ -72,7 +72,7 @@ export function validateFlow(flow: Flow): readonly FlowValidationIssue[] {
 
     if (!nodeIds.has(edge.targetNodeId)) {
       issues.push({
-        code: 'edge_target_not_found',
+        code: "edge_target_not_found",
         edgeId: edge.id,
         nodeId: edge.targetNodeId,
       });
@@ -82,7 +82,7 @@ export function validateFlow(flow: Flow): readonly FlowValidationIssue[] {
   for (const reference of flow.codeReferences) {
     if (referenceIds.has(reference.id)) {
       issues.push({
-        code: 'duplicate_code_reference_id',
+        code: "duplicate_code_reference_id",
         referenceId: reference.id,
       });
     }
@@ -91,7 +91,7 @@ export function validateFlow(flow: Flow): readonly FlowValidationIssue[] {
 
     if (!nodeIds.has(reference.flowNodeId)) {
       issues.push({
-        code: 'code_reference_node_not_found',
+        code: "code_reference_node_not_found",
         referenceId: reference.id,
         nodeId: reference.flowNodeId,
       });

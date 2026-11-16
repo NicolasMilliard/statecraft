@@ -1,5 +1,5 @@
-import type { CodeGraph } from './code.js';
-import type { ScanDiagnostic } from './scan-report.js';
+import type { CodeGraph } from "./code.js";
+import type { ScanDiagnostic } from "./scan-report.js";
 
 export interface SnapshotGitState {
   readonly commitSha: string;

@@ -1,8 +1,15 @@
-import type { FlowNode, ScenarioOverride, ServiceOutcome } from '@statecraft/core';
-import { useId, useState } from 'react';
-import { Button } from '../ui/Button';
-import { Select } from '../ui/Select';
-import { TextInput } from '../ui/TextInput';
+/* oxlint-disable jsx-a11y/no-noninteractive-element-interactions -- The form delegates Escape from its inputs and buttons to cancel editing. */
+import type {
+  FlowNode,
+  ScenarioOverride,
+  ServiceOutcome,
+} from "@statecraft/core";
+import { useId, useState } from "react";
+
+import { isComposingKey } from "../editor/is-composing-key";
+import { Button } from "../ui/Button";
+import { Select } from "../ui/Select";
+import { TextInput } from "../ui/TextInput";
 
 interface ScenarioServiceEditorProps {
   readonly node: FlowNode;
@@ -12,8 +19,8 @@ interface ScenarioServiceEditorProps {
 
 function draftsFromOutcome(outcome: ServiceOutcome | null) {
   return {
-    code: outcome?.code ?? '',
-    status: outcome?.httpStatus?.toString() ?? '',
+    code: outcome?.code ?? "",
+    status: outcome?.httpStatus?.toString() ?? "",
   };
 }
 
@@ -33,32 +40,53 @@ export function ScenarioServiceEditor({
   }
 
   const statusText = draft.status.trim();
-  const statusIsValid = statusText.length === 0 ||
-    (/^\d{3}$/.test(statusText) && Number(statusText) >= 100 && Number(statusText) <= 599);
+  const statusIsValid = isValidStatus(statusText);
   const normalizedCode = draft.code.trim() || null;
   const normalizedStatus = statusText.length === 0 ? null : Number(statusText);
-  const canApply = outcome !== null && statusIsValid &&
-    (normalizedCode !== outcome.code || normalizedStatus !== outcome.httpStatus);
-  const canCancel = outcome !== null &&
-    (draft.code !== (outcome.code ?? '') ||
-      draft.status !== (outcome.httpStatus?.toString() ?? ''));
+  const canApply =
+    outcome !== null &&
+    statusIsValid &&
+    (normalizedCode !== outcome.code ||
+      normalizedStatus !== outcome.httpStatus);
+  const canCancel =
+    outcome !== null &&
+    (draft.code !== (outcome.code ?? "") ||
+      draft.status !== (outcome.httpStatus?.toString() ?? ""));
 
   return (
     <div className="rounded-control border border-border bg-surface p-3">
       <h4 className="text-ui font-medium wrap-anywhere">{node.label}</h4>
-      <p className="mt-0.5 font-mono text-xs text-muted wrap-anywhere">{node.id}</p>
+      <p className="mt-0.5 font-mono text-xs wrap-anywhere text-muted">
+        {node.id}
+      </p>
 
-      <label htmlFor={`${id}-outcome`} className="mt-3 block text-xs text-muted">
+      <label
+        htmlFor={`${id}-outcome`}
+        className="mt-3 block text-xs text-muted"
+      >
         Simulated outcome
       </label>
       <Select
         id={`${id}-outcome`}
-        value={outcome?.kind ?? 'default'}
+        value={outcome?.kind ?? "default"}
         onChange={(event) => {
-          const value = event.target.value;
-          onChange(value === 'default'
-            ? null
-            : { kind: value as ServiceOutcome['kind'], code: null, httpStatus: null });
+          const { value } = event.target;
+          if (
+            value !== "default" &&
+            value !== "success" &&
+            value !== "failure"
+          ) {
+            return;
+          }
+          onChange(
+            value === "default"
+              ? null
+              : {
+                  kind: value,
+                  code: null,
+                  httpStatus: null,
+                }
+          );
         }}
         containerClassName="mt-1"
       >
@@ -76,7 +104,9 @@ export function ScenarioServiceEditor({
           className="mt-3 space-y-3 border-t border-border pt-3"
           onSubmit={(event) => {
             event.preventDefault();
-            if (!canApply) return;
+            if (!canApply) {
+              return;
+            }
             onChange({
               kind: outcome.kind,
               code: normalizedCode,
@@ -84,7 +114,7 @@ export function ScenarioServiceEditor({
             });
           }}
           onKeyDown={(event) => {
-            if (event.key === 'Escape' && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
+            if (event.key === "Escape" && !isComposingKey(event.nativeEvent)) {
               event.preventDefault();
               event.stopPropagation();
               setDraft(draftsFromOutcome(outcome));
@@ -98,39 +128,62 @@ export function ScenarioServiceEditor({
             <TextInput
               id={`${id}-code`}
               value={draft.code}
-              onChange={(event) => setDraft((current) => ({ ...current, code: event.target.value }))}
+              onChange={(event) => {
+                setDraft((current) => ({
+                  ...current,
+                  code: event.target.value,
+                }));
+              }}
               placeholder="e.g. PAYMENT_DECLINED"
               className="mt-1"
             />
           </div>
 
           <div>
-            <label htmlFor={`${id}-status`} className="block text-xs text-muted">
+            <label
+              htmlFor={`${id}-status`}
+              className="block text-xs text-muted"
+            >
               HTTP status · optional
             </label>
             <TextInput
               id={`${id}-status`}
               inputMode="numeric"
               value={draft.status}
-              onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))}
+              onChange={(event) => {
+                setDraft((current) => ({
+                  ...current,
+                  status: event.target.value,
+                }));
+              }}
               aria-invalid={!statusIsValid}
-              aria-describedby={!statusIsValid ? `${id}-status-error` : undefined}
+              aria-describedby={
+                statusIsValid ? undefined : `${id}-status-error`
+              }
               placeholder="e.g. 402"
               className="mt-1"
             />
             {!statusIsValid && (
-              <p id={`${id}-status-error`} role="alert" className="mt-1 text-xs text-danger">
+              <p
+                id={`${id}-status-error`}
+                role="alert"
+                className="mt-1 text-xs text-danger"
+              >
                 Enter a status from 100 to 599.
               </p>
             )}
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={!canApply}>Apply details</Button>
+            <Button type="submit" disabled={!canApply}>
+              Apply details
+            </Button>
             <Button
               variant="secondary"
               disabled={!canCancel}
-              onClick={() => setDraft(draftsFromOutcome(outcome))}
+              onClick={() => {
+                setDraft(draftsFromOutcome(outcome));
+              }}
             >
               Cancel
             </Button>
@@ -138,5 +191,12 @@ export function ScenarioServiceEditor({
         </form>
       )}
     </div>
+  );
+}
+
+function isValidStatus(value: string): boolean {
+  return (
+    value.length === 0 ||
+    (/^\d{3}$/u.test(value) && Number(value) >= 100 && Number(value) <= 599)
   );
 }

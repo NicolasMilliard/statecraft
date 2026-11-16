@@ -1,33 +1,44 @@
+import { recordFlowReview } from "@statecraft/core";
+import type {
+  CodeGraph,
+  CodeReferenceRole,
+  Flow,
+  FlowEdge,
+  FlowEdgeKind,
+  FlowNode,
+  FlowNodeKind,
+  ServiceOutcome,
+  SyncSnapshot,
+} from "@statecraft/core";
+import { useCallback, useState } from "react";
+
+import type { FlowLayout, FlowNodePosition } from "../canvas/flow-layout";
+import { NODE_KIND_LABELS } from "../node-kind-labels";
+import { canAddFlowEdge } from "./can-add-flow-edge";
 import {
-  recordFlowReview,
-  type CodeGraph,
-  type CodeReferenceRole,
-  type Flow,
-  type FlowEdge,
-  type FlowEdgeKind,
-  type FlowNode,
-  type FlowNodeKind,
-  type ServiceOutcome,
-  type SyncSnapshot,
-} from '@statecraft/core';
-import { useCallback, useState } from 'react';
-import type { FlowLayout, FlowNodePosition } from '../canvas/flow-layout';
-import { NODE_KIND_LABELS } from '../node-kind-labels';
-import { canAddFlowEdge } from './can-add-flow-edge';
-import { attachCodeEntity, removeCodeReference, setCodeReferenceRole } from './code-mapping';
-import { deleteFlowElements } from './delete-flow-elements';
-import { serializeFlowDocument } from './flow-document';
-import type { FlowEditorState } from './flow-editor-state';
-import { loadFlowDraft, loadSavedFlows, openSavedFlowDraft, saveFlowDraft, saveFlowReviewCheckpoint } from './flow-storage';
+  attachCodeEntity,
+  removeCodeReference,
+  setCodeReferenceRole,
+} from "./code-mapping";
+import { deleteFlowElements } from "./delete-flow-elements";
+import { serializeFlowDocument } from "./flow-document";
+import type { FlowEditorState } from "./flow-editor-state";
+import {
+  loadFlowDraft,
+  loadSavedFlows,
+  openSavedFlowDraft,
+  saveFlowDraft,
+  saveFlowReviewCheckpoint,
+} from "./flow-storage";
 import {
   addScenario,
   duplicateScenario,
   removeScenario,
   renameScenario,
   setScenarioOverride,
-} from './scenario-editing';
-import { useHistoryState } from './use-history-state';
-import type { StorageIssue } from './storage-feedback';
+} from "./scenario-editing";
+import type { StorageIssue } from "./storage-feedback";
+import { useHistoryState } from "./use-history-state";
 
 function areLayoutsEqual(left: FlowLayout, right: FlowLayout): boolean {
   const entries = Object.entries(left.positions);
@@ -46,19 +57,27 @@ function areLayoutsEqual(left: FlowLayout, right: FlowLayout): boolean {
   });
 }
 
-function describeCatalogIssue(result: ReturnType<typeof loadSavedFlows>): string | null {
-  if (result.status === 'unavailable') return 'Saved flows could not be listed.';
-  if (result.invalidCount === 0) return null;
-  return `${result.invalidCount} saved ${result.invalidCount === 1 ? 'flow' : 'flows'} could not be opened.`;
+function describeCatalogIssue(
+  result: ReturnType<typeof loadSavedFlows>
+): string | null {
+  if (result.status === "unavailable") {
+    return "Saved flows could not be listed.";
+  }
+  if (result.invalidCount === 0) {
+    return null;
+  }
+  return `${result.invalidCount} saved ${result.invalidCount === 1 ? "flow" : "flows"} could not be opened.`;
 }
 
 export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
+  // oxlint-disable-next-line react/hook-use-state -- This lazy initial value stays fixed for the mounted editor.
   const [initialCatalog] = useState(() => loadSavedFlows());
+  // oxlint-disable-next-line react/hook-use-state -- This lazy initial value stays fixed for the mounted editor.
   const [initialDocument] = useState(() => {
     const result = loadFlowDraft(initialFlow.id);
 
     const editor: FlowEditorState =
-      result.status === 'loaded'
+      result.status === "loaded"
         ? result.editor
         : {
             flow: initialFlow,
@@ -68,14 +87,21 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
             reviews: [],
           };
 
-    const issue: StorageIssue | null = result.status === 'invalid'
-      ? 'invalid-draft'
-      : result.status === 'unavailable' ? 'unavailable' : null;
+    function getInitialStorageIssue() {
+      if (result.status === "invalid") {
+        return "invalid-draft" as const;
+      }
+      if (result.status === "unavailable") {
+        return "unavailable" as const;
+      }
+      return null;
+    }
+    const issue: StorageIssue | null = getInitialStorageIssue();
 
     return {
       editor,
-      isSaved: result.status === 'loaded',
-      hasInvalidSavedDraft: result.status === 'invalid',
+      isSaved: result.status === "loaded",
+      hasInvalidSavedDraft: result.status === "invalid",
       issue,
     };
   });
@@ -92,21 +118,25 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
   } = useHistoryState<FlowEditorState>(() => initialDocument.editor);
 
   const [savedEditor, setSavedEditor] = useState<FlowEditorState | null>(
-    initialDocument.isSaved ? initialDocument.editor : null,
+    initialDocument.isSaved ? initialDocument.editor : null
   );
 
   const [storageIssue, setStorageIssue] = useState<StorageIssue | null>(
-    initialDocument.issue,
+    initialDocument.issue
   );
   const [reviewSaveFailed, setReviewSaveFailed] = useState(false);
-  const [savedFlows, setSavedFlows] = useState<readonly FlowEditorState[]>(initialCatalog.editors);
+  const [savedFlows, setSavedFlows] = useState<readonly FlowEditorState[]>(
+    initialCatalog.editors
+  );
   const [catalogIssue, setCatalogIssue] = useState<string | null>(
-    describeCatalogIssue(initialCatalog),
+    describeCatalogIssue(initialCatalog)
   );
 
   function refreshCatalog() {
     const result = loadSavedFlows();
-    if (result.status === 'loaded') setSavedFlows(result.editors);
+    if (result.status === "loaded") {
+      setSavedFlows(result.editors);
+    }
     setCatalogIssue(describeCatalogIssue(result));
   }
 
@@ -116,7 +146,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     const next: FlowEditorState = {
       flow: {
         id: flowId,
-        name: 'Untitled flow',
+        name: "Untitled flow",
         entryNodeId: null,
         nodes: [],
         edges: [],
@@ -141,8 +171,10 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
 
   function openSavedFlow(flowId: string): boolean {
     const result = openSavedFlowDraft(flowId);
-    if (result.status !== 'loaded') {
-      setCatalogIssue('This saved flow could not be opened. Your current flow is unchanged.');
+    if (result.status !== "loaded") {
+      setCatalogIssue(
+        "This saved flow could not be opened. Your current flow is unchanged."
+      );
       return false;
     }
 
@@ -194,7 +226,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
         id: crypto.randomUUID(),
         sourceNodeId,
         targetNodeId,
-        kind: 'transition',
+        kind: "transition",
       };
 
       setEditor((current) => {
@@ -213,7 +245,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
         };
       });
     },
-    [setEditor],
+    [setEditor]
   );
 
   function renameFlow(name: string) {
@@ -257,7 +289,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
         flow: {
           ...current.flow,
           nodes: current.flow.nodes.map((node) =>
-            node.id === nodeId ? { ...node, label: normalizedLabel } : node,
+            node.id === nodeId ? { ...node, label: normalizedLabel } : node
           ),
         },
       };
@@ -301,7 +333,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
           targetEdge.sourceNodeId,
           targetEdge.targetNodeId,
           kind,
-          edgeId,
+          edgeId
         )
       ) {
         return current;
@@ -312,7 +344,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
         flow: {
           ...current.flow,
           edges: current.flow.edges.map((edge) =>
-            edge.id === edgeId ? { ...edge, kind } : edge,
+            edge.id === edgeId ? { ...edge, kind } : edge
           ),
         },
       };
@@ -323,7 +355,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     graph: CodeGraph,
     nodeId: string,
     entityId: string,
-    role: CodeReferenceRole,
+    role: CodeReferenceRole
   ) {
     const referenceId = crypto.randomUUID();
 
@@ -334,7 +366,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
         nodeId,
         entityId,
         role,
-        referenceId,
+        referenceId
       );
       return flow === current.flow ? current : { ...current, flow };
     });
@@ -356,7 +388,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
 
   function deleteElements(
     nodeIds: readonly string[],
-    edgeIds: readonly string[],
+    edgeIds: readonly string[]
   ) {
     setEditor((current) => deleteFlowElements(current, nodeIds, edgeIds));
   }
@@ -376,12 +408,16 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
   }
 
   function copyScenario(sourceScenarioId: string): string | null {
-    if (!editor.scenarios.some((scenario) => scenario.id === sourceScenarioId)) {
+    if (
+      !editor.scenarios.some((scenario) => scenario.id === sourceScenarioId)
+    ) {
       return null;
     }
 
     const scenarioId = crypto.randomUUID();
-    setEditor((current) => duplicateScenario(current, sourceScenarioId, scenarioId));
+    setEditor((current) =>
+      duplicateScenario(current, sourceScenarioId, scenarioId)
+    );
     return scenarioId;
   }
 
@@ -396,16 +432,16 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
   function changeScenarioOverride(
     scenarioId: string,
     flowNodeId: string,
-    outcome: ServiceOutcome | null,
+    outcome: ServiceOutcome | null
   ) {
     setEditor((current) =>
-      setScenarioOverride(current, scenarioId, flowNodeId, outcome),
+      setScenarioOverride(current, scenarioId, flowNodeId, outcome)
     );
   }
 
   function save() {
     if (!saveFlowDraft(editor)) {
-      setStorageIssue('save-failed');
+      setStorageIssue("save-failed");
       return false;
     }
 
@@ -420,8 +456,9 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     if (
       savedEditor === null ||
       editor !== savedEditor ||
-      !editor.flow.codeReferences.some((reference) =>
-        reference.repositoryId === snapshot.graph.repositoryId)
+      !editor.flow.codeReferences.some(
+        (reference) => reference.repositoryId === snapshot.graph.repositoryId
+      )
     ) {
       return false;
     }
@@ -457,7 +494,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
     if (restored.flow.id === editor.flow.id) {
       const restoredDocument = serializeFlowDocument(restored);
       setEditor((current) =>
-        serializeFlowDocument(current) === restoredDocument ? current : restored,
+        serializeFlowDocument(current) === restoredDocument ? current : restored
       );
     } else {
       replaceEditor(restored);
@@ -481,7 +518,7 @@ export function useFlowEditor(initialFlow: Flow, initialLayout: FlowLayout) {
         };
       });
     },
-    [setEditor],
+    [setEditor]
   );
 
   function resetLayout() {

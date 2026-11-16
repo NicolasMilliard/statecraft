@@ -1,4 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { CheckoutPage as Page } from '../pages/CheckoutPage';
+import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/checkout')({ component: Page });
+import { CheckoutPage as Page } from "../pages/CheckoutPage";
+
+export const Route = createFileRoute("/checkout")({ component: Page });

@@ -1,42 +1,79 @@
-import { snapshotIdentityInput, type SnapshotDocument } from '@statecraft/core';
-import { parseSnapshotDocument } from '../editor/open-document';
+/* oxlint-disable promise/avoid-new -- IndexedDB exposes events rather than promises; these adapters wrap that browser API. */
+import { snapshotIdentityInput } from "@statecraft/core";
+import type { SnapshotDocument } from "@statecraft/core";
 
-const DATABASE_NAME = 'statecraft-snapshots';
-const STORE_NAME = 'snapshots';
+import { parseSnapshotDocument } from "../editor/open-document";
 
-function requestResult<T>(request: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error('Snapshot storage failed.'));
+const DATABASE_NAME = "statecraft-snapshots";
+const STORE_NAME = "snapshots";
+
+async function requestResult<T>(request: IDBRequest<T>): Promise<T> {
+  return await new Promise<T>((resolve, reject) => {
+    request.addEventListener(
+      "success",
+      () => {
+        resolve(request.result);
+      },
+      { once: true }
+    );
+    request.addEventListener(
+      "error",
+      () => {
+        reject(request.error ?? new Error("Snapshot storage failed."));
+      },
+      { once: true }
+    );
   });
 }
 
 async function openDatabase(): Promise<IDBDatabase> {
-  if (typeof indexedDB === 'undefined') {
-    throw new Error('Snapshot storage is unavailable in this browser.');
+  if (typeof indexedDB === "undefined") {
+    throw new TypeError("Snapshot storage is unavailable in this browser.");
   }
   const request = indexedDB.open(DATABASE_NAME, 1);
   request.onupgradeneeded = () => {
     if (!request.result.objectStoreNames.contains(STORE_NAME)) {
-      request.result.createObjectStore(STORE_NAME, { keyPath: 'snapshot.id' });
+      request.result.createObjectStore(STORE_NAME, { keyPath: "snapshot.id" });
     }
   };
-  return requestResult(request);
+  return await requestResult(request);
 }
 
-function transactionDone(transaction: IDBTransaction): Promise<void> {
-  return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onabort = () => reject(transaction.error ?? new Error('Snapshot storage was aborted.'));
-    transaction.onerror = () => reject(transaction.error ?? new Error('Snapshot storage failed.'));
+async function transactionDone(transaction: IDBTransaction): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    transaction.addEventListener(
+      "complete",
+      () => {
+        resolve();
+      },
+      { once: true }
+    );
+    transaction.addEventListener(
+      "abort",
+      () => {
+        reject(transaction.error ?? new Error("Snapshot storage was aborted."));
+      },
+      { once: true }
+    );
+    transaction.addEventListener(
+      "error",
+      () => {
+        reject(transaction.error ?? new Error("Snapshot storage failed."));
+      },
+      { once: true }
+    );
   });
 }
 
-export async function loadSnapshotDocuments(): Promise<readonly SnapshotDocument[]> {
+export async function loadSnapshotDocuments(): Promise<
+  readonly SnapshotDocument[]
+> {
   const database = await openDatabase();
   try {
-    const transaction = database.transaction(STORE_NAME, 'readonly');
-    const stored = await requestResult(transaction.objectStore(STORE_NAME).getAll()) as unknown[];
+    const transaction = database.transaction(STORE_NAME, "readonly");
+    const stored = (await requestResult(
+      transaction.objectStore(STORE_NAME).getAll()
+    )) as unknown[];
     await transactionDone(transaction);
     return stored.map(parseSnapshotDocument);
   } finally {
@@ -44,38 +81,49 @@ export async function loadSnapshotDocuments(): Promise<readonly SnapshotDocument
   }
 }
 
-export async function saveSnapshotDocument(document: SnapshotDocument): Promise<SnapshotDocument> {
+export async function saveSnapshotDocument(
+  document: SnapshotDocument
+): Promise<SnapshotDocument> {
   const identity = snapshotIdentityInput(
     document.snapshot.graph,
     document.snapshot.analysisProfileId,
     document.snapshot.git,
-    document.diagnostics,
+    document.diagnostics
   );
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(identity));
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(identity)
+  );
   const id = [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
   if (id !== document.snapshot.id) {
-    throw new Error('Snapshot ID does not match its metadata.');
+    throw new Error("Snapshot ID does not match its metadata.");
   }
 
   const database = await openDatabase();
   try {
-    const read = database.transaction(STORE_NAME, 'readonly');
-    const stored = await requestResult(read.objectStore(STORE_NAME).get(document.snapshot.id)) as unknown;
+    const read = database.transaction(STORE_NAME, "readonly");
+    const stored = (await requestResult(
+      read.objectStore(STORE_NAME).get(document.snapshot.id)
+    )) as unknown;
     await transactionDone(read);
     if (stored !== undefined) {
       const existing = parseSnapshotDocument(stored);
-      const { capturedAt: _previousCapturedAt, ...previous } = existing.snapshot;
+      const { capturedAt: _previousCapturedAt, ...previous } =
+        existing.snapshot;
       const { capturedAt: _nextCapturedAt, ...next } = document.snapshot;
-      if (JSON.stringify(previous) !== JSON.stringify(next) ||
-          JSON.stringify(existing.diagnostics) !== JSON.stringify(document.diagnostics)) {
-        throw new Error('A different snapshot already uses this ID.');
+      if (
+        JSON.stringify(previous) !== JSON.stringify(next) ||
+        JSON.stringify(existing.diagnostics) !==
+          JSON.stringify(document.diagnostics)
+      ) {
+        throw new Error("A different snapshot already uses this ID.");
       }
       return existing;
     }
 
-    const write = database.transaction(STORE_NAME, 'readwrite');
+    const write = database.transaction(STORE_NAME, "readwrite");
     write.objectStore(STORE_NAME).add(document);
     await transactionDone(write);
     return document;

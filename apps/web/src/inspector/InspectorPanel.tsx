@@ -1,4 +1,5 @@
-import { useId, type ReactNode } from 'react';
+import { useId } from "react";
+import type { ReactNode } from "react";
 
 interface InspectorPanelProps {
   readonly title?: string;
@@ -6,7 +7,11 @@ interface InspectorPanelProps {
   readonly children: ReactNode;
 }
 
-export function InspectorPanel({ title = 'Inspector', context, children }: InspectorPanelProps) {
+export function InspectorPanel({
+  title = "Inspector",
+  context,
+  children,
+}: InspectorPanelProps) {
   const titleId = useId();
 
   return (

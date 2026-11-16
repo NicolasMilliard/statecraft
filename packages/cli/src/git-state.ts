@@ -1,15 +1,17 @@
-import type { SnapshotGitState } from '@statecraft/core';
-import { createHash, type Hash } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import type { Hash } from "node:crypto";
 import {
   closeSync,
   lstatSync,
   openSync,
   readlinkSync,
   readSync,
-  type Stats,
-} from 'node:fs';
-import { isAbsolute, relative, resolve } from 'node:path';
+} from "node:fs";
+import type { Stats } from "node:fs";
+import { isAbsolute, relative, resolve } from "node:path";
+
+import type { SnapshotGitState } from "@statecraft/core";
 
 export interface GitObservation {
   readonly state: SnapshotGitState;
@@ -17,34 +19,46 @@ export interface GitObservation {
 }
 
 function git(repositoryPath: string, args: readonly string[]): string {
-  const result = spawnSync('git', ['-C', repositoryPath, ...args], {
-    encoding: 'utf8',
+  const result = spawnSync("git", ["-C", repositoryPath, ...args], {
+    encoding: "utf-8",
     timeout: 10_000,
     maxBuffer: 64 * 1024 * 1024,
   });
   if (result.error || result.status !== 0) {
-    throw new Error('A Git working tree with a HEAD commit is required to capture a snapshot.');
+    throw new Error(
+      "A Git working tree with a HEAD commit is required to capture a snapshot."
+    );
   }
   return result.stdout;
 }
 
-function hashWorkingFile(hash: Hash, repositoryPath: string, path: string): void {
+function hashWorkingFile(
+  hash: Hash,
+  repositoryPath: string,
+  path: string
+): void {
   const absolutePath = resolve(repositoryPath, path);
-  hash.update(path).update('\0');
+  hash.update(path).update("\0");
   let stats: Stats;
   try {
     stats = lstatSync(absolutePath);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-    hash.update('missing').update('\0');
+    if (
+      !(error instanceof Error) ||
+      !("code" in error) ||
+      error.code !== "ENOENT"
+    ) {
+      throw error;
+    }
+    hash.update("missing").update("\0");
     return;
   }
 
   if (stats.isSymbolicLink()) {
-    hash.update('symlink').update(readlinkSync(absolutePath));
+    hash.update("symlink").update(readlinkSync(absolutePath));
   } else if (stats.isFile()) {
-    hash.update('file');
-    const file = openSync(absolutePath, 'r');
+    hash.update("file");
+    const file = openSync(absolutePath, "r");
     try {
       const buffer = Buffer.allocUnsafe(64 * 1024);
       let bytesRead: number;
@@ -55,50 +69,83 @@ function hashWorkingFile(hash: Hash, repositoryPath: string, path: string): void
       closeSync(file);
     }
   } else {
-    hash.update('other');
+    hash.update("other");
   }
-  hash.update('\0');
+  hash.update("\0");
 }
 
 /** Observe the selected subtree without counting the CLI's own output file. */
-export function observeGit(repositoryPath: string, outputPath?: string): GitObservation {
-  const commitSha = git(repositoryPath, ['rev-parse', '--verify', 'HEAD']).trim();
-  if (!/^[a-f0-9]{40,64}$/.test(commitSha)) {
-    throw new Error('Git returned an invalid HEAD commit SHA.');
+export function observeGit(
+  repositoryPath: string,
+  outputPath?: string
+): GitObservation {
+  const commitSha = git(repositoryPath, [
+    "rev-parse",
+    "--verify",
+    "HEAD",
+  ]).trim();
+  if (!/^[a-f0-9]{40,64}$/u.test(commitSha)) {
+    throw new Error("Git returned an invalid HEAD commit SHA.");
   }
 
-  const gitRoot = git(repositoryPath, ['rev-parse', '--show-toplevel']).trimEnd();
-  const outputRelative = outputPath === undefined ? null : relative(gitRoot, outputPath);
-  const excludedOutput = outputRelative !== null &&
-    outputRelative !== '' &&
-    !outputRelative.startsWith('..') &&
+  const gitRoot = git(repositoryPath, [
+    "rev-parse",
+    "--show-toplevel",
+  ]).trimEnd();
+  const outputRelative =
+    outputPath === undefined ? null : relative(gitRoot, outputPath);
+  const excludedOutput =
+    outputRelative !== null &&
+    outputRelative !== "" &&
+    !outputRelative.startsWith("..") &&
     !isAbsolute(outputRelative)
-    ? [`:(exclude,top)${outputRelative.split('\\').join('/')}`]
-    : [];
-  const paths = ['--', '.', ...excludedOutput];
+      ? [`:(exclude,top)${outputRelative.split("\\").join("/")}`]
+      : [];
+  const paths = ["--", ".", ...excludedOutput];
   const status = git(repositoryPath, [
-    'status', '--porcelain=v1', '--untracked-files=all', ...paths,
+    "status",
+    "--porcelain=v1",
+    "--untracked-files=all",
+    ...paths,
   ]);
 
   // Porcelain status only records *which* dirty paths exist. Include staged
   // object IDs and working file contents to detect edits during the scan.
   const stagedDiff = git(repositoryPath, [
-    'diff', '--cached', '--raw', '-z', '--no-ext-diff', '--no-color', 'HEAD', ...paths,
+    "diff",
+    "--cached",
+    "--raw",
+    "-z",
+    "--no-ext-diff",
+    "--no-color",
+    "HEAD",
+    ...paths,
   ]);
   const modified = git(repositoryPath, [
-    'ls-files', '--modified', '-z', ...paths,
-  ]).split('\0').filter(Boolean);
+    "ls-files",
+    "--modified",
+    "-z",
+    ...paths,
+  ])
+    .split("\0")
+    .filter(Boolean);
   const untracked = git(repositoryPath, [
-    'ls-files', '--others', '--exclude-standard', '-z', ...paths,
-  ]).split('\0').filter(Boolean);
-  const hash = createHash('sha256');
-  hash.update(status).update('\0').update(stagedDiff).update('\0');
-  for (const path of [...new Set([...modified, ...untracked])].sort()) {
+    "ls-files",
+    "--others",
+    "--exclude-standard",
+    "-z",
+    ...paths,
+  ])
+    .split("\0")
+    .filter(Boolean);
+  const hash = createHash("sha256");
+  hash.update(status).update("\0").update(stagedDiff).update("\0");
+  for (const path of [...new Set([...modified, ...untracked])].toSorted()) {
     hashWorkingFile(hash, repositoryPath, path);
   }
 
   return {
     state: { commitSha, isDirty: status.length > 0 },
-    fingerprint: hash.digest('hex'),
+    fingerprint: hash.digest("hex"),
   };
 }

@@ -1,17 +1,27 @@
 {
   "name": "statecraft",
   "private": true,
-  "packageManager": "pnpm@12.4.2",
-  "engines": {
-    "node": ">=24"
-  },
   "scripts": {
     "dev": "pnpm --filter @statecraft/core build && pnpm --filter @statecraft/web dev",
     "build": "pnpm -r run build",
-    "typecheck": "pnpm --filter @statecraft/core build && pnpm --filter @statecraft/scanner build && pnpm -r run typecheck",
+    "build:packages": "pnpm -r --filter './packages/*' run build",
+    "check": "pnpm run build:packages && ultracite check",
+    "fix": "pnpm run build:packages && ultracite fix",
+    "lint": "pnpm run build:packages && oxlint",
+    "format": "oxfmt --write",
+    "format:check": "oxfmt --check",
+    "typecheck": "pnpm run build:packages && pnpm -r run typecheck && tsc -p tsconfig.tooling.json",
     "test": "pnpm -r run test"
   },
   "devDependencies": {
-    "typescript": "7.0.2"
-  }
+    "oxfmt": "0.75.0",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2007",
+    "typescript": "7.0.2",
+    "ultracite": "8.2.1"
+  },
+  "engines": {
+    "node": ">=24.15.0"
+  },
+  "packageManager": "pnpm@12.4.2"
 }

@@ -1,8 +1,12 @@
-import { useId, useLayoutEffect, useRef, useState, type Ref } from 'react';
-import { Button } from '../ui/Button';
-import { TextInput } from '../ui/TextInput';
-import { CommandButton } from './CommandButton';
-import type { EditorCommand, ShortcutPlatform } from './commands';
+/* oxlint-disable jsx-a11y/no-noninteractive-element-interactions -- The form delegates Escape from its inputs and buttons to cancel editing. */
+import { useId, useLayoutEffect, useRef, useState } from "react";
+import type { Ref } from "react";
+
+import { Button } from "../ui/Button";
+import { TextInput } from "../ui/TextInput";
+import { CommandButton } from "./CommandButton";
+import type { EditorCommand, ShortcutPlatform } from "./commands";
+import { isComposingKey } from "./is-composing-key";
 
 interface FlowNameEditorProps {
   readonly ref?: Ref<HTMLInputElement>;
@@ -14,7 +18,15 @@ interface FlowNameEditorProps {
   readonly onClose: () => void;
 }
 
-export function FlowNameEditor({ ref, command, platform, name, isEditing, onRename, onClose }: FlowNameEditorProps) {
+export function FlowNameEditor({
+  ref,
+  command,
+  platform,
+  name,
+  isEditing,
+  onRename,
+  onClose,
+}: FlowNameEditorProps) {
   const inputId = useId();
   const [draftName, setDraftName] = useState(name);
   const [previousName, setPreviousName] = useState(name);
@@ -79,7 +91,7 @@ export function FlowNameEditor({ ref, command, platform, name, isEditing, onRena
         closeEditor();
       }}
       onKeyDown={(event) => {
-        if (event.key === 'Escape' && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
+        if (event.key === "Escape" && !isComposingKey(event.nativeEvent)) {
           event.preventDefault();
           event.stopPropagation();
           closeEditor();
@@ -99,9 +111,11 @@ export function FlowNameEditor({ ref, command, platform, name, isEditing, onRena
           autoComplete="off"
           autoFocus
           value={draftName}
-          onChange={(event) => setDraftName(event.target.value)}
+          onChange={(event) => {
+            setDraftName(event.target.value);
+          }}
           aria-invalid={!isValid}
-          aria-describedby={!isValid ? `${inputId}-error` : undefined}
+          aria-describedby={isValid ? undefined : `${inputId}-error`}
           className="flex-1 basis-32"
         />
 

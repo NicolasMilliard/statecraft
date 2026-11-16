@@ -1,4 +1,4 @@
-import { useCheckout as useCheckoutFlow } from '../hooks/useCheckout';
+import { useCheckout as useCheckoutFlow } from "../hooks/useCheckout";
 
 export function CheckoutForm() {
   const { cart, createOrder } = useCheckoutFlow();
@@ -7,7 +7,7 @@ export function CheckoutForm() {
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        createOrder.mutate({ cartId: cart.data?.id ?? '' });
+        createOrder.mutate({ cartId: cart.data?.id ?? "" });
       }}
     >
       <button type="submit">Place order</button>
